@@ -1,28 +1,29 @@
-import { useEffect, useState } from "react";
-import { apiGet } from "./services/api";
-
-interface PingResponse {
-  message: string;
-}
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Inicio from "./pages/Inicio";
+import TipoDenuncia from "./pages/TipoDenuncia";
+import DenuncianteForm from "./pages/DenuncianteForm";
+import DetallesDenuncia from "./pages/DetallesDenuncia";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
 function App() {
-  const [data, setData] = useState<PingResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiGet<PingResponse>("/api/ping")
-      .then(setData)
-      .catch((err) => setError(err.message));
-  }, []);
-
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!data) return <p>Cargando...</p>;
-
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Frontend TypeScript + Backend JS</h1>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
+    <BrowserRouter>
+      <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+        <Header />
+        <main style={{ flex: 1, padding: "16px" }}>
+          <Routes>
+            <Route path="/" element={<Inicio />} />
+            <Route path="/denuncia/tipo" element={<TipoDenuncia />} />
+            <Route path="/denuncia/denunciante" element={<DenuncianteForm />} />
+            <Route path="/denuncia/detalles" element={<DetallesDenuncia />} />
+            {/* fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </BrowserRouter>
   );
 }
 
