@@ -35,3 +35,4 @@ docker-compose.override.yml
 # --- Sistema operativo ---
 Thumbs.db
 Desktop.ini
+.env
