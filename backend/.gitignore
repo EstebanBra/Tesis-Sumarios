@@ -1,0 +1,38 @@
+# --- Dependencias ---
+node_modules/
+
+# --- Archivos de entorno ---
+.env
+.env.*
+
+# --- Logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs
+*.log
+
+# --- Caché y builds temporales ---
+.DS_Store
+dist/
+build/
+tmp/
+temp/
+.cache/
+coverage/
+
+# --- Configuración del editor ---
+.vscode/
+.idea/
+*.swp
+
+# --- Docker (si luego usas contenedor) ---
+*.pid
+docker-compose.override.yml
+
+# --- Sistema operativo ---
+Thumbs.db
+Desktop.ini
+.env
+/src/generated/prisma
