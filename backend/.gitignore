@@ -3,8 +3,7 @@ node_modules/
 
 # --- Archivos de entorno ---
 .env
-.env.local
-.env.*.local
+.env.*
 
 # --- Logs ---
 npm-debug.log*
@@ -36,3 +35,4 @@ docker-compose.override.yml
 Thumbs.db
 Desktop.ini
 .env
+/src/generated/prisma

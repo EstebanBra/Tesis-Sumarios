@@ -1,0 +1,202 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// PERSONAS Y PARTICIPANTES
+// ==========================================
+
+model Persona {
+  Rut      String @id @db.VarChar(12)
+  Nombre   String @db.VarChar(100)
+  Correo   String @db.VarChar(100)
+  Telefono String @db.VarChar(20)
+
+  // Relaciones
+  participantes_caso Participante_Caso[]
+  per_par_den        Per_Par_Den[]
+
+  @@map("Persona")
+}
+
+model Participante_Caso {
+  ID_PC   Int    @id @default(autoincrement())
+  Rut     String @db.VarChar(12)
+  Tipo_PC String @db.VarChar(50)
+
+  // Relaciones
+  persona Persona @relation(fields: [Rut], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+  hitos   Hitos[]
+
+  @@map("Participante_Caso")
+}
+
+// ==========================================
+// DENUNCIAS
+// ==========================================
+
+model Denuncia {
+  ID_Denuncia   Int      @id @default(autoincrement())
+  Rut           String   @db.VarChar(12)
+  ID_TipoDe     Int
+  ID_EstadoDe   Int
+  Fecha_Inicio  DateTime @db.Date
+  Relato_Hechos String   @db.Text
+  Ubicacion     String?  @db.VarChar(200)
+
+  // Relaciones
+  tipo_denuncia         Tipo_Denuncia           @relation(fields: [ID_TipoDe], references: [ID_TipoDe], onDelete: NoAction, onUpdate: NoAction)
+  estado_denuncia       Estado_Denuncia         @relation(fields: [ID_EstadoDe], references: [ID_EstadoDe], onDelete: NoAction, onUpdate: NoAction)
+  medidas_cautelares    MedidaCautelar[]
+  per_par_den           Per_Par_Den[]
+  participante_denuncia Participante_Denuncia[]
+  historial_estado      Historial_Estado[]
+
+  @@map("Denuncia")
+}
+
+model Tipo_Denuncia {
+  ID_TipoDe Int    @id @default(autoincrement())
+  Nombre    String @db.VarChar(100)
+  Area      String @db.VarChar(100)
+
+  // Relaciones
+  denuncias Denuncia[]
+
+  @@map("Tipo_Denuncia")
+}
+
+model Estado_Denuncia {
+  ID_EstadoDe  Int    @id @default(autoincrement())
+  Tipo_Estado  String @db.VarChar(50)
+
+  // Relaciones
+  denuncias        Denuncia[]
+  historial_estado Historial_Estado[]
+
+  @@map("Estado_Denuncia")
+}
+
+// ==========================================
+// HISTORIAL DE ESTADOS
+// ==========================================
+
+model Historial_Estado {
+  ID_Denuncia Int
+  ID_EstadoDe Int
+  Fecha       DateTime @db.DateTime
+
+  // Relaciones
+  denuncia        Denuncia        @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+  estado_denuncia Estado_Denuncia @relation(fields: [ID_EstadoDe], references: [ID_EstadoDe], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([ID_Denuncia, ID_EstadoDe])
+  @@map("Historial_Estado")
+}
+
+// ==========================================
+// PARTICIPANTES EN DENUNCIAS
+// ==========================================
+
+model Participante_Denuncia {
+  ID_PD       Int    @id @default(autoincrement())
+  ID_Denuncia Int
+  Rut         String @db.VarChar(12)
+  Nombre_PD   String @db.VarChar(100)
+
+  // Relaciones
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Participante_Denuncia")
+}
+
+// ==========================================
+// RELACIÓN PERSONA-PARTICIPANTE-DENUNCIA
+// ==========================================
+
+model Per_Par_Den {
+  ID_PD        Int    @id @default(autoincrement())
+  ID_Denuncia  Int
+  Rut          String @db.VarChar(12)
+  Cargo_actual String @db.VarChar(100)
+
+  // Relaciones
+  persona  Persona  @relation(fields: [Rut], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Per_Par_Den")
+}
+
+// ==========================================
+// MEDIDAS CAUTELARES
+// ==========================================
+
+model MedidaCautelar {
+  ID_MC        Int      @id @default(autoincrement())
+  ID_Denuncia  Int
+  Fecha_Inicio DateTime @db.Date
+  Fecha_Fin    DateTime @db.Date
+  Detalle      String   @db.Text
+
+  // Relaciones
+  denuncia       Denuncia        @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+  tipos_cautelar Tipo_Cautelar[]
+
+  @@map("MedidaCautelar")
+}
+
+model Tipo_Cautelar {
+  ID_MC  Int    @id
+  Nombre String @db.VarChar(100)
+
+  // Relaciones
+  medida_cautelar MedidaCautelar @relation(fields: [ID_MC], references: [ID_MC], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Tipo_Cautelar")
+}
+
+// ==========================================
+// HITOS Y ARCHIVOS
+// ==========================================
+
+model Hitos {
+  ID_Hitos    Int     @id @default(autoincrement())
+  ID_PC       Int
+  Nombre      String  @db.VarChar(100)
+  Descripcion String? @db.Text
+
+  // Relaciones
+  participante_caso Participante_Caso @relation(fields: [ID_PC], references: [ID_PC], onDelete: Cascade, onUpdate: Cascade)
+  tipo_hitos        Tipo_Hito[]
+  archivos          Archivo[]
+
+  @@map("Hitos")
+}
+
+model Tipo_Hito {
+  ID_Tipo_Hito Int    @id @default(autoincrement())
+  ID_Hitos     Int
+  Nombre       String @db.VarChar(100)
+
+  // Relaciones
+  hito Hitos @relation(fields: [ID_Hitos], references: [ID_Hitos], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Tipo_Hito")
+}
+
+model Archivo {
+  ID_Archivo Int    @id @default(autoincrement())
+  ID_Hitos   Int
+  Archivo    String @db.VarChar(255)
+
+  // Relaciones
+  hito Hitos @relation(fields: [ID_Hitos], references: [ID_Hitos], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Archivo")
+}
