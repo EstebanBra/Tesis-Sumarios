@@ -73,8 +73,8 @@ model Tipo_Denuncia {
 }
 
 model Estado_Denuncia {
-  ID_EstadoDe  Int    @id @default(autoincrement())
-  Tipo_Estado  String @db.VarChar(50)
+  ID_EstadoDe Int    @id @default(autoincrement())
+  Tipo_Estado String @db.VarChar(50)
 
   // Relaciones
   denuncias        Denuncia[]

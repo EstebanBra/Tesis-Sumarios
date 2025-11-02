@@ -1,6 +1,7 @@
 // src/routes/index.js
 import { Router } from "express";
 import { probarConexion } from "../config/db.js";
+import denunciaRouter from "./denuncias.routes.js";
 
 const router = Router();
 
@@ -13,5 +14,10 @@ router.get("/db", async (req, res) => {
     res.status(500).json({ connected: false, error: error.message });
   }
 });
+
+
+router.use("/denuncias", denunciaRouter);
+
+
 
 export default router;
