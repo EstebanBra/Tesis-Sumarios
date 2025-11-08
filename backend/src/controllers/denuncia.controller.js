@@ -1,6 +1,12 @@
 import { validationResult } from "express-validator";
-import { createDenunciaService } from "../services/denuncia.service.js";
-import { mapDenunciaResponse } from "../entity/denuncia.entity.js";
+import {
+  createDenunciaService,
+  listDenunciasService,
+  getDenunciaByIdService,
+  updateDenunciaService,
+  deleteDenunciaService,
+  changeEstadoService,
+} from "../services/denuncia.service.js";
 
 function handleValidation(req) {
   const errors = validationResult(req);
@@ -13,7 +19,7 @@ function handleValidation(req) {
   }
 }
 
-// Listar denuncias con filtros y paginación
+// 📋 Listar denuncias con filtros y paginación
 export async function listDenuncias(req, res, next) {
   try {
     handleValidation(req);
@@ -31,27 +37,26 @@ export async function listDenuncias(req, res, next) {
     const { total, rows, pages } = await listDenunciasService(filters, page, pageSize);
     res.json({
       meta: { total, page, pageSize, pages },
-      data: rows.map(mapDenunciaResponse),
+      data: rows, // ✅ devolvemos directamente el resultado Prisma
     });
   } catch (err) {
     next(err);
   }
 }
 
-//esto puede ser distinto 
-
+// 🔍 Obtener una denuncia por ID
 export async function getDenunciaById(req, res, next) {
   try {
     handleValidation(req);
     const row = await getDenunciaByIdService(req.params.id);
     if (!row) return res.status(404).json({ message: "Denuncia no encontrada" });
-    res.json(mapDenunciaResponse(row));
+    res.json(row); // ✅ sin mapDenunciaResponse
   } catch (err) {
     next(err);
   }
 }
 
-
+// 🆕 Crear una nueva denuncia
 export async function createDenuncia(req, res, next) {
   try {
     const errors = validationResult(req);
@@ -69,8 +74,6 @@ export async function createDenuncia(req, res, next) {
       Fecha_Inicio: new Date(req.body.Fecha_Inicio),
       Relato_Hechos: String(req.body.Relato_Hechos),
       Ubicacion: req.body.Ubicacion ?? null,
-
-      // esto son los opcionales 
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : [],
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : [],
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : [],
@@ -78,36 +81,43 @@ export async function createDenuncia(req, res, next) {
     };
 
     const created = await createDenunciaService(payload, { historial: true });
-    res.status(201).json(mapDenunciaResponse(created));
+    res.status(201).json(created); // ✅ sin map
   } catch (err) {
     next(err);
   }
 }
 
-
-// beste no lo e actualizado ya que tengo dudas de la hacer udpate de la denuncia
-//y no esta actualizado igual qu el services 
 export async function updateDenuncia(req, res, next) {
   try {
     handleValidation(req);
     const id = Number(req.params.id);
-    const data = {};
 
-    // Solo copiamos campos presentes
-    if (req.body.Rut !== undefined) data.Rut = String(req.body.Rut).trim();
-    if (req.body.ID_TipoDe !== undefined) data.ID_TipoDe = Number(req.body.ID_TipoDe);
-    if (req.body.ID_EstadoDe !== undefined) data.ID_EstadoDe = Number(req.body.ID_EstadoDe);
-    if (req.body.Fecha_Inicio !== undefined) data.Fecha_Inicio = new Date(req.body.Fecha_Inicio);
-    if (req.body.Relato_Hechos !== undefined) data.Relato_Hechos = String(req.body.Relato_Hechos).trim();
-    if (req.body.Ubicacion !== undefined) data.Ubicacion = req.body.Ubicacion ? String(req.body.Ubicacion).trim() : null;
+    const data = {
+      Rut: req.body.Rut ? String(req.body.Rut).trim() : undefined,
+      ID_TipoDe: req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined,
+      ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
+      Fecha_Inicio: req.body.Fecha_Inicio ? new Date(req.body.Fecha_Inicio) : undefined,
+      Relato_Hechos: req.body.Relato_Hechos ? String(req.body.Relato_Hechos).trim() : undefined,
+      Ubicacion: req.body.Ubicacion ?? undefined,
+      denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : undefined,
+      testigos: Array.isArray(req.body.testigos) ? req.body.testigos : undefined,
+      evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : undefined,
+      caracteristicasDenunciado: req.body.caracteristicasDenunciado ?? undefined,
+    };
 
     const updated = await updateDenunciaService(id, data);
-    res.json(mapDenunciaResponse(updated));
+
+    res.json({
+      message: "Denuncia actualizada correctamente",
+      data: updated,
+    });
   } catch (err) {
     next(err);
   }
 }
 
+
+// 🗑️ Eliminar una denuncia
 export async function deleteDenuncia(req, res, next) {
   try {
     handleValidation(req);
@@ -118,7 +128,7 @@ export async function deleteDenuncia(req, res, next) {
   }
 }
 
-//para que cada actualizacion se guarde el endpoint se usa iugla despues 
+// 🔄 Cambiar estado de una denuncia
 export async function changeEstado(req, res, next) {
   try {
     handleValidation(req);
@@ -127,7 +137,7 @@ export async function changeEstado(req, res, next) {
     const fecha = req.body.fecha ?? null;
 
     const updated = await changeEstadoService(id, nuevoEstadoId, fecha);
-    res.json(mapDenunciaResponse(updated));
+    res.json(updated);
   } catch (err) {
     next(err);
   }

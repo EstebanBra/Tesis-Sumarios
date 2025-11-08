@@ -135,19 +135,39 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
   });
 }
 
-//! Creo que no es necesario un update completo, puede ser el cambio de estado nomás
-/*export async function updateDenunciaService(id, data) {
-  // Si cambia el estado, agregamos registro al historial en la misma transacción
+export async function updateDenunciaService(id, data) {
   return prisma.$transaction(async (tx) => {
-    const prev = await tx.denuncia.findUnique({ where: { ID_Denuncia: Number(id) } });
+    const prev = await tx.denuncia.findUnique({
+      where: { ID_Denuncia: Number(id) },
+      include: {
+        participante_denuncia: true,
+        medidas_cautelares: true,
+        historial_estado: true,
+      },
+    });
     if (!prev) throw new Error("Denuncia no encontrada");
 
-    const updated = await tx.denuncia.update({
+    // 1️⃣ Actualizar los campos base
+    const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(id) },
-      data,
-      include: includeFull,
+      data: {
+        Rut: data.Rut ?? prev.Rut,
+        ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
+        ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
+        Fecha_Inicio: data.Fecha_Inicio ?? prev.Fecha_Inicio,
+        Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
+        Ubicacion: data.Ubicacion ?? prev.Ubicacion,
+      },
+      include: {
+        tipo_denuncia: true,
+        estado_denuncia: true,
+        historial_estado: true,
+        participante_denuncia: true,
+        medidas_cautelares: { include: { tipos_cautelar: true } },
+      },
     });
 
+    // 2️⃣ Si cambia el estado, agregar registro al historial
     if (data.ID_EstadoDe && data.ID_EstadoDe !== prev.ID_EstadoDe) {
       await tx.historial_Estado.create({
         data: {
@@ -158,9 +178,95 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       });
     }
 
-    return updated;
+    // 3️⃣ Actualizar participantes (denunciados y testigos)
+    if (Array.isArray(data.denunciados) || Array.isArray(data.testigos)) {
+      // Eliminamos los participantes previos de esta denuncia
+      await tx.participante_Denuncia.deleteMany({
+        where: { ID_Denuncia: Number(id) },
+      });
+
+      const nuevosParticipantes = [];
+
+      // denunciados
+      if (Array.isArray(data.denunciados)) {
+        for (const p of data.denunciados) {
+          if (p?.nombre || p?.rut) {
+            nuevosParticipantes.push({
+              ID_Denuncia: Number(id),
+              Rut: p.rut ?? "DESCONOCIDO",
+              Nombre_PD: p.nombre ?? "Desconocido",
+            });
+          }
+        }
+      }
+
+      // testigos
+      if (Array.isArray(data.testigos)) {
+        for (const t of data.testigos) {
+          if (t?.nombre || t?.rut) {
+            nuevosParticipantes.push({
+              ID_Denuncia: Number(id),
+              Rut: t.rut ?? "DESCONOCIDO",
+              Nombre_PD: t.nombre ?? "Desconocido",
+            });
+          }
+        }
+      }
+
+      if (nuevosParticipantes.length) {
+        await tx.participante_Denuncia.createMany({ data: nuevosParticipantes });
+      }
+    }
+
+    // 4️⃣ Actualizar evidencias (si se envían nuevas)
+    if (Array.isArray(data.evidencias) && data.evidencias.length > 0) {
+      // Eliminamos evidencias antiguas vinculadas
+      await tx.archivo.deleteMany({
+        where: {
+          hitos: { participante_caso: { Rut: denunciaActualizada.Rut } },
+        },
+      });
+
+      // Creamos nueva relación de participante_caso e hito
+      const pc = await tx.participante_Caso.create({
+        data: {
+          Rut: denunciaActualizada.Rut,
+          Tipo_PC: "DENUNCIANTE",
+        },
+      });
+
+      const hitoEvid = await tx.hitos.create({
+        data: {
+          ID_PC: pc.ID_PC,
+          Nombre: "Evidencias Actualizadas",
+          Descripcion: data.caracteristicasDenunciado ?? null,
+        },
+      });
+
+      const archivos = data.evidencias
+        .filter(e => e?.archivo)
+        .map(e => ({ ID_Hitos: hitoEvid.ID_Hitos, Archivo: e.archivo }));
+
+      if (archivos.length) {
+        await tx.archivo.createMany({ data: archivos });
+      }
+    }
+
+    // 5️⃣ Devolver la denuncia final completa
+    const updatedFull = await tx.denuncia.findUnique({
+      where: { ID_Denuncia: Number(id) },
+      include: {
+        tipo_denuncia: true,
+        estado_denuncia: true,
+        historial_estado: true,
+        participante_denuncia: true,
+        medidas_cautelares: { include: { tipos_cautelar: true } },
+      },
+    });
+
+    return updatedFull;
   });
-}*/
+}
 
 export async function deleteDenunciaService(id) {
   // Borrado físico (no hay soft delete en el esquema)
