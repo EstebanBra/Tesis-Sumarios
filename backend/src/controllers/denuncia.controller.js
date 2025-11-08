@@ -1,5 +1,11 @@
 import { validationResult } from "express-validator";
-import { createDenunciaService } from "../services/denuncia.service.js";
+import {
+  listDenunciasService,
+  getDenunciaByIdService,
+  createDenunciaService,
+  deleteDenunciaService,
+  changeEstadoService,
+} from "../services/denuncia.service.js";
 import { mapDenunciaResponse } from "../entity/denuncia.entity.js";
 
 function handleValidation(req) {
