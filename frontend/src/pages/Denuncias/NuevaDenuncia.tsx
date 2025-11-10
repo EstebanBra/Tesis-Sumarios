@@ -72,7 +72,7 @@ export default function NuevaDenuncia() {
     <section className="mx-auto max-w-2xl">
       <header className="mb-4">
         <h1 className="font-condensed text-2xl font-bold tracking-tight">Registrar nueva denuncia</h1>
-        <p className="text-sm text-gray-600">Completa la información mínima para iniciar el proceso.</p>
+        <p className="text-sm text-gray-600">Completa la información para iniciar el proceso.</p>
       </header>
 
       {/* Errores */}
