@@ -1,29 +1,12 @@
-import { useEffect, useState } from "react";
-import { apiGet } from "./services/api";
+import { Outlet } from 'react-router-dom'
+import AppShell from '@/components/layout/AppShell'
 
-interface PingResponse {
-  message: string;
-}
-
-function App() {
-  const [data, setData] = useState<PingResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiGet<PingResponse>("/api/ping")
-      .then(setData)
-      .catch((err) => setError(err.message));
-  }, []);
-
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
-  if (!data) return <p>Cargando...</p>;
-
+export default function App() {
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Frontend TypeScript + Backend JS</h1>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  )
 }
 
-export default App;
+
