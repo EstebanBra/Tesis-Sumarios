@@ -1,0 +1,90 @@
+/* ===== Importar Tailwind v4 (para Vite) ===== */
+@import "tailwindcss";
+
+/* ===== Tema UBB (oficial) =====
+   Colores corporativos según Manual de Normas Gráficas UBB.
+   Azul 293 CVC (#014898), Gris P 179-3 C (#B9BBBB),
+   Rojo Warm Red (#E41B1A), Amarillo 123 CVC (#F9B214). */
+@theme {
+  --color-ubb-blue: #014898;
+  --color-ubb-gray: #b9bbbb;
+  --color-ubb-red: #e41b1a;
+  --color-ubb-yellow: #f9b214;
+
+  /* Opcional: apoyo cromático de ilustraciones (manual) */
+  --color-ubb-blue-dark: #1b2e51;
+  --color-ubb-blue-mid: #2ca2dc;
+  --color-ubb-cream: #fdebdb;
+  --color-ubb-orange: #e96727;
+}
+
+/* Utilidades rápidas para fondo/contraste en páginas */
+html, body, #root {
+  height: 100%;
+}
+
+/* ====== Tipo UBB (texto) ====== */
+@font-face {
+  font-family: "Tipo UBB";
+  src: url("/fonts/tipo-ubb-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tipo UBB";
+  src: url("/fonts/tipo-ubb-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ====== Tipo UBB Condensed (titulares) ====== */
+@font-face {
+  font-family: "Tipo UBB Condensed";
+  src: url("/fonts/tipo-ubb-condensed-light.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tipo UBB Condensed";
+  src: url("/fonts/tipo-ubb-condensed-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tipo UBB Condensed";
+  src: url("/fonts/tipo-ubb-condensed-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tipo UBB Condensed";
+  src: url("/fonts/tipo-ubb-condensed-black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Mapear a utilidades Tailwind v4 */
+@theme {
+  --font-family-sans: "Tipo UBB", Arial, "Helvetica Neue", ui-sans-serif, system-ui, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", sans-serif;
+  --font-family-condensed: "Tipo UBB Condensed", "Tipo UBB", Arial, "Helvetica Neue", ui-sans-serif, system-ui, "Segoe UI", Roboto, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+/*Botones*/
+/* Botón de icono para footer oscuro (#1C405F) */
+.btn-icon-redes {
+  @apply inline-flex items-center justify-center rounded-full
+         bg-white/10 text-white/90
+         hover:bg-white/15 hover:text-white
+         focus:outline-none focus:ring-2 focus:ring-white/40;
+}
+
+/* Tamaños */
+.btn-icon--sm { @apply h-8 w-8; }
+.btn-icon--md { @apply h-9 w-9; }
+.btn-icon--lg { @apply h-10 w-10; }
