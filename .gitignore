@@ -1,0 +1,14 @@
+# Ignorar todas las dependencias
+**/node_modules
+
+# Ignorar TODOS los archivos de entorno (¡AQUÍ ESTÁN TUS CLAVES!)
+.env
+.env.*
+*.env
+
+# Archivo específico que creamos (para estar 100% seguros)
+backend/.env.docker
+
+# Logs y archivos de sistema
+npm-debug.log
+.DS_Store
