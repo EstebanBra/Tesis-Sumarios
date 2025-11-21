@@ -4,7 +4,7 @@ import { crearDenuncia, type CrearDenunciaInput } from '@/services/denuncias.api
 import { routes } from '@/services/routes'
 import { Cards } from '@/components/ui/Cards'
 
-// --- DEFINICIÓN DE TIPOS Y DATOS ---
+
 
 type OpcionTipo = { 
   id: number; 
@@ -12,7 +12,7 @@ type OpcionTipo = {
   descripcion: string; 
   icono: React.ReactNode 
 }
-
+//definiciones del tipo y el subtipo
 type OpcionSubtipo = {
   id: number
   tipoId: number
@@ -20,7 +20,6 @@ type OpcionSubtipo = {
   descripcion: string
 }
 
-// Iconos SVG para las tarjetas principales
 const IconoViolencia = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
@@ -72,7 +71,7 @@ const SUBTIPOS_DENUNCIA: OpcionSubtipo[] = [
 const REGIONES = ['XV Región de Arica y Parinacota', 'I Región de Tarapacá', 'II Región de Antofagasta', 'III Región de Atacama', 'IV Región de Coquimbo', 'V Región de Valparaíso', 'RM Región Metropolitana de Santiago', 'VI Región del Libertador General Bernardo O’Higgins', 'VII Región del Maule', 'XVI Región de Ñuble', 'VIII Región del Bío-Bío', 'IX Región de La Araucanía', 'XIV Región de Los Ríos', 'X Región de Los Lagos', 'XI Región de Aysén del General Carlos Ibáñez del Campo', 'XII Región de Magallanes y de la Antártica Chilena'];
 const COMUNAS = ['Concepción', 'Chillán', 'Los Ángeles', 'Talcahuano', 'San Pedro de la Paz', 'Santiago', 'Valparaíso']; // Simplificado
 
-// --- ESTRUCTURAS DEL FORMULARIO ---
+//estructua de todo el formulario 
 
 type Involucrado = {
   nombre: string
@@ -90,13 +89,13 @@ type FormularioDenuncia = {
   correo: string
   institucional: boolean
   reservaIdentidad: boolean
-  // Estos IDs se llenan en las fases previas
-  tipoId: number
-  subtipoId: number | null
+
+  tipoId: number // esto es lo que cambia
+  subtipoId: number | null// este igual
   regionDenunciante: string
   comunaDenunciante: string
   direccionDenunciante: string
-  // Víctima
+
   victimaMenor: 'si' | 'no'
   esVictima: 'si' | 'no'
   victimaRut: string
@@ -107,7 +106,7 @@ type FormularioDenuncia = {
   victimaSexo: string
   victimaNacionalidad: string
   victimaNacimiento: string
-  // Hechos
+  // esto deberiamos cambiarlo con lo de l si es chillan o conce y que falcultad es 
   regionHecho: string
   comunaHecho: string
   direccionHecho: string
@@ -140,24 +139,23 @@ type FaseRegistro = 'seleccion_tipo' | 'seleccion_subtipo' | 'formulario'
 export default function NuevaDenuncia() {
   const nav = useNavigate()
   
-  // Estados principales
   const [fase, setFase] = useState<FaseRegistro>('seleccion_tipo')
   const [form, setForm] = useState<FormularioDenuncia>(initialForm)
   const [step, setStep] = useState(1)
   
-  // Estados de UI/Carga
+
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [detalles, setDetalles] = useState<{ field: string; msg: string }[] | null>(null)
 
   const stepTitle = useMemo(() => steps[step - 1]?.label ?? '', [step])
   
-  // Datos derivados
+ 
   const subtiposDisponibles = useMemo(() => SUBTIPOS_DENUNCIA.filter((s) => s.tipoId === form.tipoId), [form.tipoId])
   const subtipoSeleccionado = useMemo(() => SUBTIPOS_DENUNCIA.find((s) => s.id === form.subtipoId) ?? null, [form.subtipoId])
   const tipoSeleccionado = useMemo(() => TIPOS_DENUNCIA.find((t) => t.id === form.tipoId) ?? null, [form.tipoId])
 
-  // --- HANDLERS DE FASES ---
+
   
   function handleSelectTipo(id: number) {
     setForm(prev => ({ ...prev, tipoId: id, subtipoId: null }))
@@ -184,8 +182,6 @@ export default function NuevaDenuncia() {
       handlePrev()
     }
   }
-
-  // --- HANDLERS DEL FORMULARIO ---
 
   function updateField<K extends keyof FormularioDenuncia>(key: K, value: FormularioDenuncia[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -233,7 +229,7 @@ export default function NuevaDenuncia() {
       return
     }
 
-    // Concatenar info adicional sobre el tipo seleccionado
+    // esto es de los tipos y sub tipos
     const notasAdicionales = [
       subtipoSeleccionado ? `Subtipo: ${subtipoSeleccionado.nombre}` : null,
       subtipoSeleccionado ? subtipoSeleccionado.descripcion : null,
@@ -270,9 +266,7 @@ export default function NuevaDenuncia() {
     }
   }
 
-  // -----------------------------------------------------
-  // RENDER: FASE 1 (TIPOS)
-  // -----------------------------------------------------
+// lo primero que sale los 2 tipos  
   if (fase === 'seleccion_tipo') {
     return (
       <section className="mx-auto max-w-5xl py-12">
@@ -297,27 +291,31 @@ export default function NuevaDenuncia() {
           ))}
         </div>
         
-        <div className="mt-12 text-center">
-           <button onClick={() => history.back()} className="text-sm text-gray-500 hover:text-gray-800 hover:underline">
-             Cancelar y volver al inicio
-           </button>
-        </div>
+      <div className="mt-12 text-center">
+   <button 
+     onClick={() => history.back()} 
+     className="mt-4 inline-flex items-center justify-center rounded-md bg-ubb-blue px-6 py-2 text-sm font-semibold text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ubb-blue/30"
+   >
+     Cancelar y volver al inicio
+   </button>
+</div>
+
       </section>
     )
   }
 
  
-  // RENDER: FASE 2 (SUBTIPOS)
 
+// y aca el subtipo
   if (fase === 'seleccion_subtipo') {
     return (
       <section className="mx-auto max-w-6xl py-10">
         <header className="mb-8 px-4">
           <button 
             onClick={handleBackToTipo}
-            className="group mb-4 flex items-center text-sm text-gray-500 hover:text-ubb-blue transition-colors"
+            className="group mb-6 inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-200"
           >
-            <span className="mr-1 transition-transform group-hover:-translate-x-1">&larr;</span> 
+            <span className="mr-2 transition-transform group-hover:-translate-x-1">&larr;</span> 
             Volver a categorías
           </button>
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -345,7 +343,7 @@ export default function NuevaDenuncia() {
     )
   }
 
-  // RENDER: FASE 3 (FORMULARIO)
+  // lo que estaba antes 
 
   return (
     <section className="mx-auto max-w-4xl py-6">
@@ -359,7 +357,7 @@ export default function NuevaDenuncia() {
         </p>
       </header>
 
-      {/* Stepper */}
+      
       <ol className="mb-8 flex items-center justify-between gap-3">
         {steps.map((s, idx) => {
           const isActive = step === s.id
