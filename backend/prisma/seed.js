@@ -1,94 +1,92 @@
-// src/config/initialSetup.js
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
+
+const prisma = new PrismaClient()
 
 export async function runInitialSetup() {
-  try {
-    // Persona base 
+  console.log('🌱 Iniciando seed de datos...')
+
+  // 1. Crear Usuarios (Personas)
+  const passwordHash = await bcrypt.hash('123456', 10)
+
+  const usuarios = [
+    {
+      Rut: '11111111-1',
+      Nombre: 'Esteban Bravo',
+      Correo: 'esteban@ubb.cl',
+      Telefono: '+56911111111',
+      password: passwordHash,
+      roles: ['Admin', 'VRA']
+    },
+    {
+      Rut: '22222222-2',
+      Nombre: 'Francisca Rabanal',
+      Correo: 'francisca@ubb.cl',
+      Telefono: '+56922222222',
+      password: passwordHash,
+      roles: ['Admin', 'Fiscal']
+    },
+    {
+      Rut: '33333333-3',
+      Nombre: 'Usuario VRAE',
+      Correo: 'vrae@ubb.cl',
+      Telefono: '+56933333333',
+      password: passwordHash,
+      roles: ['VRAE']
+    },
+    {
+      Rut: '44444444-4',
+      Nombre: 'Usuario Fiscalia',
+      Correo: 'fiscalia@ubb.cl',
+      Telefono: '+56944444444',
+      password: passwordHash,
+      roles: ['Fiscalia']
+    }
+  ]
+
+  for (const u of usuarios) {
+    // Crear o actualizar Persona
     await prisma.persona.upsert({
-      where: { Rut: '11111111-1' },
-      update: {},
+      where: { Rut: u.Rut },
+      update: { password: u.password },
       create: {
-        Rut: '11111111-1',
-        Nombre: 'Juan Pérez',
-        Correo: 'juan.perez@example.com',
-        Telefono: '+56 9 1111 1111'
+        Rut: u.Rut,
+        Nombre: u.Nombre,
+        Correo: u.Correo,
+        Telefono: u.Telefono,
+        password: u.password
       }
-    });
+    })
 
-    // Tipos de denuncia
-    const [acoso, violencia] = await Promise.all([
-      prisma.tipo_Denuncia.upsert({
-        where: { ID_TipoDe: 1 },
-        update: {},
-        create: {
-          Nombre: 'Denuncia por acoso sexual, violencia y/o discriminación arbitraria por razones de sexo/género',
-          Area: 'Convivencia'
-        }
-      }),
-      prisma.tipo_Denuncia.upsert({
-        where: { ID_TipoDe: 2 },
-        update: {},
-        create: {
-          Nombre: 'Denuncia por infracción al Reglamento de Convivencia Estudiantil',
-          Area: 'Convivencia'
-        }
+    // Asignar Roles en Participante_Caso
+    for (const rol of u.roles) {
+      // Verificar si ya tiene el rol para no duplicar (aunque el modelo no tiene unique constraint explícito en Rut+Tipo_PC, es mejor prevenir)
+      const existe = await prisma.participante_Caso.findFirst({
+        where: { Rut: u.Rut, Tipo_PC: rol }
       })
-    ]);
 
-    // Estados
-    await Promise.all([
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 1 },
-        update: {},
-        create: { Tipo_Estado: 'Ingreso o recepción de denuncia' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 2 },
-        update: {},
-        create: { Tipo_Estado: 'Análisis de admisibilidad / pertinencia' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 3 },
-        update: {},
-        create: { Tipo_Estado: 'Investigación o sumario' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 4 },
-        update: {},
-        create: { Tipo_Estado: 'Medidas de resguardo' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 5 },
-        update: {},
-        create: { Tipo_Estado: 'Formulación de cargos' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 6 },
-        update: {},
-        create: { Tipo_Estado: 'Descargos y término probatorio' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 7 },
-        update: {},
-        create: { Tipo_Estado: 'Resolución final' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 8 },
-        update: {},
-        create: { Tipo_Estado: 'Recursos' }
-      }),
-      prisma.estado_Denuncia.upsert({
-        where: { ID_EstadoDe: 9 },
-        update: {},
-        create: { Tipo_Estado: 'Cierre del caso' }
-      })
-    ]);
-
-    console.log("✅ Datos iniciales creados o actualizados correctamente");
-  } catch (error) {
-    console.error("❌ Error ejecutando el seed:", error);
-  } finally {
-    await prisma.$disconnect();
+      if (!existe) {
+        await prisma.participante_Caso.create({
+          data: {
+            Rut: u.Rut,
+            Tipo_PC: rol
+          }
+        })
+      }
+    }
   }
+
+  console.log('✅ Seed completado exitosamente')
+}
+
+// Ejecutar si se llama directamente
+if (process.argv[1] === import.meta.url.substring(8)) { // Ajuste simple para detectar ejecución directa
+  runInitialSetup()
+    .catch(e => {
+      console.error(e)
+      process.exit(1)
+    })
+    .finally(async () => {
+      await prisma.$disconnect()
+    })
 }

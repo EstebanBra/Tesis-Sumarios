@@ -2,9 +2,11 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import prisma from "./src/config/prisma.js";
 import routes from "./src/routes/index.routes.js";
-import { runInitialSetup } from "./prisma/seed.js"; 
+import authRoutes from "./src/routes/auth.routes.js";
+import { runInitialSetup } from "./prisma/seed.js";
 
 dotenv.config();
 
@@ -17,9 +19,11 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(cookieParser());
 app.use(morgan("dev"));
 
 app.get("/", (req, res) => res.send("Servidor backend operativo 🚀"));
+app.use("/api/auth", authRoutes);
 app.use("/api", routes);
 
 app.use((err, req, res, next) => {

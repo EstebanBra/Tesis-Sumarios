@@ -1,0 +1,16 @@
+# Ignorar las dependencias instaladas localmente (¡CRUCIAL!)
+**/node_modules
+
+# Ignorar archivos de logs y de entorno
+**/npm-debug.log
+.env
+*.env
+
+# Ignorar carpetas de build (Docker las manejará)
+**/dist
+**/build
+
+# Ignorar metadatos del sistema y de git
+.git
+.gitignore
+.DS_Store

@@ -1,31 +1,51 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import App from '@/App'
 import Home from '@/pages/Home'
-import Login from '@/pages/Auth/Login'
+import Login from '@/pages/Login/Login'
 import NuevaDenuncia from '@/pages/Denuncias/NuevaDenuncia'
 import MisDenuncias from '@/pages/Denuncias/MisDenuncias'
 import DetalleDenuncia from '@/pages/Denuncias/DetalleDenuncia'
 import AuthShell from '@/components/layout/AuthShell'
+import RequireAuth from '@/components/RequireAuth'
 
-// Grupo AUTH (sin header/footer): sólo "/"
+import { AuthProvider } from '@/context/AuthContext'
+import { Outlet } from 'react-router-dom'
+
+// ... (imports remain the same)
+
+// Grupo AUTH (sin header/footer): Login
 const authRoutes = {
-  path: '/',
   element: <AuthShell />,
   children: [
-    { index: true, element: <Login /> }, // ← solo login en "/"
+    { path: '/login', element: <Login /> },
   ],
 }
 
-// Grupo APP (con header/footer): resto del sitio
+// Grupo APP (con header/footer): Protegido
 const appRoutes = {
   path: '/',
-  element: <App />, // App monta AppShell + <Outlet/>
+  element: <RequireAuth />, // Protege todas las rutas hijas
   children: [
-    { path: 'home', element: <Home /> },
-    { path: 'denuncias', element: <MisDenuncias /> },
-    { path: 'denuncias/nueva', element: <NuevaDenuncia /> },
-    { path: 'denuncias/:id', element: <DetalleDenuncia /> },
-  ],
+    {
+      element: <App />, // App monta AppShell + <Outlet/>
+      children: [
+        { index: true, element: <Navigate to="/home" replace /> },
+        { path: 'home', element: <Home /> },
+        { path: 'denuncias', element: <MisDenuncias /> },
+        { path: 'denuncias/nueva', element: <NuevaDenuncia /> },
+        { path: 'denuncias/:id', element: <DetalleDenuncia /> },
+      ],
+    }
+  ]
 }
 
-export const router = createBrowserRouter([authRoutes, appRoutes])
+export const router = createBrowserRouter([
+  {
+    element: (
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    ),
+    children: [authRoutes, appRoutes]
+  }
+])

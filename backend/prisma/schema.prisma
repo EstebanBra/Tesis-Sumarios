@@ -17,6 +17,7 @@ model Persona {
   Nombre   String @db.VarChar(100)
   Correo   String @db.VarChar(100)
   Telefono String @db.VarChar(20)
+  password String? @db.VarChar(255)
 
   // Relaciones
   participantes_caso Participante_Caso[]
