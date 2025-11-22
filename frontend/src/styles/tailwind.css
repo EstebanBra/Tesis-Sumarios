@@ -88,3 +88,5 @@ html, body, #root {
 .btn-icon--sm { @apply h-8 w-8; }
 .btn-icon--md { @apply h-9 w-9; }
 .btn-icon--lg { @apply h-10 w-10; }
+
+
