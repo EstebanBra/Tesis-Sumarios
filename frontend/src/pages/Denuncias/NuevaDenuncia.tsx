@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crearDenuncia, type CrearDenunciaInput } from '@/services/denuncias.api'
 import { routes } from '@/services/routes'
@@ -6,6 +6,7 @@ import { Cards } from '@/components/ui/Cards'
 import { TIPOS_DENUNCIA, SUBTIPOS_DENUNCIA, REGIONES, COMUNAS, SEDES, LUGARES_SEDE, VINCULACIONES } from '@/data/denuncias.data'
 import type { FormularioDenuncia, Involucrado, FaseRegistro } from '@/types/denuncia.types'
 import FormularioLayout from './components/FormularioLayout'
+import { useAuth } from '@/context/AuthContext'
 
 const initialInvolucrado: Involucrado = { nombre: '', apellido1: '', apellido2: '', parentesco: '', vinculacion: '', antecedentes: '', descripcionFisica: '' }
 
@@ -48,7 +49,18 @@ export default function NuevaDenuncia() {
     return LUGARES_SEDE[form.sedeHecho] || []
   }, [form.sedeHecho])
 
-
+  const { user } = useAuth()
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        rut: user.rut,       // Rellena RUT
+        nombre: user.nombre, // Rellena Nombre
+        correo: user.email   // Rellena Correo (Ojo: user.email va al campo form.correo)
+      }))
+    }
+  }, [user])
+  
   function handleSelectTipo(id: number) {
     setForm(prev => ({ ...prev, tipoId: id, subtipoId: null }))
     setFase('seleccion_subtipo')
