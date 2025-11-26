@@ -48,4 +48,4 @@ export const hasRole = (rolesPermitidos) => {
     }
 }
 
-export const isAdmin = hasRole(['Admin', 'VRA', 'VRAE', 'Fiscal', 'Fiscalia']) // Ajustar según necesidad
+export const isAdmin = hasRole(['Admin', 'VRA', 'VRAE', 'Fiscal', 'Fiscalia','Dirgergen']) // Ajustar según necesidad

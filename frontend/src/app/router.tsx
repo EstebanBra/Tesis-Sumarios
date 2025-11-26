@@ -5,6 +5,9 @@ import Login from '@/pages/Login/Login'
 import NuevaDenuncia from '@/pages/Denuncias/NuevaDenuncia'
 import MisDenuncias from '@/pages/Denuncias/MisDenuncias'
 import DetalleDenuncia from '@/pages/Denuncias/DetalleDenuncia'
+import BandejaDirgegen from '@/pages/Dirgegen/BandejaDirgegen'
+import DetalleDirgegen from '@/pages/Dirgegen/DetalleDirgegen'
+
 import AuthShell from '@/components/layout/AuthShell'
 import RequireAuth from '@/components/RequireAuth'
 
@@ -34,10 +37,16 @@ const appRoutes = {
         { path: 'denuncias', element: <MisDenuncias /> },
         { path: 'denuncias/nueva', element: <NuevaDenuncia /> },
         { path: 'denuncias/:id', element: <DetalleDenuncia /> },
+
+        { path: 'dirgegen/bandeja', element: <BandejaDirgegen /> },
+        { path: 'dirgegen/denuncia/:id', element: <DetalleDirgegen /> }
       ],
     }
   ]
 }
+
+
+
 
 export const router = createBrowserRouter([
   {
