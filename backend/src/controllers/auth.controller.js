@@ -93,8 +93,8 @@ export const me = async (req, res) => {
             rut: usuario.Rut,
             nombre: usuario.Nombre,
             email: usuario.Correo,
-            roles
-        })
+            roles: roles
+})
     } catch (error) {
         console.error('Me error:', error)
         res.status(500).json({ message: 'Error en el servidor' })

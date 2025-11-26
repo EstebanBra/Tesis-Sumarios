@@ -6,10 +6,54 @@ const prisma = new PrismaClient()
 export async function runInitialSetup() {
   console.log('🌱 Iniciando seed de datos...')
 
+  const estados = [
+    { Tipo_Estado: 'Recibida' },         
+    { Tipo_Estado: 'En Revisión' },      
+    { Tipo_Estado: 'Derivada' },         
+    { Tipo_Estado: 'Admisible' },       
+    { Tipo_Estado: 'Inadmisible' },      
+    { Tipo_Estado: 'En Investigación' }, 
+    { Tipo_Estado: 'Cerrada' }           
+  ]
+  console.log('... Insertando Estados')
+  for (const e of estados) {
+    const existe = await prisma.estado_Denuncia.findFirst({ where: { Tipo_Estado: e.Tipo_Estado } })
+    if (!existe) {
+      await prisma.estado_Denuncia.create({ data: e })
+    }
+  }
+
+  // Tipos de Denuncia
+  const tipos = [
+    { Nombre: 'Acoso Sexual', Area: 'DIRGEGEN' },        
+    { Nombre: 'Violencia de Género', Area: 'DIRGEGEN' },  
+    { Nombre: 'Discriminación Arbitraria', Area: 'DIRGEGEN' }, 
+    { Nombre: 'Falta a la Convivencia', Area: 'VRA' },    
+    { Nombre: 'Falta Académica', Area: 'VRA' }            
+  ]
+
+  console.log('... Insertando Tipos de Denuncia')
+  for (const t of tipos) {
+    const existe = await prisma.tipo_Denuncia.findFirst({ where: { Nombre: t.Nombre } })
+    if (!existe) {
+      await prisma.tipo_Denuncia.create({ data: t })
+    }
+  }
+
+
   // 1. Crear Usuarios (Personas)
   const passwordHash = await bcrypt.hash('123456', 10)
 
   const usuarios = [
+    //ingrese un dirgergen
+    { 
+      Rut: '00000000-1',
+      Nombre: 'Encargada Dirgegen', 
+      Correo: 'Dirgegen@ubb.cl',
+      Telefono: '+56911111111',
+      password: passwordHash,
+      roles: ['Admin', 'Dirgegen'] 
+    },
     {
       Rut: '11111111-1',
       Nombre: 'Esteban Bravo',

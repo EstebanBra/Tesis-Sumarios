@@ -9,6 +9,9 @@ type Options = {
 export async function http(path: string, options: Options = {}) {
   const res = await fetch(`${API_URL}${path}`, {
     method: options.method ?? 'GET',
+    //lo que agregue
+    credentials: 'include',
+
     headers: {
       'Content-Type': 'application/json',
       ...(options.headers ?? {}),
