@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { fileURLToPath } from 'url'
 
 const prisma = new PrismaClient()
 
@@ -7,13 +8,13 @@ export async function runInitialSetup() {
   console.log('🌱 Iniciando seed de datos...')
 
   const estados = [
-    { Tipo_Estado: 'Recibida' },         
-    { Tipo_Estado: 'En Revisión' },      
-    { Tipo_Estado: 'Derivada' },         
-    { Tipo_Estado: 'Admisible' },       
-    { Tipo_Estado: 'Inadmisible' },      
-    { Tipo_Estado: 'En Investigación' }, 
-    { Tipo_Estado: 'Cerrada' }           
+    { Tipo_Estado: 'Recibida' },
+    { Tipo_Estado: 'En Revisión' },
+    { Tipo_Estado: 'Derivada' },
+    { Tipo_Estado: 'Admisible' },
+    { Tipo_Estado: 'Inadmisible' },
+    { Tipo_Estado: 'En Investigación' },
+    { Tipo_Estado: 'Cerrada' }
   ]
   console.log('... Insertando Estados')
   for (const e of estados) {
@@ -25,11 +26,11 @@ export async function runInitialSetup() {
 
   // Tipos de Denuncia
   const tipos = [
-    { Nombre: 'Acoso Sexual', Area: 'DIRGEGEN' },        
-    { Nombre: 'Violencia de Género', Area: 'DIRGEGEN' },  
-    { Nombre: 'Discriminación Arbitraria', Area: 'DIRGEGEN' }, 
-    { Nombre: 'Falta a la Convivencia', Area: 'VRA' },    
-    { Nombre: 'Falta Académica', Area: 'VRA' }            
+    { Nombre: 'Acoso Sexual', Area: 'DIRGEGEN' },
+    { Nombre: 'Violencia de Género', Area: 'DIRGEGEN' },
+    { Nombre: 'Discriminación Arbitraria', Area: 'DIRGEGEN' },
+    { Nombre: 'Falta a la Convivencia', Area: 'VRA' },
+    { Nombre: 'Falta Académica', Area: 'VRA' }
   ]
 
   console.log('... Insertando Tipos de Denuncia')
@@ -46,13 +47,13 @@ export async function runInitialSetup() {
 
   const usuarios = [
     //ingrese un dirgergen
-    { 
+    {
       Rut: '00000000-1',
-      Nombre: 'Encargada Dirgegen', 
+      Nombre: 'Encargada Dirgegen',
       Correo: 'Dirgegen@ubb.cl',
       Telefono: '+56911111111',
       password: passwordHash,
-      roles: ['Admin', 'Dirgegen'] 
+      roles: ['Dirgegen']
     },
     {
       Rut: '11111111-1',
@@ -60,7 +61,7 @@ export async function runInitialSetup() {
       Correo: 'esteban@ubb.cl',
       Telefono: '+56911111111',
       password: passwordHash,
-      roles: ['Admin', 'VRA']
+      roles: ['Admin']
     },
     {
       Rut: '22222222-2',
@@ -68,7 +69,7 @@ export async function runInitialSetup() {
       Correo: 'francisca@ubb.cl',
       Telefono: '+56922222222',
       password: passwordHash,
-      roles: ['Admin', 'Fiscal']
+      roles: ['Admin']
     },
     {
       Rut: '33333333-3',
@@ -85,6 +86,46 @@ export async function runInitialSetup() {
       Telefono: '+56944444444',
       password: passwordHash,
       roles: ['Fiscalia']
+    },
+    {
+      Rut: '10000000-1',
+      Nombre: 'María Soledad Vásquez Soto',
+      Correo: 'maria.vasquez@ubb.cl',
+      Telefono: '+56910000001',
+      password: passwordHash,
+      roles: [] // Denunciante potencial
+    },
+    {
+      Rut: '10000001-K', // Usando K como dígito verificador para el ejemplo
+      Nombre: 'Ricardo Andrés Palma Muñoz',
+      Correo: 'ricardo.palma@ubb.cl',
+      Telefono: '+56910000002',
+      password: passwordHash,
+      roles: [] // Denunciado potencial
+    },
+    {
+      Rut: '10000002-3',
+      Nombre: 'Javiera Isidora Díaz Lagos',
+      Correo: 'javiera.diaz@ubb.cl',
+      Telefono: '+56910000003',
+      password: passwordHash,
+      roles: [] // Testigo potencial
+    },
+    {
+      Rut: '10000003-4',
+      Nombre: 'Carlos Alberto Rojas Pérez',
+      Correo: 'carlos.rojas@ubb.cl',
+      Telefono: '+56910000004',
+      password: passwordHash,
+      roles: [] 
+    },
+    {
+      Rut: '10000004-5',
+      Nombre: 'Daniela Fernanda Castro Vera',
+      Correo: 'daniela.castro@ubb.cl',
+      Telefono: '+56910000005',
+      password: passwordHash,
+      roles: [] 
     }
   ]
 
@@ -124,7 +165,7 @@ export async function runInitialSetup() {
 }
 
 // Ejecutar si se llama directamente
-if (process.argv[1] === import.meta.url.substring(8)) { // Ajuste simple para detectar ejecución directa
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   runInitialSetup()
     .catch(e => {
       console.error(e)

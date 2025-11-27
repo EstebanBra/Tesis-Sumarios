@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Header() {
+  const { isAuthenticated, logout } = useAuth()
   return (
     <header className="w-full border-b border-gray-200 bg-white">
       {/* Bloque superior de marcas */}
@@ -57,12 +59,21 @@ export default function Header() {
 
           {/* Zona de usuario al extremo derecho (placeholder) */}
           <div className="ml-auto inline-flex items-center gap-3 py-2">
-            <Link
-              to="/"  // ← vuelve al login
-              className="inline-flex items-center rounded-md bg-ubb-blue px-3 py-1.5 text-sm font-semibold text-white hover:opacity-95"
-            >
-              Iniciar sesión
-            </Link>
+            {isAuthenticated ? (
+              <button
+                onClick={() => logout()}
+                className="inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Cerrar sesión
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center rounded-md bg-ubb-blue px-3 py-1.5 text-sm font-semibold text-white hover:opacity-95"
+              >
+                Iniciar sesión
+              </Link>
+            )}
           </div>
         </div>
       </nav>
