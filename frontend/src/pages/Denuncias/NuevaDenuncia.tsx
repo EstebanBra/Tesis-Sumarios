@@ -14,7 +14,7 @@ const initialForm: FormularioDenuncia = {
   rut: '', nombre: '', telefono: '', correo: '', reservaIdentidad: false,
   tipoId: 0, subtipoId: null,
   regionDenunciante: '', comunaDenunciante: '', direccionDenunciante: '',
-  victimaMenor: 'no', esVictima: 'si', victimaRut: '', victimaNombre: '', victimaApellido1: '', victimaApellido2: '', victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '',
+  victimaMenor: 'no', esVictima: 'si', victimaRut: '', victimaNombre: '', victimaApellido1: '', victimaApellido2: '', victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '', victimaCorreo: '', victimaTelefono: '',
   regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '', fechaHecho: '', horaHecho: '', relato: '',
   involucrados: [], nuevoInvolucrado: { ...initialInvolucrado },
 }
@@ -60,7 +60,7 @@ export default function NuevaDenuncia() {
       }))
     }
   }, [user])
-  
+
   function handleSelectTipo(id: number) {
     setForm(prev => ({ ...prev, tipoId: id, subtipoId: null }))
     setFase('seleccion_subtipo')
@@ -342,7 +342,7 @@ export default function NuevaDenuncia() {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">Dirección *</label>
+              <label className="text-sm font-medium text-gray-700">Dirección domicilio *</label>
               <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" placeholder="Calle / número" value={form.direccionDenunciante} onChange={(e) => updateField('direccionDenunciante', e.target.value)} />
             </div>
 
@@ -367,23 +367,62 @@ export default function NuevaDenuncia() {
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-1">¿Víctima menor de edad?</p>
                 <div className="flex gap-3 text-sm">
-                  <label className="inline-flex items-center gap-1"><input type="radio" name="menor" value="si" checked={form.victimaMenor === 'si'} onChange={(e) => updateField('victimaMenor', 'si')} /> Sí</label>
-                  <label className="inline-flex items-center gap-1"><input type="radio" name="menor" value="no" checked={form.victimaMenor === 'no'} onChange={(e) => updateField('victimaMenor', 'no')} /> No</label>
+                  <label className="inline-flex items-center gap-1"><input type="radio" name="menor" value="si" checked={form.victimaMenor === 'si'} onChange={() => updateField('victimaMenor', 'si')} /> Sí</label>
+                  <label className="inline-flex items-center gap-1"><input type="radio" name="menor" value="no" checked={form.victimaMenor === 'no'} onChange={() => updateField('victimaMenor', 'no')} /> No</label>
                 </div>
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-1">¿Eres tú la víctima?</p>
                 <div className="flex gap-3 text-sm">
-                  <label className="inline-flex items-center gap-1"><input type="radio" name="esVictima" value="si" checked={form.esVictima === 'si'} onChange={(e) => updateField('esVictima', 'si')} /> Sí</label>
-                  <label className="inline-flex items-center gap-1"><input type="radio" name="esVictima" value="no" checked={form.esVictima === 'no'} onChange={(e) => updateField('esVictima', 'no')} /> No</label>
+                  <label className="inline-flex items-center gap-1">
+                    <input
+                      type="radio"
+                      name="esVictima"
+                      value="si"
+                      checked={form.esVictima === 'si'}
+                      onChange={() => {
+                        updateField('esVictima', 'si')
+                        if (user) {
+                          setForm(prev => ({
+                            ...prev,
+                            victimaRut: user.rut,
+                            victimaNombre: user.nombre,
+                            victimaCorreo: user.email,
+                            victimaTelefono: form.telefono // Usamos el del formulario si está, o vacío
+                          }))
+                        }
+                      }}
+                    /> Sí
+                  </label>
+                  <label className="inline-flex items-center gap-1">
+                    <input
+                      type="radio"
+                      name="esVictima"
+                      value="no"
+                      checked={form.esVictima === 'no'}
+                      onChange={() => {
+                        updateField('esVictima', 'no')
+                        setForm(prev => ({
+                          ...prev,
+                          victimaRut: '',
+                          victimaNombre: '',
+                          victimaApellido1: '',
+                          victimaApellido2: '',
+                          victimaCorreo: '',
+                          victimaTelefono: ''
+                        }))
+                      }}
+                    /> No
+                  </label>
                 </div>
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
               <div><label className="text-sm font-medium text-gray-700">RUT</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaRut} onChange={(e) => updateField('victimaRut', e.target.value)} /></div>
-              <div><label className="text-sm font-medium text-gray-700">Nombre</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaNombre} onChange={(e) => updateField('victimaNombre', e.target.value)} /></div>
-              <div><label className="text-sm font-medium text-gray-700">Apellidos</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaApellido1} onChange={(e) => updateField('victimaApellido1', e.target.value)} /></div>
+              <div><label className="text-sm font-medium text-gray-700">Nombre Completo</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaNombre} onChange={(e) => updateField('victimaNombre', e.target.value)} /></div>
+              <div><label className="text-sm font-medium text-gray-700">Correo</label><input type="email" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaCorreo} onChange={(e) => updateField('victimaCorreo', e.target.value)} /></div>
+              <div><label className="text-sm font-medium text-gray-700">Teléfono</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm hover:border-gray-400 transition-colors" value={form.victimaTelefono} onChange={(e) => updateField('victimaTelefono', e.target.value)} /></div>
             </div>
           </section>
 
