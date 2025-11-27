@@ -126,6 +126,8 @@ export default function DetalleDirgegen() {
           </div>
 
         </div>
+
+   
         
        
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
@@ -146,9 +148,25 @@ export default function DetalleDirgegen() {
             Derivar a Otra Unidad
           </button>
         </div>
-      </div>
+        
+
+      </div> 
+
 
       
+      <div className="mt-8 flex justify-start"> 
+        <button
+          onClick={() => history.back()}
+          className="inline-flex items-center justify-center rounded-md bg-ubb-blue px-6 py-2 text-sm font-semibold text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-ubb-blue/30"
+        >
+          ← Volver a la Bandeja de Casos
+        </button>
+      </div>
+
+
+
+
+
       <DerivacionModal 
         isOpen={showModal}
         onClose={() => setShowModal(false)}
