@@ -165,13 +165,9 @@ export default function NuevaDenuncia() {
 
     try {
       setEnviando(true)
-      const creada = await crearDenuncia(payload)
-      const id = creada?.ID_Denuncia ?? creada?.id ?? null
-      if (id == null) {
-        nav(routes.denuncias.root)
-        return
-      }
-      nav(routes.denuncias.detalle(id))
+      await crearDenuncia(payload)
+      // Redirigir a la lista de denuncias para ver que se agregó correctamente
+      nav(routes.denuncias.root)
     } catch (err: any) {
       setError(err?.message ?? 'Error al crear la denuncia')
       if (err?.detalles && Array.isArray(err.detalles)) {
