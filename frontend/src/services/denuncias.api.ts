@@ -1,13 +1,15 @@
 import { http } from './api'
 
+// --- TIPOS ---
+
 export type DenuncianteParticipante = {
   rut?: string
   nombre?: string
-  descripcion?: string // Agregado para descripción física
+  descripcion?: string 
 }
 
 export type EvidenciaInput = {
-  archivo: string // por ahora cadena simple; luego lo cambiaremos a upload real
+  archivo: string 
 }
 
 export type CrearDenunciaInput = {
@@ -22,7 +24,6 @@ export type CrearDenunciaInput = {
   Relato_Hechos: string
   Ubicacion?: string | null
 
-  // opcionales
   ID_EstadoDe?: number
   denunciados?: DenuncianteParticipante[]
   testigos?: DenuncianteParticipante[]
@@ -36,9 +37,14 @@ export type DenunciaListado = {
   Fecha_Inicio: string
   Relato_Hechos: string
   Ubicacion: string | null
+  
+  // ✅ Campo clave para que Dirgegen vea si ya escribió algo
+  observacionDirgegen?: string | null 
+
   tipo_denuncia?: {
     ID_TipoDe: number
     Nombre: string
+    Area?: string // ✅ Útil para filtrar visualmente si se necesita
   }
   estado_denuncia?: {
     ID_EstadoDe: number
@@ -66,8 +72,9 @@ export type ListarDenunciasResponse = {
   data: DenunciaListado[]
 }
 
+// --- FUNCIONES ---
+
 export async function crearDenuncia(payload: CrearDenunciaInput) {
-  // POST /api/denuncias
   return http('/denuncias', { method: 'POST', body: payload })
 }
 
@@ -86,4 +93,20 @@ export async function listarDenuncias(params: ListarDenunciasParams = {}): Promi
   const url = `/denuncias${query ? `?${query}` : ''}`
 
   return http(url)
+}
+
+export async function getDenunciaById(id: number): Promise<DenunciaListado> {
+    return http(`/denuncias/${id}`)
+}
+
+// ✅ Función genérica de gestión (usada por Dirgegen y Admin)
+export async function gestionarDenuncia(id: number, payload: {
+    observacion?: string,
+    nuevoEstadoId?: number,
+    nuevoTipoId?: number
+}) {
+    return http(`/denuncias/${id}/gestionar`, {
+        method: 'PATCH',
+        body: payload
+    })
 }
