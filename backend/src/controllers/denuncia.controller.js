@@ -55,8 +55,7 @@ export async function getDenunciaById(req, res, next) {
     next(err);
   }
 }
-
-// 🆕 Crear una nueva denuncia
+// 🆕 Crear una nueva denuncia (ACTUALIZADO CON DATOS PERSONALES Y GÉNERO)
 export async function createDenuncia(req, res, next) {
   try {
     const errors = validationResult(req);
@@ -69,11 +68,20 @@ export async function createDenuncia(req, res, next) {
 
     const payload = {
       Rut: String(req.body.Rut),
+      
+      // --- NUEVOS CAMPOS PARA ACTUALIZAR PERSONA ---
+      genero: req.body.genero, 
+      nombreDenunciante: req.body.Nombre, // Ojo con el nombre del campo en tu frontend
+      correoDenunciante: req.body.Correo,
+      telefonoDenunciante: req.body.Telefono,
+      // ---------------------------------------------
+
       ID_TipoDe: Number(req.body.ID_TipoDe),
       ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
       Fecha_Inicio: new Date(req.body.Fecha_Inicio),
       Relato_Hechos: String(req.body.Relato_Hechos),
       Ubicacion: req.body.Ubicacion ?? null,
+      
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : [],
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : [],
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : [],
@@ -81,7 +89,7 @@ export async function createDenuncia(req, res, next) {
     };
 
     const created = await createDenunciaService(payload, { historial: true });
-    res.status(201).json(created); // ✅ sin map
+    res.status(201).json(created);
   } catch (err) {
     next(err);
   }

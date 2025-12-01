@@ -10,14 +10,15 @@ export async function derivarDenuncia(req, res, next) {
     }
 
     const { id } = req.params;
-    const { nuevoTipoId, nuevoEstadoId } = req.body;
+    const { nuevoTipoId, nuevoEstadoId, observacion } = req.body; // lo de la observacion luego formulario
     
     const usuarioId = req.user.rut; 
 
     const resultado = await derivarDenunciaService(id, {
       nuevoTipoId,
       nuevoEstadoId,
-      usuarioId
+      usuarioId,
+      observacion
     });
 
     res.json({

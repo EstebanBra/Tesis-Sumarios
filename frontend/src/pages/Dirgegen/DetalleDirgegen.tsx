@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDetalleDenuncia, derivarDenuncia, type DetalleDenunciaCompleta } from '@/services/digergen.apis'
+
 import DerivacionModal from '@/components/Derivacion'
 
 export default function DetalleDirgegen() {
@@ -52,7 +52,7 @@ export default function DetalleDirgegen() {
         </span>
       </div>
 
-      {/*esto es como el reumen de  la denuncia para que quede mejor ahi despues se puede cambiar a algo más personalizado o
+      {/*esto es como el resumen de  la denuncia para que quede mejor ahi despues se puede cambiar a algo más personalizado o
       lo que quieran en la reunion*/}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         
@@ -74,13 +74,7 @@ export default function DetalleDirgegen() {
               </dd>
             </div>
             <div>
-              <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-                Subtipo
-              </dt>
-              <dd className="text-sm font-medium text-gray-900">
-                
-                — 
-              </dd>
+
             </div>
           </div>
 
@@ -176,3 +170,7 @@ export default function DetalleDirgegen() {
     </section>
   )
 }
+
+
+
+import { getDetalleDenuncia, derivarDenuncia, type DetalleDenunciaCompleta } from '@/services/digergen.apis'

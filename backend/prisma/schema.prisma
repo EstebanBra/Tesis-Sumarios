@@ -18,7 +18,7 @@ model Persona {
   Correo   String @db.VarChar(100)
   Telefono String @db.VarChar(20)
   password String? @db.VarChar(255)
-
+  genero   String?  @db.NVarChar(50) //nuevo
   // Relaciones
   participantes_caso Participante_Caso[]
   per_par_den        Per_Par_Den[]
@@ -50,6 +50,8 @@ model Denuncia {
   Fecha_Inicio  DateTime @db.Date
   Relato_Hechos String   @db.Text
   Ubicacion     String?  @db.VarChar(200)
+  observacionDirgegen String? @db.NVarChar(MAX)//nuevo
+  
 
   // Relaciones
   tipo_denuncia         Tipo_Denuncia           @relation(fields: [ID_TipoDe], references: [ID_TipoDe], onDelete: NoAction, onUpdate: NoAction)
@@ -61,14 +63,15 @@ model Denuncia {
 
   @@map("Denuncia")
 }
-
 model Tipo_Denuncia {
-  ID_TipoDe Int    @id @default(autoincrement())
-  Nombre    String @db.VarChar(100)
-  Area      String @db.VarChar(100)
+  ID_TipoDe   Int     @id 
+  
+  Nombre      String  @db.VarChar(100)
+  Area        String  @db.VarChar(100)
+  Descripcion String? @db.VarChar(255)
 
   // Relaciones
-  denuncias Denuncia[]
+  denuncias   Denuncia[]
 
   @@map("Tipo_Denuncia")
 }

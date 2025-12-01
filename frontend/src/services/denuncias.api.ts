@@ -3,6 +3,7 @@ import { http } from './api'
 export type DenuncianteParticipante = {
   rut?: string
   nombre?: string
+  descripcion?: string // Agregado para descripción física
 }
 
 export type EvidenciaInput = {
@@ -11,6 +12,11 @@ export type EvidenciaInput = {
 
 export type CrearDenunciaInput = {
   Rut: string
+  genero?: string
+  Nombre?: string
+  Correo?: string
+  Telefono?: string
+  
   ID_TipoDe: number
   Fecha_Inicio: string // ISO
   Relato_Hechos: string
