@@ -28,10 +28,14 @@ export type FormularioDenuncia = {
     nombre: string
     telefono: string
     correo: string
+    genero: string
     reservaIdentidad: boolean
 
     tipoId: number
     subtipoId: number | null
+    
+    descripcionOtro: string
+
     regionDenunciante: string
     comunaDenunciante: string
     direccionDenunciante: string

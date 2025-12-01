@@ -45,40 +45,62 @@ export async function getDenunciaByIdService(id) {
   });
 }
 
-
-//que agonico este create
 export async function createDenunciaService(payload, { historial = true } = {}) {
-  const estadoInicial = payload.ID_EstadoDe ?? 1;
+  const estadoInicial = payload.ID_EstadoDe ?? 1; // Por defecto 'Recibida'
 
   return prisma.$transaction(async (tx) => {
-    // 1) Crear denuncia
+
+   // CREAR O ACTUALIZAR PERSONA DENUNCIANTE
+    await tx.persona.upsert({
+        where: { Rut: payload.Rut },
+        update: { 
+            // Si la persona ya existe, actualizamos su género con el dato nuevo
+            genero: payload.genero 
+        },
+        create: {
+            Rut: payload.Rut,
+            // Si es nueva, usamos los datos básicos. Ojo: nombre/correo deberían venir del auth o payload
+            Nombre: payload.nombreDenunciante || '', 
+            Correo: payload.correoDenunciante || '',
+            Telefono: payload.telefonoDenunciante || '',
+            genero: payload.genero
+        }
+    });
+
+    // 2CREAR LA DENUNCIA
     const denuncia = await tx.denuncia.create({
       data: {
         Rut: payload.Rut,
-        ID_TipoDe: payload.ID_TipoDe,
+        ID_TipoDe: Number(payload.ID_TipoDe), // ID específico (ej: 101, 201)
         ID_EstadoDe: estadoInicial,
-        Fecha_Inicio: payload.Fecha_Inicio,
+        Fecha_Inicio: payload.Fecha_Inicio ? new Date(payload.Fecha_Inicio) : new Date(),
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
+        
+        // Historial inicial
         historial_estado: historial
           ? { create: { ID_EstadoDe: estadoInicial, Fecha: new Date() } }
           : undefined,
       },
     });
 
-    // 2) Participantes opcionales (denunciados + testigos) 
+    // PARTICIPANTES (Denunciados + Testigos)
     const participantes = [];
+    
+    // Denunciados
     if (Array.isArray(payload.denunciados)) {
       for (const p of payload.denunciados) {
         if (p?.nombre || p?.rut) {
           participantes.push({
             ID_Denuncia: denuncia.ID_Denuncia,
-            Rut: p.rut ?? "DESCONOCIDO", // si no hay rut es desconocido
-            Nombre_PD: p.nombre ?? "Desconocido",// este igual con el nombre
+            Rut: p.rut ?? "DESCONOCIDO", 
+            Nombre_PD: p.nombre ?? "Desconocido",
           });
         }
       }
-    }// lo mismo con los testigos
+    }
+    
+    // Testigos
     if (Array.isArray(payload.testigos)) {
       for (const t of payload.testigos) {
         if (t?.nombre || t?.rut) {
@@ -90,15 +112,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         }
       }
     }
+
     if (participantes.length) {
       await tx.participante_Denuncia.createMany({ data: participantes });
     }
 
-    // 3) Evidencias opcionales
-    // Tu modelo: Archivo -> Hitos -> Participante_Caso
-    // Crearé (si hay evidencias) un Participante_Caso para el denunciante y un Hito "Evidencias"
+    //  EVIDENCIAS
     if (Array.isArray(payload.evidencias) && payload.evidencias.length) {
-      // a) Participante_Caso del denunciante (si no existe ya, lo creamos “rápido”)
+      // a) Crear Participante_Caso temporal para vincular archivos
       const pc = await tx.participante_Caso.create({
         data: {
           Rut: payload.Rut,
@@ -106,16 +127,16 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         },
       });
 
-      // b) Hito “Evidencias” para ese participante
+      // b) Hito de Evidencias
       const hitoEvid = await tx.hitos.create({
         data: {
           ID_PC: pc.ID_PC,
-          Nombre: "Evidencias",
-          Descripcion: payload.caracteristicasDenunciado ?? null, // opcional
+          Nombre: "Evidencias Iniciales",
+          Descripcion: payload.caracteristicasDenunciado ?? "Adjuntos al crear denuncia",
         },
       });
 
-      // c) Archivos
+      // c) Guardar Archivos
       const archivos = payload.evidencias
         .filter(e => e?.archivo)
         .map(e => ({ ID_Hitos: hitoEvid.ID_Hitos, Archivo: e.archivo }));
@@ -125,16 +146,13 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       }
     }
 
-    // 4) Devolver con includes
-    const createdFull = await tx.denuncia.findUnique({
+    //  Retornar denuncia completa
+    return await tx.denuncia.findUnique({
       where: { ID_Denuncia: denuncia.ID_Denuncia },
       include: includeFull,
     });
-
-    return createdFull;
   });
 }
-
 export async function updateDenunciaService(id, data) {
   return prisma.$transaction(async (tx) => {
     const prev = await tx.denuncia.findUnique({

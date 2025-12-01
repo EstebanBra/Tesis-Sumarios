@@ -7,6 +7,7 @@ const prisma = new PrismaClient()
 export async function runInitialSetup() {
   console.log('🌱 Iniciando seed de datos...')
 
+  // 1. ESTADOS DE DENUNCIA
   const estados = [
     { Tipo_Estado: 'Recibida' },
     { Tipo_Estado: 'En Revisión' },
@@ -24,29 +25,57 @@ export async function runInitialSetup() {
     }
   }
 
-  // Tipos de Denuncia
-  const tipos = [
-    { Nombre: 'Acoso Sexual', Area: 'DIRGEGEN' },
-    { Nombre: 'Violencia de Género', Area: 'DIRGEGEN' },
-    { Nombre: 'Discriminación Arbitraria', Area: 'DIRGEGEN' },
-    { Nombre: 'Falta a la Convivencia', Area: 'VRA' },
-    { Nombre: 'Falta Académica', Area: 'VRA' }
+  // 2. TIPOS DE DENUNCIA (CATÁLOGO COMPLETO)
+  // Nota: Asegúrate de que tu modelo Tipo_Denuncia tenga el campo 'Subtipo' o 'Nombre' alineado
+  // y el campo 'Descripcion' agregado en el schema.prisma.
+  
+  const tiposDenunciaData = [
+    // --- GÉNERO Y EQUIDAD (Protocolo DUE 4560) ---
+    { id: 101, area: 'Género y Equidad', nombre: 'Acoso Sexual', descripcion: 'Requerimientos de carácter sexual no consentidos.' },
+    { id: 102, area: 'Género y Equidad', nombre: 'Violencia de Género (Física/Psicológica)', descripcion: 'Cualquier acción basada en género que cause daño.' },
+    { id: 103, area: 'Género y Equidad', nombre: 'Violencia Digital / Ciberacoso', descripcion: 'Acoso o difamación a través de medios digitales.' },
+    { id: 104, area: 'Género y Equidad', nombre: 'Discriminación por Género', descripcion: 'Exclusión o menoscabo por identidad u orientación.' },
+    { id: 105, area: 'Género y Equidad', nombre: 'Acoso Laboral', descripcion: 'Hostigamiento reiterado en contexto laboral/académico.' },
+    { id: 199, area: 'Género y Equidad', nombre: 'Otro motivo (Género)', descripcion: 'Situación de género no clasificada.' },
+
+    // --- CONVIVENCIA ESTUDIANTIL (Reglamento DUE 5415) ---
+    { id: 201, area: 'Convivencia Estudiantil', nombre: 'Agresión o Pelea (No género)', descripcion: 'Golpes, empujones o insultos graves por conflictos.' },
+    { id: 202, area: 'Convivencia Estudiantil', nombre: 'Drogas: Consumo/Porte', descripcion: 'Presión al consumo o riesgo por estado bajo influencia.' },
+    { id: 203, area: 'Convivencia Estudiantil', nombre: 'Drogas: Tráfico/Elaboración', descripcion: 'Uso de recintos para elaboración o venta.' },
+    { id: 204, area: 'Convivencia Estudiantil', nombre: 'Plagio o Fraude Académico', descripcion: 'Presentar trabajo de terceros o copiar en evaluaciones.' },
+    { id: 205, area: 'Convivencia Estudiantil', nombre: 'Suplantación de Identidad', descripcion: 'Hacerse pasar por otra persona en pruebas o trámites.' },
+    { id: 206, area: 'Convivencia Estudiantil', nombre: 'Daños o Robos', descripcion: 'Destrucción de bienes de la U o de compañeros.' },
+    { id: 207, area: 'Convivencia Estudiantil', nombre: 'Maltrato Animal', descripcion: 'Agresión a animales en campus.' },
+    { id: 208, area: 'Convivencia Estudiantil', nombre: 'Falsificación de Documentos', descripcion: 'Adulteración de certificados o documentos oficiales.' },
+    { id: 209, area: 'Convivencia Estudiantil', nombre: 'Uso de Elementos Peligrosos', descripcion: 'Porte de armas o elementos para dañar.' },
+    { id: 210, area: 'Convivencia Estudiantil', nombre: 'Discriminación / Ofensa (General)', descripcion: 'Insultos o discriminación no basada en género (raza, religión, etc).' },
+    { id: 299, area: 'Convivencia Estudiantil', nombre: 'Otro motivo (Convivencia)', descripcion: 'Situación de convivencia no clasificada.' },
+
   ]
 
-  console.log('... Insertando Tipos de Denuncia')
-  for (const t of tipos) {
-    const existe = await prisma.tipo_Denuncia.findFirst({ where: { Nombre: t.Nombre } })
-    if (!existe) {
-      await prisma.tipo_Denuncia.create({ data: t })
-    }
+  console.log('... Insertando Tipos Detallados')
+  for (const tipo of tiposDenunciaData) {
+    await prisma.tipo_Denuncia.upsert({
+      where: { ID_TipoDe: tipo.id }, 
+      update: { 
+        Nombre: tipo.nombre,
+        Area: tipo.area,
+        Descripcion: tipo.descripcion 
+      },
+      create: { 
+        ID_TipoDe: tipo.id,
+        Nombre: tipo.nombre,
+        Area: tipo.area,
+        Descripcion: tipo.descripcion
+      },
+    })
   }
+  console.log('✅ Tipos de denuncia cargados correctamente.')
 
-
-  // 1. Crear Usuarios (Personas)
+  // 3. CREAR USUARIOS (PERSONAS)
   const passwordHash = await bcrypt.hash('123456', 10)
 
   const usuarios = [
-    //ingrese un dirgergen
     {
       Rut: '00000000-1',
       Nombre: 'Encargada Dirgegen',
@@ -73,7 +102,7 @@ export async function runInitialSetup() {
     },
     {
       Rut: '33333333-3',
-      Nombre: 'Usuario VRAE',
+      Nombre: 'Usuario VRAE', // Cambié VRAE por VRA si es lo que usas en el área de tipos
       Correo: 'vrae@ubb.cl',
       Telefono: '+56933333333',
       password: passwordHash,
@@ -87,6 +116,7 @@ export async function runInitialSetup() {
       password: passwordHash,
       roles: ['Fiscalia']
     },
+    // Actores del caso (Sin rol administrativo)
     {
       Rut: '10000000-1',
       Nombre: 'María Soledad Vásquez Soto',
@@ -96,44 +126,21 @@ export async function runInitialSetup() {
       roles: [] // Denunciante potencial
     },
     {
-      Rut: '10000001-K', // Usando K como dígito verificador para el ejemplo
+      Rut: '10000001-K',
       Nombre: 'Ricardo Andrés Palma Muñoz',
       Correo: 'ricardo.palma@ubb.cl',
       Telefono: '+56910000002',
       password: passwordHash,
       roles: [] // Denunciado potencial
     },
-    {
-      Rut: '10000002-3',
-      Nombre: 'Javiera Isidora Díaz Lagos',
-      Correo: 'javiera.diaz@ubb.cl',
-      Telefono: '+56910000003',
-      password: passwordHash,
-      roles: [] // Testigo potencial
-    },
-    {
-      Rut: '10000003-4',
-      Nombre: 'Carlos Alberto Rojas Pérez',
-      Correo: 'carlos.rojas@ubb.cl',
-      Telefono: '+56910000004',
-      password: passwordHash,
-      roles: [] 
-    },
-    {
-      Rut: '10000004-5',
-      Nombre: 'Daniela Fernanda Castro Vera',
-      Correo: 'daniela.castro@ubb.cl',
-      Telefono: '+56910000005',
-      password: passwordHash,
-      roles: [] 
-    }
   ]
 
+  console.log('... Insertando Usuarios y Roles')
   for (const u of usuarios) {
-    // Crear o actualizar Persona
+    // Upsert Persona
     await prisma.persona.upsert({
       where: { Rut: u.Rut },
-      update: { password: u.password },
+      update: { password: u.password }, // Actualiza pass si ya existe
       create: {
         Rut: u.Rut,
         Nombre: u.Nombre,
@@ -143,14 +150,13 @@ export async function runInitialSetup() {
       }
     })
 
-    // Asignar Roles en Participante_Caso
+    // Asignar Roles
     for (const rol of u.roles) {
-      // Verificar si ya tiene el rol para no duplicar (aunque el modelo no tiene unique constraint explícito en Rut+Tipo_PC, es mejor prevenir)
-      const existe = await prisma.participante_Caso.findFirst({
+      const existeRol = await prisma.participante_Caso.findFirst({
         where: { Rut: u.Rut, Tipo_PC: rol }
       })
 
-      if (!existe) {
+      if (!existeRol) {
         await prisma.participante_Caso.create({
           data: {
             Rut: u.Rut,

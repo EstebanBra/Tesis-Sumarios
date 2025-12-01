@@ -1,21 +1,26 @@
 import prisma from "../config/prisma.js";
 
-// esto se hace por si se tiene que cambiar o no para vrae por error del denunciado 
+
+// DESPUES HAY QUE ACTUALIZARLO CUANDO TENGAMOS EL INFORME TECNICO
+
 export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEstadoId, observacion, usuarioId }) {
   return prisma.$transaction(async (tx) => {
-    // validadcion default
+    
+    //Buscar la denuncia actual para comparar datos
     const denuncia = await tx.denuncia.findUnique({
       where: { ID_Denuncia: Number(idDenuncia) }
     });
     
     if (!denuncia) throw new Error("Denuncia no encontrada");
 
-    // UPDATE de la denuncia solo estos campos (ID_TipoDe, ID_EstadoDe)
+    // UPDATE de la denuncia
+    // Aquí actualizamos Tipo (si Dirgegen reclasificó), Estado y la Observación
     const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(idDenuncia) },
       data: {
-        ID_TipoDe: Number(nuevoTipoId),     
-        ID_EstadoDe: Number(nuevoEstadoId),
+        ID_TipoDe: Number(nuevoTipoId),      // Dirgegen puede corregir el tipo
+        ID_EstadoDe: Number(nuevoEstadoId),  // Ej: Cambia a "Derivada"
+        observacionDirgegen: observacion ? String(observacion) : null // Se guarda la nota técnica
       },
       include: {
         tipo_denuncia: true,
@@ -23,16 +28,41 @@ export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEst
       }
     });
 
-    // ver esto despues de actualizar el prisma
-    
-    /* await tx.historial_Estado.create({
-      data: {
-        ID_Denuncia: Number(idDenuncia),
-        ID_EstadoDe: Number(nuevoEstadoId),
-        Fecha: new Date(), // La fecha actual hace único el registro
+    // 3. Crear registro en Historial 
+    if (Number(nuevoEstadoId) !== denuncia.ID_EstadoDe) {
+      
+      
+      const existeHistorial = await tx.historial_Estado.findUnique({
+        where: {
+          ID_Denuncia_ID_EstadoDe: {
+            ID_Denuncia: Number(idDenuncia),
+            ID_EstadoDe: Number(nuevoEstadoId)
+          }
+        }
+      });
+
+      if (!existeHistorial) {
+        await tx.historial_Estado.create({
+          data: {
+            ID_Denuncia: Number(idDenuncia),
+            ID_EstadoDe: Number(nuevoEstadoId),
+            Fecha: new Date(), 
+          }
+        });
+
+        await tx.historial_Estado.update({
+          where: {
+            ID_Denuncia_ID_EstadoDe: {
+              ID_Denuncia: Number(idDenuncia),
+              ID_EstadoDe: Number(nuevoEstadoId)
+            }
+          },
+          data: {
+            Fecha: new Date()
+          }
+        });
       }
-    });
-    */
+    }
 
     return denunciaActualizada;
   });

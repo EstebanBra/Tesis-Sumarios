@@ -28,24 +28,21 @@ export const TIPOS_DENUNCIA: OpcionTipo[] = [
 ]
 
 export const SUBTIPOS_DENUNCIA: OpcionSubtipo[] = [
-    { id: 101, tipoId: 1, nombre: 'Acoso sexual', descripcion: 'Requerimientos de carácter sexual no consentidos que amenacen o perjudiquen tu situación laboral o académica.' },
-    { id: 102, tipoId: 1, nombre: 'Acoso laboral', descripcion: 'Conductas de hostigamiento que provoquen menoscabo, maltrato o humillación; incluye Ley Karin.' },
-    { id: 103, tipoId: 1, nombre: 'Violencia de género', descripcion: 'Cualquier acción basada en género que cause daño físico, sexual o psicológico.' },
-    { id: 104, tipoId: 1, nombre: 'Violencia ejercida por terceros', descripcion: 'Agresiones realizadas por clientes, proveedores o usuarios hacia trabajadores/as.' },
-    { id: 105, tipoId: 1, nombre: 'Discriminación arbitraria', descripcion: 'Exclusión o menoscabo por raza, nacionalidad, sexo, orientación sexual, religión, edad, etc.' },
-    { id: 106, tipoId: 1, nombre: 'Agresión física/psicológica', descripcion: 'Agresiones individuales o colectivas ocurridas en recintos universitarios.' },
-    { id: 201, tipoId: 2, nombre: 'Plagio en certámenes / tesis', descripcion: 'Presentar como propio un trabajo realizado por terceros.' },
-    { id: 202, tipoId: 2, nombre: 'Copia de material no autorizado', descripcion: 'Copiar o utilizar información no autorizada en evaluaciones.' },
-    { id: 203, tipoId: 2, nombre: 'Suplantación académica', descripcion: 'Suplantar o dejarse suplantar en actividades académicas.' },
-    { id: 204, tipoId: 2, nombre: 'Adulteración de documentos', descripcion: 'Confeccionar o adulterar certificados/documentos oficiales.' },
-    { id: 205, tipoId: 2, nombre: 'Uso indebido de propiedad', descripcion: 'Usar sin autorización recursos, sellos o equipamiento UBB.' },
-    { id: 206, tipoId: 2, nombre: 'Daño a la propiedad', descripcion: 'Destruir o deteriorar bienes o infraestructura.' },
-    { id: 207, tipoId: 2, nombre: 'Uso indebido de beneficios', descripcion: 'Suplantación para acceder a becas o créditos.' },
-    { id: 208, tipoId: 2, nombre: 'Consumo/porte ilegal', descripcion: 'Sustancias ilícitas que pongan en riesgo la integridad.' },
-    { id: 209, tipoId: 2, nombre: 'Uso de recintos para drogas', descripcion: 'Elaborar o traficar sustancias en la universidad.' },
-    { id: 210, tipoId: 2, nombre: 'Amenaza u ofensa', descripcion: 'Amenazar o insultar a miembros de la comunidad.' },
-    { id: 211, tipoId: 2, nombre: 'Fraude / representación falsa', descripcion: 'Arrogarse la representación de la Universidad.' },
-    { id: 212, tipoId: 2, nombre: 'Maltrato animal', descripcion: 'Maltratar animales en dependencias universitarias.' },
+{ id: 101, tipoId: 1, nombre: 'Acoso Sexual', descripcion: 'Te pidieron favores sexuales no deseados, o te hicieron sentir incómodo/a con tocamientos o comentarios sexuales indebidos.' },
+{ id: 102, tipoId: 1, nombre: 'Violencia de Género (Física/Psicológica)', descripcion: 'Sufriste agresiones, insultos, gritos o menoscabo por tu género, identidad u orientación sexual.'},
+{ id: 103, tipoId: 1, nombre: 'Violencia Digital / Ciberacoso', descripcion: 'Te acosaron, difamaron o expusieron tu intimidad a través de redes sociales, WhatsApp o internet.' },
+{ id: 104, tipoId: 1, nombre: 'Discriminación por Género', descripcion: 'Te excluyeron, trataron mal o negaron oportunidades por ser mujer, hombre o de la diversidad sexual.' },
+{ id: 105, tipoId: 1, nombre: 'Acoso Laboral (Contexto Universitario)', descripcion: 'Hostigamiento reiterado que afecta tu dignidad o desempeño (si eres estudiante trabajador o funcionario).' },
+{ id: 199, tipoId: 1, nombre: 'Otro tipo de situación', descripcion: 'Mi situación de acoso/violencia no encaja en las anteriores.' },
+// GRUPO 2: CONVIVENCIA ESTUDIANTIL 
+{ id: 201, tipoId: 2, nombre: 'Agresión o Pelea (No género)', descripcion: 'Hubo golpes, empujones o insultos graves con otra persona por conflictos personales o discusiones.' },
+{ id: 202, tipoId: 2, nombre: 'Drogas o Alcohol', descripcion: 'Te presionaron a consumir, o viste consumo/venta que pone en riesgo la seguridad dentro de la U.' },
+{ id: 203, tipoId: 2, nombre: 'Plagio o Fraude Académico', descripcion: 'Alguien presentó tu trabajo como suyo, compró una tesis o copió en una prueba usando "torpedos" o celular.' },
+{ id: 204, tipoId: 2, nombre: 'Suplantación de Identidad', descripcion: 'Alguien se hizo pasar por ti (o por un profe) para dar una prueba, cobrar beneficios o mandar correos.' },
+{ id: 205, tipoId: 2, nombre: 'Daños o Robos', descripcion: 'Rompieron infraestructura de la U, equipos, o dañaron tus pertenencias personales.' },
+{ id: 206, tipoId: 2, nombre: 'Maltrato Animal', descripcion: 'Viste a alguien agrediendo o maltratando animales dentro de los campus de la universidad.' },
+{ id: 207, tipoId: 2, nombre: 'Falsificación de Documentos', descripcion: 'Alguien alteró un certificado médico, un documento de notas o algún papel oficial de la U.' },
+{ id: 299, tipoId: 2, nombre: 'Otro tipo de situación', descripcion: 'Mi conflicto o falta de convivencia no encaja en las anteriores.' },
 ]
 
 export const REGIONES = ['XV Región de Arica y Parinacota', 'I Región de Tarapacá', 'II Región de Antofagasta', 'III Región de Atacama', 'IV Región de Coquimbo', 'V Región de Valparaíso', 'RM Región Metropolitana de Santiago', 'VI Región del Libertador General Bernardo O’Higgins', 'VII Región del Maule', 'XVI Región de Ñuble', 'VIII Región del Bío-Bío', 'IX Región de La Araucanía', 'XIV Región de Los Ríos', 'X Región de Los Lagos', 'XI Región de Aysén del General Carlos Ibáñez del Campo', 'XII Región de Magallanes y de la Antártica Chilena'];
