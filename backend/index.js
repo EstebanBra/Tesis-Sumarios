@@ -12,7 +12,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.VITE_API_URL || "http://localhost:5173";
+const FRONTEND_URL = process.env.VITE_API_URL;
 
 app.use(cors({
   origin: FRONTEND_URL,
