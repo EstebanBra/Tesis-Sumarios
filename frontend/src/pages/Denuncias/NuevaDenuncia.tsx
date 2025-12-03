@@ -8,30 +8,30 @@ import type { FormularioDenuncia, Involucrado, FaseRegistro } from '@/types/denu
 import FormularioLayout from './components/FormularioLayout'
 import { useAuth } from '@/context/AuthContext'
 
-const initialInvolucrado: Involucrado = { 
-  nombre: '', 
-  apellido1: '', 
-  apellido2: '', 
-  parentesco: '', 
-  vinculacion: '', 
-  antecedentes: '', 
-  descripcionFisica: '' 
+const initialInvolucrado: Involucrado = {
+  nombre: '',
+  apellido1: '',
+  apellido2: '',
+  parentesco: '',
+  vinculacion: '',
+  antecedentes: '',
+  descripcionFisica: ''
 }
 
 const initialForm: FormularioDenuncia = {
   rut: '', nombre: '', telefono: '', correo: '', genero: '', reservaIdentidad: false,
-  tipoId: 0, subtipoId: null, descripcionOtro: '', 
+  tipoId: 0, subtipoId: null, descripcionOtro: '',
   regionDenunciante: '', comunaDenunciante: '', direccionDenunciante: '',
-  
-  victimaMenor: 'no', 
-  esVictima: 'si', 
-  victimaRut: '', victimaNombre: '', victimaApellido1: '', victimaApellido2: '', 
-  victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '', 
+
+  victimaMenor: 'no',
+  esVictima: 'si',
+  victimaRut: '', victimaNombre: '', victimaApellido1: '', victimaApellido2: '',
+  victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '',
   victimaCorreo: '', victimaTelefono: '',
 
-  regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '', 
+  regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '',
   fechaHecho: '', horaHecho: '', relato: '',
-  involucrados: [], 
+  involucrados: [],
   nuevoInvolucrado: { ...initialInvolucrado },
 }
 
@@ -126,7 +126,7 @@ export default function NuevaDenuncia() {
         victimaRut: user.rut,
         victimaNombre: user.nombre,
         victimaCorreo: user.email,
-        victimaTelefono: prev.telefono 
+        victimaTelefono: prev.telefono
       }))
     } else {
       setForm(prev => ({
@@ -145,7 +145,7 @@ export default function NuevaDenuncia() {
     setForm((prev) => ({
       ...prev,
       involucrados: [...prev.involucrados, prev.nuevoInvolucrado],
-      nuevoInvolucrado: { ...initialInvolucrado }, 
+      nuevoInvolucrado: { ...initialInvolucrado },
     }))
   }
 
@@ -194,18 +194,18 @@ export default function NuevaDenuncia() {
     ].filter(Boolean).join(' - ')
 
     let relatoFinal = form.relato.trim()
-    
+
     // ✅ CORRECCIÓN 2: Usar esOtro() para concatenar la descripción
     if (esOtro(form.subtipoId) && form.descripcionOtro.trim()) {
-        relatoFinal = `[MOTIVO ESPECÍFICO: ${form.descripcionOtro}]\n\n${relatoFinal}`
+      relatoFinal = `[MOTIVO ESPECÍFICO: ${form.descripcionOtro}]\n\n${relatoFinal}`
     }
 
     const notasAdicionales = [
-        `Tipo General: ${tipoSeleccionado?.nombre}`,
-        form.reservaIdentidad ? 'Solicita Reserva de Identidad' : null,
-        form.esVictima === 'si' ? 'Denunciante es la víctima' : 'Denunciante es testigo/tercero',
-        form.victimaMenor === 'si' ? 'Víctima es menor de edad' : null,
-        form.esVictima === 'no' ? `Víctima: ${form.victimaNombre} (RUT: ${form.victimaRut})` : null
+      `Tipo General: ${tipoSeleccionado?.nombre}`,
+      form.reservaIdentidad ? 'Solicita Reserva de Identidad' : null,
+      form.esVictima === 'si' ? 'Denunciante es la víctima' : 'Denunciante es testigo/tercero',
+      form.victimaMenor === 'si' ? 'Víctima es menor de edad' : null,
+      form.esVictima === 'no' ? `Víctima: ${form.victimaNombre} (RUT: ${form.victimaRut})` : null
     ].filter(Boolean).join(' | ')
 
     const payload: CrearDenunciaInput = {
@@ -220,9 +220,9 @@ export default function NuevaDenuncia() {
       Ubicacion: ubicacionCompleta,
       denunciados: form.involucrados.map((i) => ({
         nombre: `${i.nombre} ${i.apellido1}`.trim() || 'Sin nombre',
-        descripcion: i.descripcionFisica 
+        descripcion: i.descripcionFisica
       })),
-      testigos: [], 
+      testigos: [],
       evidencias: [],
       caracteristicasDenunciado: notasAdicionales,
     }
@@ -265,7 +265,7 @@ export default function NuevaDenuncia() {
           ))}
         </div>
         <div className="mt-12 text-center">
-            <button onClick={() => history.back()} className="mt-4 inline-flex items-center justify-center rounded-md bg-ubb-blue px-6 py-2 text-sm font-semibold text-white">Cancelar</button>
+          <button onClick={() => history.back()} className="mt-4 inline-flex items-center justify-center rounded-md bg-ubb-blue px-6 py-2 text-sm font-semibold text-white">Cancelar</button>
         </div>
       </section>
     )
@@ -311,7 +311,7 @@ export default function NuevaDenuncia() {
       puedeAvanzar={puedeAvanzar()}
       enviando={enviando}
     >
-{/* PASO 1: DATOS DENUNCIANTE */}
+      {/* PASO 1: DATOS DENUNCIANTE */}
       {step === 1 && (
         <div className="space-y-6">
           <div className="rounded-lg border border-blue-100 bg-blue-50/50 px-5 py-4">
@@ -320,10 +320,10 @@ export default function NuevaDenuncia() {
               <button onClick={handleBackToSubtipo} className="text-xs font-medium text-gray-500 underline hover:text-ubb-blue">Cambiar</button>
             </div>
             <div className="grid md:grid-cols-1 gap-6">
-                <div>
-                    <label className="text-[10px] uppercase tracking-wide text-gray-500 font-bold block mb-1">Tipo de Denuncia</label>
-                    <p className="text-sm font-semibold">{subtipoSeleccionado?.nombre}</p>
-                </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wide text-gray-500 font-bold block mb-1">Tipo de Denuncia</label>
+                <p className="text-sm font-semibold">{subtipoSeleccionado?.nombre}</p>
+              </div>
             </div>
           </div>
 
@@ -394,134 +394,166 @@ export default function NuevaDenuncia() {
       {/* PASO 2: HECHOS Y PARTICIPANTES */}
       {step === 2 && (
         <div className="space-y-8">
-          
+
           <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Información de la víctima</h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="grid gap-6 md:grid-cols-2 mb-4">
-                    <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">¿Víctima menor de edad?</p>
-                        <div className="flex gap-4">
-                            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="radio" name="menor" checked={form.victimaMenor === 'si'} onChange={() => updateField('victimaMenor', 'si')} /> Sí
-                            </label>
-                            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="radio" name="menor" checked={form.victimaMenor === 'no'} onChange={() => updateField('victimaMenor', 'no')} /> No
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">¿Eres tú la víctima?</p>
-                        <div className="flex gap-4">
-                            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="radio" name="esVictima" checked={form.esVictima === 'si'} onChange={() => handleEsVictimaChange('si')} /> Sí
-                            </label>
-                            <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="radio" name="esVictima" checked={form.esVictima === 'no'} onChange={() => handleEsVictimaChange('no')} /> No
-                            </label>
-                        </div>
-                    </div>
+              <div className="grid gap-6 md:grid-cols-2 mb-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">¿Víctima menor de edad?</p>
+                  <div className="flex gap-4">
+                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" name="menor" checked={form.victimaMenor === 'si'} onChange={() => updateField('victimaMenor', 'si')} /> Sí
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" name="menor" checked={form.victimaMenor === 'no'} onChange={() => updateField('victimaMenor', 'no')} /> No
+                    </label>
+                  </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">RUT</label>
-                        <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`} 
-                            value={form.victimaRut} 
-                            onChange={(e) => updateField('victimaRut', e.target.value)} 
-                            disabled={form.esVictima === 'si'} 
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
-                        <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`} 
-                            value={form.victimaNombre} 
-                            onChange={(e) => updateField('victimaNombre', e.target.value)} 
-                            disabled={form.esVictima === 'si'}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">Correo</label>
-                        <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`} 
-                            value={form.victimaCorreo} 
-                            onChange={(e) => updateField('victimaCorreo', e.target.value)} 
-                            disabled={form.esVictima === 'si'}
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">Teléfono</label>
-                        <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white" 
-                            value={form.victimaTelefono} 
-                            onChange={(e) => updateField('victimaTelefono', e.target.value)} 
-                        />
-                    </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">¿Eres tú la víctima?</p>
+                  <div className="flex gap-4">
+                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" name="esVictima" checked={form.esVictima === 'si'} onChange={() => handleEsVictimaChange('si')} /> Sí
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" name="esVictima" checked={form.esVictima === 'no'} onChange={() => handleEsVictimaChange('no')} /> No
+                    </label>
+                  </div>
                 </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">RUT</label>
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                    value={form.victimaRut}
+                    onChange={(e) => updateField('victimaRut', e.target.value)}
+                    disabled={form.esVictima === 'si'}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                    value={form.victimaNombre}
+                    onChange={(e) => updateField('victimaNombre', e.target.value)}
+                    disabled={form.esVictima === 'si'}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Correo</label>
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                    value={form.victimaCorreo}
+                    onChange={(e) => updateField('victimaCorreo', e.target.value)}
+                    disabled={form.esVictima === 'si'}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Teléfono</label>
+                  <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                    value={form.victimaTelefono}
+                    onChange={(e) => updateField('victimaTelefono', e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* NUEVOS CAMPOS: SEXO Y GÉNERO DE LA VÍCTIMA */}
+            <div className="grid gap-4 md:grid-cols-2 mt-4 px-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Sexo *</label>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                  value={form.victimaSexo || ''}
+                  onChange={(e) => updateField('victimaSexo', e.target.value)}
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Hombre">Hombre</option>
+                  <option value="Mujer">Mujer</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Género (Opcional)</label>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                  value={form.victimaGenero || ''}
+                  onChange={(e) => updateField('victimaGenero', e.target.value)}
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="Masculino">Masculino</option>
+                  <option value="Femenino">Femenino</option>
+                  <option value="No Binario">No Binario</option>
+                  <option value="Otro">Otro</option>
+                  <option value="Prefiero no decir">Prefiero no decir</option>
+                </select>
+              </div>
+            </div>
+
           </section>
-          
+
           <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Personas involucradas (Denunciados)</h2>
             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                
-                <div className="grid gap-3 md:grid-cols-3 mb-3">
-                    <input 
-                        placeholder="Nombre" 
-                        className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                        value={form.nuevoInvolucrado.nombre} 
-                        onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, nombre: e.target.value } }))} 
-                    />
-                    <input 
-                        placeholder="Apellido" 
-                        className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                        value={form.nuevoInvolucrado.apellido1} 
-                        onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, apellido1: e.target.value } }))} 
-                    />
-                    <select 
-                        className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none" 
-                        value={form.nuevoInvolucrado.vinculacion} 
-                        onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, vinculacion: e.target.value } }))}
-                    >
-                        <option value="">Seleccionar Vinculación</option>
-                        {VINCULACIONES.map(v => <option key={v} value={v}>{v}</option>)}
-                    </select>
-                </div>
 
-                <div className="mb-4">
-                    <textarea
-                        placeholder="Información adicional (descripción física, vestimenta, señas particulares, etc.)"
-                        className="w-full rounded border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
-                        value={form.nuevoInvolucrado.descripcionFisica}
-                        onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, descripcionFisica: e.target.value } }))}
-                    />
-                </div>
-
-                <button 
-                    type="button" 
-                    onClick={handleAddInvolucrado} 
-                    className="text-sm bg-ubb-blue text-white px-4 py-2 rounded font-medium hover:bg-blue-800 transition-colors flex items-center gap-1"
+              <div className="grid gap-3 md:grid-cols-3 mb-3">
+                <input
+                  placeholder="Nombre"
+                  className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  value={form.nuevoInvolucrado.nombre}
+                  onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, nombre: e.target.value } }))}
+                />
+                <input
+                  placeholder="Apellido"
+                  className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  value={form.nuevoInvolucrado.apellido1}
+                  onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, apellido1: e.target.value } }))}
+                />
+                <select
+                  className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                  value={form.nuevoInvolucrado.vinculacion}
+                  onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, vinculacion: e.target.value } }))}
                 >
-                    <span>+</span> Agregar persona
-                </button>
+                  <option value="">Seleccionar Vinculación</option>
+                  {VINCULACIONES.map(v => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <textarea
+                  placeholder="Información adicional (descripción física, vestimenta, señas particulares, etc.)"
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
+                  value={form.nuevoInvolucrado.descripcionFisica}
+                  onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, descripcionFisica: e.target.value } }))}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddInvolucrado}
+                className="text-sm bg-ubb-blue text-white px-4 py-2 rounded font-medium hover:bg-blue-800 transition-colors flex items-center gap-1"
+              >
+                <span>+</span> Agregar persona
+              </button>
             </div>
 
             {form.involucrados.length > 0 && (
               <div className="mt-4 border rounded-md overflow-hidden">
                 <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b">
-                    Personas agregadas ({form.involucrados.length})
+                  Personas agregadas ({form.involucrados.length})
                 </div>
                 <ul className="divide-y bg-white">
                   {form.involucrados.map((inv, i) => (
                     <li key={i} className="p-4 flex flex-col gap-1 text-sm hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start">
                         <div>
-                            <span className="font-bold text-gray-900">{inv.nombre} {inv.apellido1}</span>
-                            <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                                {inv.vinculacion || 'Sin vinculación'}
-                            </span>
+                          <span className="font-bold text-gray-900">{inv.nombre} {inv.apellido1}</span>
+                          <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                            {inv.vinculacion || 'Sin vinculación'}
+                          </span>
                         </div>
                         <button type="button" onClick={() => handleRemoveInvolucrado(i)} className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50">
-                            Eliminar
+                          Eliminar
                         </button>
                       </div>
                       {inv.descripcionFisica && (
@@ -538,23 +570,23 @@ export default function NuevaDenuncia() {
 
           <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Relato de los hechos</h2>
-            
+
             {/* ✅ CORRECCIÓN 3: Usar esOtro() para mostrar el input */}
             {esOtro(form.subtipoId) && (
-                <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 animate-in fade-in slide-in-from-top-2">
-                    <label className="block text-sm font-bold text-yellow-800 mb-1">
-                        Describe brevemente el tipo de situación *
-                    </label>
-                    <input
-                        type="text"
-                        className="block w-full rounded-md border-yellow-400 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm"
-                        placeholder="Ej: Problemas con un proveedor externo, ruidos molestos, etc."
-                        value={form.descripcionOtro}
-                        onChange={(e) => updateField('descripcionOtro', e.target.value)}
-                        required
-                    />
-                    <p className="text-xs text-yellow-700 mt-1">Esta descripción corta nos ayudará a clasificar tu caso.</p>
-                </div>
+              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 animate-in fade-in slide-in-from-top-2">
+                <label className="block text-sm font-bold text-yellow-800 mb-1">
+                  Describe brevemente el tipo de situación *
+                </label>
+                <input
+                  type="text"
+                  className="block w-full rounded-md border-yellow-400 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm"
+                  placeholder="Ej: Problemas con un proveedor externo, ruidos molestos, etc."
+                  value={form.descripcionOtro}
+                  onChange={(e) => updateField('descripcionOtro', e.target.value)}
+                  required
+                />
+                <p className="text-xs text-yellow-700 mt-1">Esta descripción corta nos ayudará a clasificar tu caso.</p>
+              </div>
             )}
 
             <div className="grid gap-4 md:grid-cols-3">
@@ -610,6 +642,19 @@ export default function NuevaDenuncia() {
                 required
               />
             </div>
+
+            {/* SECCIÓN DE EVIDENCIA (VISUAL) */}
+            <div className="pt-4 border-t border-gray-200">
+              <label className="text-sm font-medium text-gray-700 block mb-2">Adjuntar Evidencia (Opcional)</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer">
+                <svg className="w-10 h-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p className="text-sm text-gray-600 font-medium">Haz clic para subir archivos o arrástralos aquí</p>
+                <p className="text-xs text-gray-500 mt-1">Formatos permitidos: PDF, JPG, PNG, DOCX (Máx. 10MB)</p>
+              </div>
+            </div>
+
           </section>
         </div>
       )}
@@ -620,23 +665,23 @@ export default function NuevaDenuncia() {
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h3 className="text-ubb-blue font-bold uppercase text-xs tracking-wider mb-4">Resumen General</h3>
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4 text-sm">
-                <div><dt className="text-gray-500 text-xs uppercase font-bold">Tipo de Denuncia</dt><dd>{subtipoSeleccionado?.nombre} {esOtro(form.subtipoId) && `(${form.descripcionOtro})`}</dd></div>
-                <div><dt className="text-gray-500 text-xs uppercase font-bold">Víctima</dt><dd>{form.victimaNombre || 'No especificado'}</dd></div>
-                
-                <div className="md:col-span-2">
-                    <dt className="text-gray-500 text-xs uppercase font-bold mb-1">Personas Denunciadas</dt>
-                    {form.involucrados.length > 0 ? (
-                        <ul className="list-disc pl-4 text-gray-700">
-                            {form.involucrados.map((inv, idx) => (
-                                <li key={idx}>{inv.nombre} {inv.apellido1} ({inv.vinculacion})</li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <dd className="text-gray-500 italic">No se agregaron personas específicas</dd>
-                    )}
-                </div>
+              <div><dt className="text-gray-500 text-xs uppercase font-bold">Tipo de Denuncia</dt><dd>{subtipoSeleccionado?.nombre} {esOtro(form.subtipoId) && `(${form.descripcionOtro})`}</dd></div>
+              <div><dt className="text-gray-500 text-xs uppercase font-bold">Víctima</dt><dd>{form.victimaNombre || 'No especificado'}</dd></div>
 
-                <div className="md:col-span-2"><dt className="text-gray-500 text-xs uppercase font-bold mb-1">Relato</dt><dd className="bg-white p-3 rounded border text-gray-700 whitespace-pre-wrap">{form.relato}</dd></div>
+              <div className="md:col-span-2">
+                <dt className="text-gray-500 text-xs uppercase font-bold mb-1">Personas Denunciadas</dt>
+                {form.involucrados.length > 0 ? (
+                  <ul className="list-disc pl-4 text-gray-700">
+                    {form.involucrados.map((inv, idx) => (
+                      <li key={idx}>{inv.nombre} {inv.apellido1} ({inv.vinculacion})</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <dd className="text-gray-500 italic">No se agregaron personas específicas</dd>
+                )}
+              </div>
+
+              <div className="md:col-span-2"><dt className="text-gray-500 text-xs uppercase font-bold mb-1">Relato</dt><dd className="bg-white p-3 rounded border text-gray-700 whitespace-pre-wrap">{form.relato}</dd></div>
             </dl>
           </div>
           <div className="text-sm text-gray-500 text-center">
