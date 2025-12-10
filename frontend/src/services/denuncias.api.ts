@@ -30,6 +30,42 @@ export type CrearDenunciaInput = {
   evidencias?: EvidenciaInput[]
   caracteristicasDenunciado?: string | null
 }
+//nuevooo
+
+export async function crearSolicitudMedida(payload: {
+  ID_Denuncia: number;
+  Tipo_Medida: string;
+  Observacion: string;
+}) {
+  // Esta ruta debe coincidir con la que definiste en el backend (/api/solicitudes/medidas)
+  // El helper 'http' añade el prefijo base si está configurado, o usa la ruta relativa.
+  return http('/solicitudes/medidas', { 
+    method: 'POST', 
+    body: payload 
+  })
+}
+
+
+export type SolicitudMedida = {
+  ID_Solicitud: number
+  ID_Denuncia: number
+  Rut_Solicitante: string
+  Fecha_Solicitud: string // ISO
+  Tipo_Medida: string
+  
+  // Estados manejados en el flujo:
+  Estado: 'Pendiente Informe' | 'En Revisión' | 'Aprobada' | 'Rechazada' 
+  
+  Observacion: string | null
+  Informe_Tecnico: string | null // Path/contenido del informe (simulado por ahora)
+  Archivo_Resolucion: string | null 
+}
+
+export async function listarMedidasPendientes() {
+  // Llama a la ruta específica que creamos en solicitudMedida.routes.js
+  return http('/solicitudes/medidas/pendientes/dirgegen')
+}
+
 
 export type DenunciaListado = {
   ID_Denuncia: number
@@ -50,6 +86,7 @@ export type DenunciaListado = {
     ID_EstadoDe: number
     Tipo_Estado: string
   }
+  solicitudes_medidas?: SolicitudMedida[]
 }
 
 export type ListarDenunciasParams = {

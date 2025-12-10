@@ -41,7 +41,11 @@ export async function listDenunciasService(filters = {}, page = 1, pageSize = 10
 export async function getDenunciaByIdService(id) {
   return prisma.denuncia.findUnique({
     where: { ID_Denuncia: Number(id) },
-    include: includeFull,
+    // CORRECCIÓN AQUÍ:
+    include: {
+      ...includeFull, // 1. Esparcimos las relaciones que ya tenías
+      solicitudes_medidas: true // 2. Agregamos la nueva DENTRO del include
+    }
   });
 }
 
