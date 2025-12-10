@@ -101,6 +101,14 @@ export async function runInitialSetup() {
       roles: ['Admin']
     },
     {
+      Rut: '33000000-3',
+      Nombre: 'Usuario VRA', // Cambié VRAE por VRA si es lo que usas en el área de tipos
+      Correo: 'vra@ubb.cl',
+      Telefono: '+56933333333',
+      password: passwordHash,
+      roles: ['VRA']
+    },
+    {
       Rut: '33333333-3',
       Nombre: 'Usuario VRAE', // Cambié VRAE por VRA si es lo que usas en el área de tipos
       Correo: 'vrae@ubb.cl',

@@ -41,11 +41,7 @@ export async function listDenunciasService(filters = {}, page = 1, pageSize = 10
 export async function getDenunciaByIdService(id) {
   return prisma.denuncia.findUnique({
     where: { ID_Denuncia: Number(id) },
-    // CORRECCIÓN AQUÍ:
-    include: {
-      ...includeFull, // 1. Esparcimos las relaciones que ya tenías
-      solicitudes_medidas: true // 2. Agregamos la nueva DENTRO del include
-    }
+    include: includeFull
   });
 }
 
@@ -54,21 +50,21 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
   return prisma.$transaction(async (tx) => {
 
-   // CREAR O ACTUALIZAR PERSONA DENUNCIANTE
+    // CREAR O ACTUALIZAR PERSONA DENUNCIANTE
     await tx.persona.upsert({
-        where: { Rut: payload.Rut },
-        update: { 
-            // Si la persona ya existe, actualizamos su género con el dato nuevo
-            genero: payload.genero 
-        },
-        create: {
-            Rut: payload.Rut,
-            // Si es nueva, usamos los datos básicos. Ojo: nombre/correo deberían venir del auth o payload
-            Nombre: payload.nombreDenunciante || '', 
-            Correo: payload.correoDenunciante || '',
-            Telefono: payload.telefonoDenunciante || '',
-            genero: payload.genero
-        }
+      where: { Rut: payload.Rut },
+      update: {
+        // Si la persona ya existe, actualizamos su género con el dato nuevo
+        genero: payload.genero
+      },
+      create: {
+        Rut: payload.Rut,
+        // Si es nueva, usamos los datos básicos. Ojo: nombre/correo deberían venir del auth o payload
+        Nombre: payload.nombreDenunciante || '',
+        Correo: payload.correoDenunciante || '',
+        Telefono: payload.telefonoDenunciante || '',
+        genero: payload.genero
+      }
     });
 
     // 2CREAR LA DENUNCIA
@@ -80,7 +76,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         Fecha_Inicio: payload.Fecha_Inicio ? new Date(payload.Fecha_Inicio) : new Date(),
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
-        
+
         // Historial inicial
         historial_estado: historial
           ? { create: { ID_EstadoDe: estadoInicial, Fecha: new Date() } }
@@ -90,20 +86,20 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
     // PARTICIPANTES (Denunciados + Testigos)
     const participantes = [];
-    
+
     // Denunciados
     if (Array.isArray(payload.denunciados)) {
       for (const p of payload.denunciados) {
         if (p?.nombre || p?.rut) {
           participantes.push({
             ID_Denuncia: denuncia.ID_Denuncia,
-            Rut: p.rut ?? "DESCONOCIDO", 
+            Rut: p.rut ?? "DESCONOCIDO",
             Nombre_PD: p.nombre ?? "Desconocido",
           });
         }
       }
     }
-    
+
     // Testigos
     if (Array.isArray(payload.testigos)) {
       for (const t of payload.testigos) {
