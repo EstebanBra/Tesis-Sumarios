@@ -22,6 +22,7 @@ model Persona {
   // Relaciones
   participantes_caso Participante_Caso[]
   per_par_den        Per_Par_Den[]
+  solicitudes_medidas SolicitudMedida[]//nuevo
 
   @@map("Persona")
 }
@@ -60,6 +61,7 @@ model Denuncia {
   per_par_den           Per_Par_Den[]
   participante_denuncia Participante_Denuncia[]
   historial_estado      Historial_Estado[]
+  solicitudes_medidas   SolicitudMedida[]// nuevo
 
   @@map("Denuncia")
 }
@@ -163,6 +165,35 @@ model Tipo_Cautelar {
   medida_cautelar MedidaCautelar @relation(fields: [ID_MC], references: [ID_MC], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("Tipo_Cautelar")
+}
+
+// ==========================================
+// SOLICITUDES DE MEDIDAS DE RESGUARDO (NUEVO)
+// ==========================================
+
+model SolicitudMedida {
+  ID_Solicitud       Int      @id @default(autoincrement())
+  ID_Denuncia        Int
+  Rut_Solicitante    String   @db.VarChar(12) // Quién apretó el botón (Víctima, Fiscal, etc.)
+  Fecha_Solicitud    DateTime @default(now())
+  
+  // Tipo: 'Académica', 'Alejamiento', 'Teletrabajo', etc.
+  Tipo_Medida        String   @db.VarChar(100) 
+  
+  // Estado: 'Pendiente Informe' (si es Género), 'En Revisión' (Fiscal), 'Aprobada', 'Rechazada'
+  Estado             String   @db.VarChar(50)  
+
+  // Archivos obligatorios según el flujo
+  Informe_Tecnico    String?  @db.VarChar(255) // URL/Path del PDF subido por DIRGEGEN
+  Archivo_Resolucion String?  @db.VarChar(255) // URL/Path del decreto de aprobación
+
+  Observacion        String?  @db.Text         // Detalles adicionales
+
+  // Relaciones
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+  persona  Persona  @relation(fields: [Rut_Solicitante], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("SolicitudMedida")
 }
 
 // ==========================================
