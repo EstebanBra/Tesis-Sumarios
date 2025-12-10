@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 
 export default function Header() {
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, logout, hasRole } = useAuth()
   return (
     <header className="w-full border-b border-gray-200 bg-white">
       {/* Bloque superior de marcas */}
@@ -56,6 +56,36 @@ export default function Header() {
           >
             Mis denuncias
           </Link>
+
+          {/* Enlace para Dirgegen */}
+          {hasRole('Dirgegen') && (
+            <Link
+              to="/dirgegen/bandeja"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Bandeja Dirgegen
+            </Link>
+          )}
+
+          {/* Enlace para VRA */}
+          {hasRole('VRA') && (
+            <Link
+              to="/autoridad/bandeja"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Bandeja VRA
+            </Link>
+          )}
+
+          {/* Enlace para VRAE */}
+          {hasRole('VRAE') && (
+            <Link
+              to="/autoridad/bandeja"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Bandeja VRAE
+            </Link>
+          )}
 
           {/* Zona de usuario al extremo derecho (placeholder) */}
           <div className="ml-auto inline-flex items-center gap-3 py-2">
