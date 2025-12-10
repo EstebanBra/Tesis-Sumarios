@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDenunciaById, gestionarDenuncia, type DenunciaListado } from '@/services/denuncias.api'
-import DerivacionModal from "@/pages/Denuncias/components/Derivacion" // Asegúrate de importar el nuevo modal
+import { getDenunciaById, gestionarDenuncia, type DenunciaListado, type SolicitudMedida } from '@/services/denuncias.api'
+import DerivacionModal from "@/pages/Denuncias/components/Derivacion"
+
 
 export default function DetalleDirgegen() {
   const { id } = useParams()
@@ -27,19 +28,13 @@ export default function DetalleDirgegen() {
       setLoading(false)
     }
   }
-
-  // Esta función se ejecuta cuando le dan "Confirmar" en el Modal
+// ... (función handleDerivacionConfirm igual que antes) ...
   const handleDerivacionConfirm = async (observacion: string) => {
+    // (Tu lógica existente de derivación)
     if (!denuncia) return
     try {
       setProcessing(true)
-      
-      // Llamada al API con la observación que viene del Modal
-      await gestionarDenuncia(denuncia.ID_Denuncia, {
-        observacion: observacion,
-        nuevoEstadoId: 3 // ID 3 = "Derivada" (Ajustar según tu seed de estados)
-      })
-      
+      await gestionarDenuncia(denuncia.ID_Denuncia, { observacion, nuevoEstadoId: 3 })
       setShowModal(false)
       alert('Denuncia derivada exitosamente a VRA.')
       navigate('/dirgegen/bandeja')
@@ -54,8 +49,70 @@ export default function DetalleDirgegen() {
   if (loading) return <div className="p-10 text-center text-gray-500">Cargando caso...</div>
   if (!denuncia) return <div className="p-10 text-center text-red-600">Denuncia no encontrada.</div>
 
+  //nuevo
+  // ✅ CORRECCIÓN 1: Definimos que esta variable es un array de SolicitudMedida
+  // Como ya lo definiste en 'denuncias.api.ts', no necesitas usar 'as any'.
+  const solicitudesDeMedida: SolicitudMedida[] = denuncia.solicitudes_medidas || [];
+  
+  // ✅ CORRECCIÓN 2: Tipamos 's' para quitar el error rojo
+  const solicitudPendiente = solicitudesDeMedida.find((s: SolicitudMedida) => s.Estado === 'Pendiente Informe');
   return (
     <section className="mx-auto max-w-5xl pb-12 px-4 py-8">
+{/* --- SECCIÓN DE MEDIDAS DE RESGUARDO --- */}
+      {solicitudesDeMedida.length > 0 && (
+        <div className="mt-8 rounded-xl border border-blue-200 bg-white shadow-lg overflow-hidden">
+            
+            <div className="border-b border-gray-100 px-6 py-4 bg-blue-50">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-ubb-blue flex items-center gap-2">
+                    {solicitudPendiente ? '⚠️ SOLICITUD PENDIENTE DE ATENCIÓN' : '✔️ Historial de Solicitudes'}
+                </h2>
+            </div>
+            
+            {/* ✅ CORRECCIÓN 3: Tipamos 'solicitud' aquí también */}
+            {solicitudesDeMedida.map((solicitud: SolicitudMedida) => (
+              <div key={solicitud.ID_Solicitud} className={`p-6 border-b ${solicitud.Estado === 'Pendiente Informe' ? 'bg-yellow-50' : ''}`}>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                    
+                    <div className="col-span-2">
+                        <dt className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                            Tipo Solicitado:
+                        </dt>
+                        <dd className="font-semibold text-gray-900">{solicitud.Tipo_Medida}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                            Estado:
+                        </dt>
+                        <dd className={`font-bold ${solicitud.Estado === 'Aprobada' ? 'text-green-600' : solicitud.Estado === 'Pendiente Informe' ? 'text-red-600' : 'text-gray-600'}`}>
+                            {solicitud.Estado}
+                        </dd>
+                    </div>
+
+                    <div className="col-span-3 mt-4">
+                        <dt className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                            Justificación de la Víctima:
+                        </dt>
+                        <dd className="text-gray-700 italic border-l-4 border-gray-200 pl-3">
+                            {solicitud.Observacion || 'No proporcionada'}
+                        </dd>
+                    </div>
+                </div>
+
+                {/* BOTÓN (SOLO VISUAL POR AHORA, SIN LÓGICA DE INFORME) */}
+                {solicitud.Estado === 'Pendiente Informe' && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
+                        <button
+                            onClick={() => alert(`Funcionalidad pendiente: Aquí se abrirá el formulario para el Informe Técnico.`)}
+                            className="px-4 py-2 bg-ubb-blue border border-ubb-blue rounded-md text-sm font-bold text-white hover:bg-blue-900 shadow-sm transition-colors"
+                        >
+                            ✍️ Gestionar Solicitud
+                        </button>
+                    </div>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
       
       {/* HEADER TÍTULO */}
       <div className="flex items-center justify-between mb-6">
