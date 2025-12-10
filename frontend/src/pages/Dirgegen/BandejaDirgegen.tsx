@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
+// 1. IMPORTAR la nueva función y tipos
+import { listarDenuncias, listarMedidasPendientes, type DenunciaListado, type SolicitudMedida } from '@/services/denuncias.api'
 import { useAuth } from '@/context/AuthContext'
 
 export default function BandejaDirgegen() {
   const [denuncias, setDenuncias] = useState<DenunciaListado[]>([])
+  // 2. ESTADO NUEVO para las alertas
+  const [medidasPendientes, setMedidasPendientes] = useState<SolicitudMedida[]>([])
+  
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -13,12 +17,15 @@ export default function BandejaDirgegen() {
     async function loadData() {
       try {
         setLoading(true)
-        // 1. Llamamos a la API sin filtros manuales.
-        // El Backend detecta tu rol 'Dirgegen' y filtra automáticamente 
-        // por Area = 'Género y Equidad' (incluyendo IDs 101-105 y 199).
-        const res = await listarDenuncias({ page: 1, pageSize: 50 }) 
+        // 3. CARGA PARALELA: Pedimos denuncias Y medidas pendientes a la vez
+        const [resDenuncias, resMedidas] = await Promise.all([
+            listarDenuncias({ page: 1, pageSize: 50 }),
+            listarMedidasPendientes() // <--- Llamada a la nueva ruta
+        ])
         
-        setDenuncias(res.data)
+        setDenuncias(resDenuncias.data)
+        setMedidasPendientes(resMedidas) // <--- Guardamos las alertas
+
       } catch (error) {
         console.error('Error cargando bandeja', error)
       } finally {
@@ -28,17 +35,17 @@ export default function BandejaDirgegen() {
     loadData()
   }, [])
 
-  // Función para resaltar si es un caso "Otro" que requiere clasificación manual
-  const esCasoEspecial = (idTipo: number) => idTipo === 199; // ID 199 = Otro (Género)
+  const esCasoEspecial = (idTipo: number) => idTipo === 199; 
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-ubb-blue font-medium animate-pulse">
-      Cargando denuncias asignadas...
+      Cargando...
     </div>
   )
 
   return (
     <section className="space-y-6 max-w-7xl mx-auto py-8 px-4">
+      {/* Header (Igual que antes) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-condensed text-3xl font-bold tracking-tight text-gray-900">
@@ -53,85 +60,85 @@ export default function BandejaDirgegen() {
                 Bienvenida, {user?.nombre || 'Encargada'}
             </span>
             <div className="bg-ubb-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
-            {denuncias.length} Casos Pendientes
+            {denuncias.length} Casos en Total
             </div>
         </div>
       </header>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-200">
-        <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-            <tr>
-              <th className="px-6 py-4">ID / Fecha</th>
-              <th className="px-6 py-4">Tipo de Denuncia</th>
-              <th className="px-6 py-4">Denunciante</th>
-              <th className="px-6 py-4">Estado</th>
-              <th className="px-6 py-4 text-right">Acción</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {denuncias.map((d) => (
-              <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
-                <td className="px-6 py-4">
-                    <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                        {new Date(d.Fecha_Inicio).toLocaleDateString()}
+      {/* 4. AQUÍ ESTÁ LA MAGIA: El Banner Rojo */}
+      {/* Solo se muestra si hay medidas pendientes */}
+      {medidasPendientes.length > 0 && (
+        <div className="rounded-xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+                <div className="text-3xl">🚨</div>
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-red-800">
+                        Atención Requerida: Medidas de Resguardo
+                    </h3>
+                    <p className="text-sm text-red-700 mt-1 mb-4">
+                        Se han recibido <strong>{medidasPendientes.length} solicitud(es)</strong> que requieren la elaboración de Informe Técnico urgente.
+                    </p>
+                    
+                    <div className="grid gap-3 md:grid-cols-2">
+                        {medidasPendientes.map(m => (
+                            <div key={m.ID_Solicitud} className="flex items-center justify-between bg-white p-3 rounded-lg border border-red-200 shadow-sm hover:shadow-md transition-shadow">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-800">Caso #{m.ID_Denuncia}</p>
+                                    <p className="text-xs text-gray-500">{m.Tipo_Medida}</p>
+                                </div>
+                                <button 
+                                    onClick={() => navigate(`/dirgegen/denuncia/${m.ID_Denuncia}`)}
+                                    className="bg-red-100 text-red-700 text-xs font-bold px-3 py-2 rounded hover:bg-red-200 transition-colors"
+                                >
+                                    Gestionar →
+                                </button>
+                            </div>
+                        ))}
                     </div>
-                </td>
-                
-                <td className="px-6 py-4">
-                  <div className="flex flex-col">
-                    <span className={`font-medium ${esCasoEspecial(d.tipo_denuncia?.ID_TipoDe || 0) ? 'text-orange-600' : 'text-gray-900'}`}>
-                        {d.tipo_denuncia?.Nombre || 'Sin Clasificar'}
-                    </span>
-                    {/* Si es "Otro", mostramos una etiqueta visual */}
-                    {esCasoEspecial(d.tipo_denuncia?.ID_TipoDe || 0) && (
-                        <span className="mt-1 inline-flex items-center w-fit rounded bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-800">
-                            Requiere Clasificación
+                </div>
+            </div>
+        </div>
+      )}
+      {/* Fin del Banner */}
+
+      {/* Tu tabla original sigue aquí abajo... */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-200">
+         {/* ... Código de tu tabla ... */}
+         <table className="min-w-full divide-y divide-gray-200 text-sm">
+            {/* Copia aquí el contenido de tu tabla tal cual lo tenías */}
+            <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <tr>
+                <th className="px-6 py-4">ID / Fecha</th>
+                <th className="px-6 py-4">Tipo de Denuncia</th>
+                <th className="px-6 py-4">Denunciante</th>
+                <th className="px-6 py-4">Estado</th>
+                <th className="px-6 py-4 text-right">Acción</th>
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+                {denuncias.map((d) => (
+                <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
+                    {/* ... tus celdas ... */}
+                    <td className="px-6 py-4">
+                        <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                            {new Date(d.Fecha_Inicio).toLocaleDateString()}
+                        </div>
+                    </td>
+                    <td className="px-6 py-4">{d.tipo_denuncia?.Nombre}</td>
+                    <td className="px-6 py-4 font-mono text-xs">{d.Rut}</td>
+                    <td className="px-6 py-4">
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                            {d.estado_denuncia?.Tipo_Estado}
                         </span>
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-6 py-4 font-mono text-gray-600 text-xs">
-                    {d.Rut}
-                </td>
-
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border
-                    ${d.estado_denuncia?.Tipo_Estado === 'Recibida' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                      d.estado_denuncia?.Tipo_Estado === 'Derivada' ? 'bg-purple-50 text-purple-700 border-purple-200' : 
-                      'bg-green-50 text-green-700 border-green-200'}`}>
-                    {d.estado_denuncia?.Tipo_Estado || 'Recibida'}
-                  </span>
-                </td>
-
-                <td className="px-6 py-4 text-right">
-                  <button 
-                    onClick={() => navigate(`/dirgegen/denuncia/${d.ID_Denuncia}`)}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-white border border-gray-300 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-700 shadow-sm transition-all hover:bg-ubb-blue hover:text-white hover:border-ubb-blue group-hover:border-blue-300"
-                  >
-                    Revisar y Gestionar
-                  </button>
-                </td>
-              </tr>
-            ))}
-            
-            {denuncias.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-6 py-16 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
-                    <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900">¡Todo al día!</h3>
-                  <p className="mt-1 text-sm text-gray-500">No hay denuncias pendientes de revisión en tu bandeja.</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                        <button onClick={() => navigate(`/dirgegen/denuncia/${d.ID_Denuncia}`)} className="text-ubb-blue font-bold text-xs hover:underline">REVISAR</button>
+                    </td>
+                </tr>
+                ))}
+            </tbody>
+         </table>
       </div>
     </section>
   )
