@@ -51,8 +51,8 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
   return prisma.$transaction(async (tx) => {
 
-    // CREAR O ACTUALIZAR PERSONA DENUNCIANTE
-    await tx.persona.upsert({
+    // 1️⃣ CREAR O ACTUALIZAR PERSONA DENUNCIANTE
+    const denunciante = await tx.persona.upsert({
       where: { Rut: payload.Rut },
       update: {
         // Si la persona ya existe, actualizamos su género con el dato nuevo
@@ -68,10 +68,10 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       }
     });
 
-    // 2CREAR LA DENUNCIA
+    // 2️⃣ CREAR LA DENUNCIA
     const denuncia = await tx.denuncia.create({
       data: {
-        Rut: payload.Rut,
+        ID_Denunciante: denunciante.ID,  // Usamos el ID de la persona
         ID_TipoDe: Number(payload.ID_TipoDe), // ID específico (ej: 101, 201)
         ID_EstadoDe: estadoInicial,
         Fecha_Inicio: payload.Fecha_Inicio ? new Date(payload.Fecha_Inicio) : new Date(),
@@ -85,16 +85,44 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       },
     });
 
-    // PARTICIPANTES (Denunciados + Testigos)
+    // 3️⃣ PARTICIPANTES (Denunciados + Testigos)
     const participantes = [];
 
     // Denunciados
     if (Array.isArray(payload.denunciados)) {
       for (const p of payload.denunciados) {
         if (p?.nombre || p?.rut) {
+          let personaId = null;
+
+          if (p.rut) {
+            // Si tiene RUT, buscar o crear la persona
+            const persona = await tx.persona.upsert({
+              where: { Rut: p.rut },
+              update: {},
+              create: {
+                Rut: p.rut,
+                Nombre: p.nombre ?? "Desconocido",
+                Correo: "",
+                Telefono: ""
+              }
+            });
+            personaId = persona.ID;
+          } else {
+            // Si NO tiene RUT, crear persona anónima
+            const personaAnonima = await tx.persona.create({
+              data: {
+                Rut: null,
+                Nombre: p.nombre ?? "Denunciado sin identificar",
+                Correo: "",
+                Telefono: ""
+              }
+            });
+            personaId = personaAnonima.ID;
+          }
+
           participantes.push({
             ID_Denuncia: denuncia.ID_Denuncia,
-            Rut: p.rut ?? "DESCONOCIDO",
+            ID_Persona: personaId,
             Nombre_PD: p.nombre ?? "Desconocido",
           });
         }
@@ -105,9 +133,37 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     if (Array.isArray(payload.testigos)) {
       for (const t of payload.testigos) {
         if (t?.nombre || t?.rut) {
+          let personaId = null;
+
+          if (t.rut) {
+            // Si tiene RUT
+            const persona = await tx.persona.upsert({
+              where: { Rut: t.rut },
+              update: {},
+              create: {
+                Rut: t.rut,
+                Nombre: t.nombre ?? "Desconocido",
+                Correo: "",
+                Telefono: ""
+              }
+            });
+            personaId = persona.ID;
+          } else {
+            // Sin RUT - persona anónima
+            const personaAnonima = await tx.persona.create({
+              data: {
+                Rut: null,
+                Nombre: t.nombre ?? "Testigo sin identificar",
+                Correo: "",
+                Telefono: ""
+              }
+            });
+            personaId = personaAnonima.ID;
+          }
+
           participantes.push({
             ID_Denuncia: denuncia.ID_Denuncia,
-            Rut: t.rut ?? "DESCONOCIDO",
+            ID_Persona: personaId,
             Nombre_PD: t.nombre ?? "Desconocido",
           });
         }
@@ -118,12 +174,12 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       await tx.participante_Denuncia.createMany({ data: participantes });
     }
 
-    //  EVIDENCIAS
+    // 4️⃣ EVIDENCIAS
     if (Array.isArray(payload.evidencias) && payload.evidencias.length) {
       // a) Crear Participante_Caso temporal para vincular archivos
       const pc = await tx.participante_Caso.create({
         data: {
-          Rut: payload.Rut,
+          ID_Persona: denunciante.ID,  // Usamos ID en vez de Rut
           Tipo_PC: "DENUNCIANTE",
         },
       });
@@ -147,7 +203,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       }
     }
 
-    //  Retornar denuncia completa
+    // 5️⃣ Retornar denuncia completa
     return await tx.denuncia.findUnique({
       where: { ID_Denuncia: denuncia.ID_Denuncia },
       include: includeFull,
@@ -170,7 +226,7 @@ export async function updateDenunciaService(id, data) {
     const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(id) },
       data: {
-        Rut: data.Rut ?? prev.Rut,
+        ID_Denunciante: data.ID_Denunciante ?? prev.ID_Denunciante,
         ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
         ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
         Fecha_Inicio: data.Fecha_Inicio ?? prev.Fecha_Inicio,
@@ -210,9 +266,35 @@ export async function updateDenunciaService(id, data) {
       if (Array.isArray(data.denunciados)) {
         for (const p of data.denunciados) {
           if (p?.nombre || p?.rut) {
+            let personaId = null;
+
+            if (p.rut) {
+              const persona = await tx.persona.upsert({
+                where: { Rut: p.rut },
+                update: {},
+                create: {
+                  Rut: p.rut,
+                  Nombre: p.nombre ?? "Desconocido",
+                  Correo: "",
+                  Telefono: ""
+                }
+              });
+              personaId = persona.ID;
+            } else {
+              const personaAnonima = await tx.persona.create({
+                data: {
+                  Rut: null,
+                  Nombre: p.nombre ?? "Denunciado sin identificar",
+                  Correo: "",
+                  Telefono: ""
+                }
+              });
+              personaId = personaAnonima.ID;
+            }
+
             nuevosParticipantes.push({
               ID_Denuncia: Number(id),
-              Rut: p.rut ?? "DESCONOCIDO",
+              ID_Persona: personaId,
               Nombre_PD: p.nombre ?? "Desconocido",
             });
           }
@@ -223,9 +305,35 @@ export async function updateDenunciaService(id, data) {
       if (Array.isArray(data.testigos)) {
         for (const t of data.testigos) {
           if (t?.nombre || t?.rut) {
+            let personaId = null;
+
+            if (t.rut) {
+              const persona = await tx.persona.upsert({
+                where: { Rut: t.rut },
+                update: {},
+                create: {
+                  Rut: t.rut,
+                  Nombre: t.nombre ?? "Desconocido",
+                  Correo: "",
+                  Telefono: ""
+                }
+              });
+              personaId = persona.ID;
+            } else {
+              const personaAnonima = await tx.persona.create({
+                data: {
+                  Rut: null,
+                  Nombre: t.nombre ?? "Testigo sin identificar",
+                  Correo: "",
+                  Telefono: ""
+                }
+              });
+              personaId = personaAnonima.ID;
+            }
+
             nuevosParticipantes.push({
               ID_Denuncia: Number(id),
-              Rut: t.rut ?? "DESCONOCIDO",
+              ID_Persona: personaId,
               Nombre_PD: t.nombre ?? "Desconocido",
             });
           }
@@ -242,14 +350,14 @@ export async function updateDenunciaService(id, data) {
       // Eliminamos evidencias antiguas vinculadas
       await tx.archivo.deleteMany({
         where: {
-          hitos: { participante_caso: { Rut: denunciaActualizada.Rut } },
+          hitos: { participante_caso: { ID_Persona: denunciaActualizada.ID_Denunciante } },
         },
       });
 
       // Creamos nueva relación de participante_caso e hito
       const pc = await tx.participante_Caso.create({
         data: {
-          Rut: denunciaActualizada.Rut,
+          ID_Persona: denunciaActualizada.ID_Denunciante,
           Tipo_PC: "DENUNCIANTE",
         },
       });
