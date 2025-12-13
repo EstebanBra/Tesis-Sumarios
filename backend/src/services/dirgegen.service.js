@@ -6,6 +6,21 @@ import prisma from "../config/prisma.js";
 export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEstadoId, observacion, usuarioId }) {
   return prisma.$transaction(async (tx) => {
     
+  
+    // --- 🔒 CAPA EXTRA DE SEGURIDAD (Validación en Servicio) ---
+    // Buscamos al usuario que intenta hacer la acción en la base de datos
+    const quienEjecuta = await tx.persona.findUnique({
+      where: { Rut: usuarioId } // usuarioId viene del req.user.rut
+    });
+
+    // Verificamos si realmente tiene el rol (asumiendo que implementaste el campo 'rol' en Persona)
+    // O verificamos en la tabla de participantes si es Dirgegen
+    if (!quienEjecuta || quienEjecuta.rol !== 'Dirgergen') { 
+       // Si usas la lógica antigua de roles, sería buscar en Participante_Caso
+       throw new Error("ACCESO DENEGADO: No tiene permisos de Dirgegen para realizar esta acción.");
+    }
+    
+
     //Buscar la denuncia actual para comparar datos
     const denuncia = await tx.denuncia.findUnique({
       where: { ID_Denuncia: Number(idDenuncia) }

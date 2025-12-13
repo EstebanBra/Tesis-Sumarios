@@ -8,7 +8,7 @@ const router = Router();
 
 router.use("/denuncias", denunciaRouter);
 
-router.use("/api/gestion", gestionRoutes);
+router.use("/gestion", gestionRoutes);
 router.use("/solicitudes", solicitudRoutes);
 
 export default router;
