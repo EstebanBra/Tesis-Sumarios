@@ -34,7 +34,7 @@ export async function createSolicitudService({
                     ID_EstadoDe: true,
                 }
             },
-            persona: {
+            Persona: {
                 select: {
                     Nombre: true,
                     Correo: true,
@@ -62,7 +62,7 @@ export async function listPendientesDirgegenService() {
                     tipo_denuncia: { select: { Nombre: true } },
                 }
             },
-            persona: {
+            Persona: {
                 select: { Nombre: true, Correo: true }
             }
         }

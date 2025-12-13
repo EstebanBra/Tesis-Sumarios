@@ -18,13 +18,18 @@ export default function BandejaDirgegen() {
       try {
         setLoading(true)
         // 3. CARGA PARALELA: Pedimos denuncias Y medidas pendientes a la vez
-        const [resDenuncias, resMedidas] = await Promise.all([
-            listarDenuncias({ page: 1, pageSize: 50 }),
-            listarMedidasPendientes() // <--- Llamada a la nueva ruta
+       const [resDenuncias, resMedidas] = await Promise.all([
+            listarDenuncias({ page: 1, pageSize: 100 }), // Traemos más para filtrar localmente
+            listarMedidasPendientes()
         ])
         
-        setDenuncias(resDenuncias.data)
-        setMedidasPendientes(resMedidas) // <--- Guardamos las alertas
+        // ✅ FILTRO DE COMPETENCIA: Solo mostrar Serie 100 (Género)
+        const casosGenero = resDenuncias.data.filter(d => 
+            d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe < 200
+        );
+
+        setDenuncias(casosGenero)
+        setMedidasPendientes(resMedidas)
 
       } catch (error) {
         console.error('Error cargando bandeja', error)
@@ -35,7 +40,7 @@ export default function BandejaDirgegen() {
     loadData()
   }, [])
 
-  const esCasoEspecial = (idTipo: number) => idTipo === 199; 
+ 
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-ubb-blue font-medium animate-pulse">
