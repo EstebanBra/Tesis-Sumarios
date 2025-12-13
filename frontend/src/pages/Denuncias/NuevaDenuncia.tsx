@@ -36,7 +36,7 @@ const initialForm: FormularioDenuncia = {
 }
 
 const steps = [
-  { id: 1, label: 'Datos de contacto del denunciante' },
+  { id: 1, label: 'Datos del Denunciante' },
   { id: 2, label: 'Hechos y Denunciados' },
   { id: 3, label: 'Revisión' },
 ]
@@ -410,7 +410,7 @@ export default function NuevaDenuncia() {
         <div className="space-y-8">
 
           <section className="space-y-4">
-            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Información de la víctima</h2>
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Víctima de los hechos</h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="grid gap-6 md:grid-cols-2 mb-4">
                 <div>
@@ -535,7 +535,7 @@ export default function NuevaDenuncia() {
 
               <div className="mb-4">
                 <textarea
-                  placeholder="Información adicional (descripción física, vestimenta, señas particulares, etc.)"
+                  placeholder="ión adicional (descripción física, vestimenta, señas particulares, etc.)"
                   className="w-full rounded border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
                   value={form.nuevoInvolucrado.descripcionFisica}
                   onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, descripcionFisica: e.target.value } }))}
@@ -547,7 +547,7 @@ export default function NuevaDenuncia() {
                 onClick={handleAddInvolucrado}
                 className="text-sm bg-ubb-blue text-white px-4 py-2 rounded font-medium hover:bg-blue-800 transition-colors flex items-center gap-1"
               >
-                <span>+</span> Agregar persona
+                <span>+</span> Agregar Denunciado
               </button>
             </div>
 

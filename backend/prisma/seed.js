@@ -28,7 +28,7 @@ export async function runInitialSetup() {
   // 2. TIPOS DE DENUNCIA (CATÁLOGO COMPLETO)
   // Nota: Asegúrate de que tu modelo Tipo_Denuncia tenga el campo 'Subtipo' o 'Nombre' alineado
   // y el campo 'Descripcion' agregado en el schema.prisma.
-  
+
   const tiposDenunciaData = [
     // --- GÉNERO Y EQUIDAD (Protocolo DUE 4560) ---
     { id: 101, area: 'Género y Equidad', nombre: 'Acoso Sexual', descripcion: 'Requerimientos de carácter sexual no consentidos.' },
@@ -56,13 +56,13 @@ export async function runInitialSetup() {
   console.log('... Insertando Tipos Detallados')
   for (const tipo of tiposDenunciaData) {
     await prisma.tipo_Denuncia.upsert({
-      where: { ID_TipoDe: tipo.id }, 
-      update: { 
+      where: { ID_TipoDe: tipo.id },
+      update: {
         Nombre: tipo.nombre,
         Area: tipo.area,
-        Descripcion: tipo.descripcion 
+        Descripcion: tipo.descripcion
       },
-      create: { 
+      create: {
         ID_TipoDe: tipo.id,
         Nombre: tipo.nombre,
         Area: tipo.area,
@@ -146,7 +146,7 @@ export async function runInitialSetup() {
   console.log('... Insertando Usuarios y Roles')
   for (const u of usuarios) {
     // Upsert Persona
-    await prisma.persona.upsert({
+    const persona = await prisma.persona.upsert({
       where: { Rut: u.Rut },
       update: { password: u.password }, // Actualiza pass si ya existe
       create: {
@@ -158,16 +158,16 @@ export async function runInitialSetup() {
       }
     })
 
-    // Asignar Roles
+    // Asignar Roles usando ID_Persona
     for (const rol of u.roles) {
       const existeRol = await prisma.participante_Caso.findFirst({
-        where: { Rut: u.Rut, Tipo_PC: rol }
+        where: { ID_Persona: persona.ID, Tipo_PC: rol }
       })
 
       if (!existeRol) {
         await prisma.participante_Caso.create({
           data: {
-            Rut: u.Rut,
+            ID_Persona: persona.ID,
             Tipo_PC: rol
           }
         })

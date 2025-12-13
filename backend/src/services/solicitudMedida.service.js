@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.js";
 
 // Estado inicial para todas las solicitudes creadas por la víctima en casos de género
-const ESTADO_INICIAL_DIRGEGEN = 'Pendiente Informe'; 
+const ESTADO_INICIAL_DIRGEGEN = 'Pendiente Informe';
 
 /**
  * Crea una nueva solicitud de medida de resguardo (iniciada por la víctima).
@@ -12,37 +12,37 @@ const ESTADO_INICIAL_DIRGEGEN = 'Pendiente Informe';
  * @param {string} observacion - Justificación de la víctima.
  */
 export async function createSolicitudService({
-  idDenuncia,
-  rutSolicitante,
-  tipoMedida,
-  observacion,
+    idDenuncia,
+    idSolicitante,
+    tipoMedida,
+    observacion,
 }) {
-  return prisma.solicitudMedida.create({
-    data: {
-      ID_Denuncia: Number(idDenuncia),
-      Rut_Solicitante: rutSolicitante,
-      Tipo_Medida: tipoMedida,
-      Observacion: observacion,
-      Estado: ESTADO_INICIAL_DIRGEGEN,
-    },
-    include: {
-        denuncia: {
-            select: {
-                ID_Denuncia: true,
-                Rut: true,
-                ID_TipoDe: true,
-                ID_EstadoDe: true,
-            }
+    return prisma.solicitudMedida.create({
+        data: {
+            ID_Denuncia: Number(idDenuncia),
+            ID_Solicitante: Number(idSolicitante),
+            Tipo_Medida: tipoMedida,
+            Observacion: observacion,
+            Estado: ESTADO_INICIAL_DIRGEGEN,
         },
-        persona: {
-            select: {
-                Nombre: true,
-                Correo: true,
-                genero: true
+        include: {
+            denuncia: {
+                select: {
+                    ID_Denuncia: true,
+                    // Rut no existe en Denuncia, quitado.
+                    ID_TipoDe: true,
+                    ID_EstadoDe: true,
+                }
+            },
+            persona: {
+                select: {
+                    Nombre: true,
+                    Correo: true,
+                    genero: true
+                }
             }
         }
-    }
-  });
+    });
 }
 
 /**
