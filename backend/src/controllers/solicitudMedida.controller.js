@@ -3,28 +3,32 @@ import { validationResult } from "express-validator";
 import { createSolicitudService, listPendientesDirgegenService } from "../services/solicitudMedida.service.js";
 
 function handleValidation(req) {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const formatted = errors.array().map(e => ({ field: e.path, msg: e.msg }));
-    const err = new Error("Validación fallida");
-    err.status = 400;
-    err.details = formatted;
-    throw err;
-  }
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        const formatted = errors.array().map(e => ({ field: e.path, msg: e.msg }));
+        const err = new Error("Validación fallida");
+        err.status = 400;
+        err.details = formatted;
+        throw err;
+    }
 }
 
 // 🆕 Crear Solicitud de Medida (Iniciada por la Víctima)
 export async function createSolicitud(req, res, next) {
     try {
-        // En tu proyecto real, debes agregar validaciones de esquema (ej. con express-validator)
         // handleValidation(req); 
-        
-        // Asumimos que el RUT de la víctima viene del token/sesión
-        const rutSolicitante = req.user.rut; 
+
+        // Asumimos que el ID de la víctima viene del token (ver auth.controller login)
+        const idSolicitante = req.user.id;
+
+        // Validación de seguridad básica si faltara el ID
+        if (!idSolicitante) {
+            return res.status(401).json({ message: "Usuario no identificado (Falta ID en token)" });
+        }
 
         const payload = {
             idDenuncia: req.body.ID_Denuncia,
-            rutSolicitante: rutSolicitante,
+            idSolicitante: idSolicitante,
             tipoMedida: req.body.Tipo_Medida, // ej: 'Separación Espacios'
             observacion: req.body.Observacion ?? null,
         };
