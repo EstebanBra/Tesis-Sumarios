@@ -13,27 +13,31 @@ datasource db {
 // ==========================================
 
 model Persona {
-  Rut      String @id @db.VarChar(12)
+  ID       Int     @id @default(autoincrement())
+  Rut      String? @unique @db.VarChar(12)
   Nombre   String @db.VarChar(100)
   Correo   String @db.VarChar(100)
   Telefono String @db.VarChar(20)
   password String? @db.VarChar(255)
-  genero   String?  @db.NVarChar(50) //nuevo
+  genero   String?  @db.NVarChar(50)
   // Relaciones
   participantes_caso Participante_Caso[]
   per_par_den        Per_Par_Den[]
-  solicitudes_medidas SolicitudMedida[]//nuevo
+  solicitudes_medidas SolicitudMedida[]
+  denuncias          Denuncia[]
+  participantes_denuncia Participante_Denuncia[]
+  datos_sindicados       Datos_Denunciado[]
 
   @@map("Persona")
 }
 
 model Participante_Caso {
-  ID_PC   Int    @id @default(autoincrement())
-  Rut     String @db.VarChar(12)
-  Tipo_PC String @db.VarChar(50)
+  ID_PC      Int    @id @default(autoincrement())
+  ID_Persona Int
+  Tipo_PC    String @db.VarChar(50)
 
   // Relaciones
-  persona Persona @relation(fields: [Rut], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+  persona Persona @relation(fields: [ID_Persona], references: [ID], onDelete: NoAction, onUpdate: NoAction)
   hitos   Hitos[]
 
   @@map("Participante_Caso")
@@ -44,24 +48,26 @@ model Participante_Caso {
 // ==========================================
 
 model Denuncia {
-  ID_Denuncia   Int      @id @default(autoincrement())
-  Rut           String   @db.VarChar(12)
-  ID_TipoDe     Int
-  ID_EstadoDe   Int
-  Fecha_Inicio  DateTime @db.Date
-  Relato_Hechos String   @db.Text
-  Ubicacion     String?  @db.VarChar(200)
-  observacionDirgegen String? @db.NVarChar(MAX)//nuevo
+  ID_Denuncia     Int      @id @default(autoincrement())
+  ID_Denunciante  Int
+  ID_TipoDe       Int
+  ID_EstadoDe     Int
+  Fecha_Inicio    DateTime @db.Date
+  Relato_Hechos   String   @db.Text
+  Ubicacion       String?  @db.VarChar(200)
+  observacionDirgegen String? @db.NVarChar(MAX)
   
 
   // Relaciones
+  denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
   tipo_denuncia         Tipo_Denuncia           @relation(fields: [ID_TipoDe], references: [ID_TipoDe], onDelete: NoAction, onUpdate: NoAction)
   estado_denuncia       Estado_Denuncia         @relation(fields: [ID_EstadoDe], references: [ID_EstadoDe], onDelete: NoAction, onUpdate: NoAction)
   medidas_cautelares    MedidaCautelar[]
   per_par_den           Per_Par_Den[]
   participante_denuncia Participante_Denuncia[]
   historial_estado      Historial_Estado[]
-  solicitudes_medidas   SolicitudMedida[]// nuevo
+  solicitudes_medidas   SolicitudMedida[]
+  datos_denunciados     Datos_Denunciado[]
 
   @@map("Denuncia")
 }
@@ -113,11 +119,12 @@ model Historial_Estado {
 model Participante_Denuncia {
   ID_PD       Int    @id @default(autoincrement())
   ID_Denuncia Int
-  Rut         String @db.VarChar(12)
+  ID_Persona  Int?
   Nombre_PD   String @db.VarChar(100)
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+  persona  Persona? @relation(fields: [ID_Persona], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("Participante_Denuncia")
 }
@@ -129,11 +136,11 @@ model Participante_Denuncia {
 model Per_Par_Den {
   ID_PD        Int    @id @default(autoincrement())
   ID_Denuncia  Int
-  Rut          String @db.VarChar(12)
+  ID_Persona   Int
   Cargo_actual String @db.VarChar(100)
 
   // Relaciones
-  persona  Persona  @relation(fields: [Rut], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+  persona  Persona  @relation(fields: [ID_Persona], references: [ID], onDelete: NoAction, onUpdate: NoAction)
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("Per_Par_Den")
@@ -174,7 +181,7 @@ model Tipo_Cautelar {
 model SolicitudMedida {
   ID_Solicitud       Int      @id @default(autoincrement())
   ID_Denuncia        Int
-  Rut_Solicitante    String   @db.VarChar(12) // Quién apretó el botón (Víctima, Fiscal, etc.)
+  ID_Solicitante     Int      // Quién apretó el botón (Víctima, Fiscal, etc.)
   Fecha_Solicitud    DateTime @default(now())
   
   // Tipo: 'Académica', 'Alejamiento', 'Teletrabajo', etc.
@@ -191,7 +198,7 @@ model SolicitudMedida {
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
-  persona  Persona  @relation(fields: [Rut_Solicitante], references: [Rut], onDelete: NoAction, onUpdate: NoAction)
+  persona  Persona  @relation(fields: [ID_Solicitante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("SolicitudMedida")
 }
@@ -234,4 +241,23 @@ model Archivo {
   hito Hitos @relation(fields: [ID_Hitos], references: [ID_Hitos], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("Archivo")
+}
+
+// ==========================================
+// DATOS DENUNCIADO (SINDICADOS)
+// ==========================================
+
+model Datos_Denunciado {
+  ID_Datos         Int      @id @default(autoincrement())
+  ID_Denuncia      Int
+  Nombre_Ingresado String?  @db.VarChar(100)
+  Descripcion      String?  @db.Text
+  Ubicacion_Hechos String?  @db.VarChar(200)
+  ID_Persona       Int?     // FK a Persona (solo si se identifica)
+
+  // Relaciones
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+  persona  Persona? @relation(fields: [ID_Persona], references: [ID], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("Datos_Denunciado")
 }
