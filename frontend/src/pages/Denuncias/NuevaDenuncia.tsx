@@ -36,7 +36,7 @@ const initialForm: FormularioDenuncia = {
 }
 
 const steps = [
-  { id: 1, label: 'Datos del Denunciante' },
+  { id: 1, label: 'Información del Denunciante' },
   { id: 2, label: 'Hechos y Denunciados' },
   { id: 3, label: 'Revisión' },
 ]
@@ -328,7 +328,7 @@ export default function NuevaDenuncia() {
           </div>
 
           <section className="space-y-4">
-            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Datos de contacto</h2>
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Datos del denunciante</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700">RUT *</label>
@@ -345,20 +345,23 @@ export default function NuevaDenuncia() {
               <label className="text-sm font-medium text-gray-700">Género *</label>
               <select className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white" value={form.genero} onChange={(e) => updateField('genero', e.target.value)} required>
                 <option value="">Seleccionar</option>
-                <option value="Femenino">Femenino</option>
                 <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Transgenero Masculino">Transgenero Masculino</option>
+                <option value="Transgenero Femenino">Transgenero Femenino</option>
                 <option value="No Binario">No Binario</option>
                 <option value="Otro">Otro / Prefiero no decir</option>
               </select>
               <p className="text-xs text-gray-500 mt-1">Esta información ayuda a activar los protocolos de protección adecuados.</p>
             </div>
-
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Datos de contacto</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div><label className="text-sm font-medium text-gray-700">Teléfono</label><input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="+56 9 ..." value={form.telefono} onChange={(e) => updateField('telefono', e.target.value)} /></div>
               <div><label className="text-sm font-medium text-gray-700">Correo</label><input type="email" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="correo@ubb.cl" value={form.correo} onChange={(e) => updateField('correo', e.target.value)} /></div>
             </div>
 
             {/* Región y Comuna */}
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Dirección del denunciante</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700">Región *</label>
@@ -441,7 +444,7 @@ export default function NuevaDenuncia() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">RUT</label>
-                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
                     value={form.victimaRut}
                     onChange={(e) => updateField('victimaRut', e.target.value)}
                     disabled={form.esVictima === 'si'}
@@ -449,7 +452,7 @@ export default function NuevaDenuncia() {
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium text-gray-700">Nombre Completo</label>
-                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
                     value={form.victimaNombre}
                     onChange={(e) => updateField('victimaNombre', e.target.value)}
                     disabled={form.esVictima === 'si'}
@@ -457,7 +460,7 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Correo</label>
-                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm ${form.esVictima === 'si' ? 'bg-gray-100 text-gray-600' : 'bg-white'}`}
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
                     value={form.victimaCorreo}
                     onChange={(e) => updateField('victimaCorreo', e.target.value)}
                     disabled={form.esVictima === 'si'}
@@ -465,66 +468,64 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Teléfono</label>
-                  <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
+                  <input className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
                     value={form.victimaTelefono}
                     onChange={(e) => updateField('victimaTelefono', e.target.value)}
+                    disabled={form.esVictima === 'si'}
                   />
                 </div>
-              </div>
-            </div>
-
-            {/* NUEVOS CAMPOS: SEXO Y GÉNERO DE LA VÍCTIMA */}
-            <div className="grid gap-4 md:grid-cols-2 mt-4 px-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Sexo *</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                  value={form.victimaSexo || ''}
-                  onChange={(e) => updateField('victimaSexo', e.target.value)}
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Hombre">Hombre</option>
-                  <option value="Mujer">Mujer</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Género (Opcional)</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                  value={form.victimaGenero || ''}
-                  onChange={(e) => updateField('victimaGenero', e.target.value)}
-                >
-                  <option value="">Seleccionar</option>
-                  <option value="Masculino">Masculino</option>
-                  <option value="Femenino">Femenino</option>
-                  <option value="No Binario">No Binario</option>
-                  <option value="Otro">Otro</option>
-                  <option value="Prefiero no decir">Prefiero no decir</option>
-                </select>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Sexo *</label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    value={form.victimaSexo || ''}
+                    onChange={(e) => updateField('victimaSexo', e.target.value)}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Género (Opcional)</label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    value={form.victimaGenero || ''}
+                    onChange={(e) => updateField('victimaGenero', e.target.value)}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Transgenero Masculino">Transgenero Masculino</option>
+                    <option value="Transgenero Femenino">Transgenero Femenino</option>
+                    <option value="No Binario">No Binario</option>
+                    <option value="Otro">Otro / Prefiero no decir</option>
+                  </select>
+                </div>
               </div>
             </div>
 
           </section>
 
           <section className="space-y-4">
-            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Información del/de los denunciado/s</h2>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Denunciado/s</h2>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
 
               <div className="grid gap-3 md:grid-cols-3 mb-3">
                 <input
                   placeholder="Nombre"
-                  className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                   value={form.nuevoInvolucrado.nombre}
                   onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, nombre: e.target.value } }))}
                 />
                 <input
                   placeholder="Apellido"
-                  className="rounded border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                   value={form.nuevoInvolucrado.apellido1}
                   onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, apellido1: e.target.value } }))}
                 />
                 <select
-                  className="rounded border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none"
                   value={form.nuevoInvolucrado.vinculacion}
                   onChange={e => setForm(p => ({ ...p, nuevoInvolucrado: { ...p.nuevoInvolucrado, vinculacion: e.target.value } }))}
                 >
@@ -583,7 +584,7 @@ export default function NuevaDenuncia() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Relato de los hechos</h2>
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Lugar y fecha de los hechos</h2>
 
             {/* ✅ CORRECCIÓN 3: Usar esOtro() para mostrar el input */}
             {esOtro(form.subtipoId) && (
@@ -603,16 +604,16 @@ export default function NuevaDenuncia() {
               </div>
             )}
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div>
                 <label className="text-sm font-medium text-gray-700">Fecha *</label>
-                <input type="date" className="mt-1 w-full rounded border-gray-300 px-3 py-2 text-sm" value={form.fechaHecho} onChange={e => updateField('fechaHecho', e.target.value)} />
+                <input type="date" className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.fechaHecho} onChange={e => updateField('fechaHecho', e.target.value)} />
               </div>
               <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Sede *</label>
                   <select
-                    className="mt-1 w-full rounded border-gray-300 px-3 py-2 text-sm"
+                    className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     value={form.sedeHecho}
                     onChange={e => {
                       const sede = SEDES.find(s => s.id === e.target.value)
@@ -627,29 +628,31 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Región</label>
-                  <input className="mt-1 w-full rounded border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600" value={form.regionHecho} readOnly />
+                  <input className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.regionHecho} readOnly />
+                </div>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Lugar Específico</label>
+                  <select className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.lugarHecho} onChange={e => updateField('lugarHecho', e.target.value)} disabled={!form.sedeHecho}>
+                    <option value="">Seleccionar Lugar</option>
+                    {lugaresDisponibles.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Detalles adicionales</label>
+                  <input className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="Ej: Segundo piso, pasillo norte..." value={form.detalleHecho} onChange={e => updateField('detalleHecho', e.target.value)} />
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Lugar Específico</label>
-                <select className="mt-1 w-full rounded border-gray-300 px-3 py-2 text-sm" value={form.lugarHecho} onChange={e => updateField('lugarHecho', e.target.value)} disabled={!form.sedeHecho}>
-                  <option value="">Seleccionar Lugar</option>
-                  {lugaresDisponibles.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">Detalles adicionales</label>
-                <input className="mt-1 w-full rounded border-gray-300 px-3 py-2 text-sm" placeholder="Ej: Segundo piso, pasillo norte..." value={form.detalleHecho} onChange={e => updateField('detalleHecho', e.target.value)} />
-              </div>
-            </div>
 
-            <div>
+
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">Relato y antecedentes de los hechos</h2>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <label className="text-sm font-medium text-gray-700 block mb-1">Descripción detallada de los hechos *</label>
               <textarea
-                className="w-full rounded border-gray-300 px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20"
+                className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20"
                 placeholder="Describe qué pasó, cómo, cuándo y quiénes estaban presentes..."
                 value={form.relato}
                 onChange={e => updateField('relato', e.target.value)}
