@@ -1,6 +1,6 @@
 // src/components/SolicitudMedidaModal.tsx
 import React, { useState } from 'react';
-import axios from 'axios';
+import { crearSolicitudMedida } from '@/services/denuncias.api';
 
 
 interface SolicitudMedidaModalProps {
@@ -9,16 +9,13 @@ interface SolicitudMedidaModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-const API_URL = 'http://localhost:3000/api/solicitudes/medidas';
 const TIPOS_MEDIDA = [
     { value: 'Separacion Espacios', label: 'Separación de Espacios (No Contacto)' },
     { value: 'Flexibilidad Academica', label: 'Flexibilidad Académica' },
-    { value: 'Suspension Temporal', label: 'Suspension Temporal del Denunciado' },
+    { value: 'Suspension Temporal', label: 'Suspensión Temporal del Denunciado' },
 ];
 
 export default function SolicitudMedidaModal({ idDenuncia, isOpen, onClose, onSuccess }: SolicitudMedidaModalProps) {
-  // ... (El resto del código se mantiene igual)
   const [tipoMedida, setTipoMedida] = useState('');
   const [observacion, setObservacion] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,24 +34,22 @@ export default function SolicitudMedidaModal({ idDenuncia, isOpen, onClose, onSu
 
     setLoading(true);
 
-    const payload = {
-      ID_Denuncia: idDenuncia,
-      Tipo_Medida: tipoMedida,
-      Observacion: observacion,
-    };
-
-   try {
-      // CAMBIO AQUÍ: Agregamos el tercer parámetro { withCredentials: true }
-      await axios.post(API_URL, payload, {
-        withCredentials: true 
+    try {
+      // ✅ USAR EL SERVICIO CENTRALIZADO (Maneja cookies y errores automáticamente)
+      await crearSolicitudMedida({
+        ID_Denuncia: idDenuncia,
+        Tipo_Medida: tipoMedida,
+        Observacion: observacion,
       });
 
-      alert('✅ Solicitud de medida registrada. DIRGEGEN ha sido notificada para su atención.');
+      alert('✅ Solicitud de medida registrada. DIRGEGEN ha sido notificada.');
       onSuccess();
       onClose();
       
     } catch (err: any) {
-      setError('Error al solicitar la medida: ' + (err.response?.data?.error || err.message));
+      // El helper 'api.ts' devuelve el mensaje de error en err.message o err.detalles
+      console.error(err);
+      setError(err.message || 'Error al procesar la solicitud.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +61,7 @@ export default function SolicitudMedidaModal({ idDenuncia, isOpen, onClose, onSu
         <div className="relative rounded-lg bg-white p-6 shadow-xl transition-all sm:my-8 w-full max-w-md">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Solicitar Medida de Resguardo</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Esta solicitud será revisada por DIRGEGEN, quien elaborará un informe técnico (Art. 15, DUE 4560).
+            Esta solicitud será derivada a la unidad competente ({idDenuncia < 200 ? 'Dirgegen' : 'VRA/Fiscalía'}) para su evaluación urgente.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

@@ -46,7 +46,8 @@ export async function getDenunciaByIdService(id) {
 }
 
 export async function createDenunciaService(payload, { historial = true } = {}) {
-  const estadoInicial = payload.ID_EstadoDe ?? 1; // Por defecto 'Recibida'
+ 
+  const estadoInicial = 1;
 
   return prisma.$transaction(async (tx) => {
 

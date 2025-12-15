@@ -14,13 +14,13 @@ export interface DetalleDenunciaCompleta extends DenunciaListado {
  * Ahora incluye el parámetro 'observacion' para el informe técnico.
  */
 export async function derivarDenuncia(id: number, nuevoTipoId: number, nuevoEstadoId: number, observacion?: string) {
-  // Apuntamos a la nueva ruta estandarizada del backend que creamos en el router
-  return http(`/denuncias/${id}/gestionar`, {
+  // CORRECCIÓN: La ruta debe coincidir con index.routes.js (/gestion) + dirgegen.routes.js (/denuncias/:id/derivar)
+  return http(`/gestion/denuncias/${id}/derivar`, {
     method: 'PATCH',
     body: {
       nuevoTipoId,
       nuevoEstadoId,
-      observacion // ✅ Aquí va el informe técnico obligatorio
+      observacion 
     }
   })
 }
