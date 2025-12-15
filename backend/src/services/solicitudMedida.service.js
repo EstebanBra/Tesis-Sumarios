@@ -17,6 +17,28 @@ export async function createSolicitudService({
     tipoMedida,
     observacion,
 }) {
+    const denuncia = await prisma.denuncia.findUnique({
+    where: { ID_Denuncia: Number(idDenuncia) },
+    select: { ID_TipoDe: true }
+  });
+
+  if (!denuncia) throw new Error("La denuncia asociada no existe.");
+
+  // 2. DECIDIR EL DESTINO (Lógica de Tesis)
+  let estadoInicial = '';
+  
+  if (denuncia.ID_TipoDe < 200) {
+      // --- SERIE 100: GÉNERO (DUE 4560) ---
+      // Va a Dirgegen para Informe Técnico obligatorio
+      estadoInicial = 'Pendiente Informe'; 
+  } else {
+      // --- SERIE 200: CONVIVENCIA (DUE 5415) ---
+      // Va directo a la Autoridad/Fiscalía para revisión
+      // (No requiere informe psicosocial obligatorio de Dirgegen)
+      estadoInicial = 'Pendiente Resolución VRA'; 
+  }
+
+  // 3. CREAR LA SOLICITUD
     return prisma.solicitudMedida.create({
         data: {
             ID_Denuncia: Number(idDenuncia),
@@ -32,6 +54,7 @@ export async function createSolicitudService({
                     // Rut no existe en Denuncia, quitado.
                     ID_TipoDe: true,
                     ID_EstadoDe: true,
+                    tipo_denuncia: { select: { Nombre: true } } // Útil para el frontend
                 }
             },
             Persona: {
