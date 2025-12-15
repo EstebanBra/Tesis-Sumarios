@@ -1,38 +1,29 @@
-# --- ETAPA 1: "Builder" (Node.js + Vite) ---
-# Usamos la misma versión de node para consistencia
-FROM node:18-alpine AS builder
 
-# Establecer el directorio de trabajo
+
+# --- ETAPA BASE (Común para Dev y Prod) ---
+FROM node:22-alpine AS base
 WORKDIR /app/frontend
-
-# Copiar archivos de dependencias y optimizar caché
 COPY package.json package-lock.json* ./
 RUN npm install
-
-# Copiar todo el resto del código fuente
-# (src, public, vite.config.ts, tsconfig.json, etc.)
 COPY . .
 
-# Ejecutar el build de Vite para generar los archivos estáticos
+# --- ETAPA DE DESARROLLO (Dev) ---
+# Esta etapa se detiene aquí y solo ejecuta el servidor de desarrollo
+FROM base AS dev
+# Exponemos el puerto de Vite
+EXPOSE 5173
+# Ejecutamos el servidor en modo host para que Docker lo vea
+CMD ["npm", "run", "dev", "--", "--host"]
+
+# --- ETAPA DE CONSTRUCCIÓN (Build) ---
+# Esta etapa solo corre si vamos a producción
+FROM base AS build
 RUN npm run build
-# Ahora, existe una carpeta /app/frontend/dist con nuestro sitio
 
-# --- ETAPA 2: "Producción" (Servidor Nginx) ---
-# Nginx es un servidor web muy ligero y de alto rendimiento
-FROM nginx:stable-alpine
-
-# Eliminar la configuración por defecto de Nginx
+# --- ETAPA DE PRODUCCIÓN (Nginx) ---
+FROM nginx:stable-alpine AS prod
 RUN rm /etc/nginx/conf.d/default.conf
-
-# Copiar nuestro archivo de configuración personalizado (que crearemos abajo)
-# Este archivo es el que habilita el enrutamiento de React (SPA)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copiar los archivos estáticos construidos desde la etapa "builder"
-# al directorio web raíz por defecto de Nginx
-COPY --from=builder /app/frontend/dist /usr/share/nginx/html
-
-# Exponer el puerto 80 (puerto estándar en el que Nginx escucha)
+COPY --from=build /app/frontend/dist /usr/share/nginx/html
 EXPOSE 80
-
-# El CMD por defecto de la imagen de Nginx se encarga de arrancar el servidor
+CMD ["nginx", "-g", "daemon off;"]
