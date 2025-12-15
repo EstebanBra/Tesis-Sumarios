@@ -13,21 +13,22 @@ datasource db {
 // ==========================================
 
 model Persona {
-  ID       Int     @id @default(autoincrement())
-  Rut      String? @unique @db.VarChar(12)
-  Nombre   String @db.VarChar(100)
-  Correo   String @db.VarChar(100)
-  Telefono String @db.VarChar(20)
-  password String? @db.VarChar(255)
-  genero   String?  @db.NVarChar(50)
+  ID                     Int                     @id @default(autoincrement())
+  Rut                    String?                 @unique @db.VarChar(12)
+  Nombre                 String                  @db.VarChar(100)
+  Correo                 String                  @db.VarChar(100)
+  Telefono               String                  @db.VarChar(20)
+  password               String?                 @db.VarChar(255)
+  genero                 String?                 @db.NVarChar(50)
   // Relaciones
-  participantes_caso Participante_Caso[]
-  per_par_den        Per_Par_Den[]
-  solicitudes_medidas SolicitudMedida[]
-  denuncias          Denuncia[]
+  participantes_caso     Participante_Caso[]
+  per_par_den            Per_Par_Den[]
+  solicitudes_medidas    SolicitudMedida[]
+  denuncias              Denuncia[]
   participantes_denuncia Participante_Denuncia[]
   datos_sindicados       Datos_Denunciado[]
-  informes_redactados InformeTecnico[] // Nuevo campo
+  informes_redactados    InformeTecnico[]
+
   @@map("Persona")
 }
 
@@ -48,15 +49,14 @@ model Participante_Caso {
 // ==========================================
 
 model Denuncia {
-  ID_Denuncia     Int      @id @default(autoincrement())
-  ID_Denunciante  Int
-  ID_TipoDe       Int
-  ID_EstadoDe     Int
-  Fecha_Inicio    DateTime @db.Date
-  Relato_Hechos   String   @db.Text
-  Ubicacion       String?  @db.VarChar(200)
-  observacionDirgegen String? @db.NVarChar(MAX)
-  
+  ID_Denuncia         Int      @id @default(autoincrement())
+  ID_Denunciante      Int
+  ID_TipoDe           Int
+  ID_EstadoDe         Int
+  Fecha_Inicio        DateTime @db.Date
+  Relato_Hechos       String   @db.Text
+  Ubicacion           String?  @db.VarChar(200)
+  observacionDirgegen String?  @db.NVarChar(MAX)
 
   // Relaciones
   denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
@@ -68,19 +68,20 @@ model Denuncia {
   historial_estado      Historial_Estado[]
   solicitudes_medidas   SolicitudMedida[]
   datos_denunciados     Datos_Denunciado[]
-  informe_tecnico InformeTecnico?
+  informe_tecnico       InformeTecnico?
 
   @@map("Denuncia")
 }
+
 model Tipo_Denuncia {
-  ID_TipoDe   Int     @id 
-  
+  ID_TipoDe Int @id
+
   Nombre      String  @db.VarChar(100)
   Area        String  @db.VarChar(100)
   Descripcion String? @db.VarChar(255)
 
   // Relaciones
-  denuncias   Denuncia[]
+  denuncias Denuncia[]
 
   @@map("Tipo_Denuncia")
 }
@@ -129,7 +130,6 @@ model Participante_Denuncia {
 
   @@map("Participante_Denuncia")
 }
-
 
 // ==========================================
 // RELACIÓN PERSONA-PARTICIPANTE-DENUNCIA
@@ -181,22 +181,20 @@ model Tipo_Cautelar {
 // ==========================================
 
 model SolicitudMedida {
-  ID_Solicitud       Int      @id @default(autoincrement())
-  ID_Denuncia        Int
-  ID_Solicitante     Int      // Quién apretó el botón (Víctima, Fiscal, etc.)
-  Fecha_Solicitud    DateTime @default(now())
-  
-  // Tipo: 'Académica', 'Alejamiento', 'Teletrabajo', etc.
-  Tipo_Medida        String   @db.VarChar(100) 
-  
-  // Estado: 'Pendiente Informe' (si es Género), 'En Revisión' (Fiscal), 'Aprobada', 'Rechazada'
-  Estado             String   @db.VarChar(50)  
+  ID_Solicitud    Int      @id @default(autoincrement())
+  ID_Denuncia     Int
+  ID_Solicitante  Int
+  Fecha_Solicitud DateTime @default(now())
+
+  Tipo_Medida String @db.VarChar(100)
+
+  Estado String @db.VarChar(50)
 
   // Archivos obligatorios según el flujo
-  Informe_Tecnico    String?  @db.VarChar(255) // URL/Path del PDF subido por DIRGEGEN
-  Archivo_Resolucion String?  @db.VarChar(255) // URL/Path del decreto de aprobación
+  Informe_Tecnico    String? @db.VarChar(255)
+  Archivo_Resolucion String? @db.VarChar(255)
 
-  Observacion        String?  @db.Text         // Detalles adicionales
+  Observacion String? @db.Text
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
@@ -210,28 +208,28 @@ model SolicitudMedida {
 // ==========================================
 
 model InformeTecnico {
-  ID_Informe       Int      @id @default(autoincrement())
-  ID_Denuncia      Int      @unique // Relación 1 a 1: Una denuncia tiene un solo informe técnico inicial
-  ID_Autor         Int      // ID de la Persona (profesional) que lo redactó
-  Fecha_Emision    DateTime @default(now())
+  ID_Informe Int @id @default(autoincrement())
 
-  // Contenido Estructurado según Protocolo
-  Antecedentes     String   @db.Text
-  Analisis_Social  String   @db.Text
-  Analisis_Psico   String   @db.Text
+  // Claves foráneas
+  ID_Denuncia Int @unique
+  ID_Autor    Int
+
+  Fecha_Emision DateTime @default(now())
+
+  // Contenido
+  Antecedentes      String  @db.Text
+  Analisis_Social   String  @db.Text
+  Analisis_Psico    String  @db.Text
   Analisis_Juridico String  @db.Text
-  
-  // Conclusiones
-  Sugerencias      String   @db.Text // Aquí van las medidas sugeridas
-  Es_Confidencial  Boolean  @default(true)
+  Sugerencias       String  @db.Text
+  Es_Confidencial   Boolean @default(true)
 
-  // Relaciones
+  // Relaciones (Puentes cerrados correctamente)
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade)
-  autor     Persona  @relation(fields: [ID_Autor], references: [ID], onDelete: NoAction)
+  autor    Persona  @relation(fields: [ID_Autor], references: [ID], onDelete: NoAction)
 
   @@map("InformeTecnico")
 }
-  
 
 // ==========================================
 // HITOS Y ARCHIVOS
@@ -278,12 +276,12 @@ model Archivo {
 // ==========================================
 
 model Datos_Denunciado {
-  ID_Datos         Int      @id @default(autoincrement())
+  ID_Datos         Int     @id @default(autoincrement())
   ID_Denuncia      Int
-  Nombre_Ingresado String?  @db.VarChar(100)
-  Descripcion      String?  @db.Text
-  Ubicacion_Hechos String?  @db.VarChar(200)
-  ID_Persona       Int?     // FK a Persona (solo si se identifica)
+  Nombre_Ingresado String? @db.VarChar(100)
+  Descripcion      String? @db.Text
+  Ubicacion_Hechos String? @db.VarChar(200)
+  ID_Persona       Int? // FK a Persona (solo si se identifica)
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
