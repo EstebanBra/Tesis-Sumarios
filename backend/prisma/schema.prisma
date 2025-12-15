@@ -20,9 +20,6 @@ model Persona {
   Telefono               String                  @db.VarChar(20)
   password               String?                 @db.VarChar(255)
   genero                 String?                 @db.NVarChar(50)
-  region                 String?                 @db.VarChar(100)
-  comuna                 String?                 @db.VarChar(100)
-  direccion              String?                 @db.VarChar(200)
   // Relaciones
   participantes_caso     Participante_Caso[]
   per_par_den            Per_Par_Den[]
@@ -30,6 +27,7 @@ model Persona {
   denuncias              Denuncia[]
   participantes_denuncia Participante_Denuncia[]
   datos_sindicados       Datos_Denunciado[]
+  informes_redactados    InformeTecnico[]
 
   @@map("Persona")
 }
@@ -70,6 +68,7 @@ model Denuncia {
   historial_estado      Historial_Estado[]
   solicitudes_medidas   SolicitudMedida[]
   datos_denunciados     Datos_Denunciado[]
+  informe_tecnico       InformeTecnico?
 
   @@map("Denuncia")
 }
@@ -184,26 +183,52 @@ model Tipo_Cautelar {
 model SolicitudMedida {
   ID_Solicitud    Int      @id @default(autoincrement())
   ID_Denuncia     Int
-  ID_Solicitante  Int // Quién apretó el botón (Víctima, Fiscal, etc.)
+  ID_Solicitante  Int
   Fecha_Solicitud DateTime @default(now())
 
-  // Tipo: 'Académica', 'Alejamiento', 'Teletrabajo', etc.
   Tipo_Medida String @db.VarChar(100)
 
-  // Estado: 'Pendiente Informe' (si es Género), 'En Revisión' (Fiscal), 'Aprobada', 'Rechazada'
   Estado String @db.VarChar(50)
 
   // Archivos obligatorios según el flujo
-  Informe_Tecnico    String? @db.VarChar(255) // URL/Path del PDF subido por DIRGEGEN
-  Archivo_Resolucion String? @db.VarChar(255) // URL/Path del decreto de aprobación
+  Informe_Tecnico    String? @db.VarChar(255)
+  Archivo_Resolucion String? @db.VarChar(255)
 
-  Observacion String? @db.Text // Detalles adicionales
+  Observacion String? @db.Text
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
   persona  Persona  @relation(fields: [ID_Solicitante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("SolicitudMedida")
+}
+
+// ==========================================
+// INFORME TÉCNICO (DIRGEGEN)
+// ==========================================
+
+model InformeTecnico {
+  ID_Informe Int @id @default(autoincrement())
+
+  // Claves foráneas
+  ID_Denuncia Int @unique
+  ID_Autor    Int
+
+  Fecha_Emision DateTime @default(now())
+
+  // Contenido
+  Antecedentes      String  @db.Text
+  Analisis_Social   String  @db.Text
+  Analisis_Psico    String  @db.Text
+  Analisis_Juridico String  @db.Text
+  Sugerencias       String  @db.Text
+  Es_Confidencial   Boolean @default(true)
+
+  // Relaciones (Puentes cerrados correctamente)
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade)
+  autor    Persona  @relation(fields: [ID_Autor], references: [ID], onDelete: NoAction)
+
+  @@map("InformeTecnico")
 }
 
 // ==========================================
