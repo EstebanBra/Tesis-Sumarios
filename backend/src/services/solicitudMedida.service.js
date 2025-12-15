@@ -1,7 +1,5 @@
 import prisma from "../config/prisma.js";
 
-// Estado inicial para todas las solicitudes creadas por la víctima en casos de género
-const ESTADO_INICIAL_DIRGEGEN = 'Pendiente Informe';
 
 /**
  * Crea una nueva solicitud de medida de resguardo (iniciada por la víctima).
@@ -11,13 +9,15 @@ const ESTADO_INICIAL_DIRGEGEN = 'Pendiente Informe';
  * @param {string} tipoMedida - Tipo de medida solicitada (ej: 'Académica').
  * @param {string} observacion - Justificación de la víctima.
  */
+
 export async function createSolicitudService({
-    idDenuncia,
-    idSolicitante,
-    tipoMedida,
-    observacion,
+  idDenuncia,
+  rutSolicitante,
+  tipoMedida,
+  observacion,
 }) {
-    const denuncia = await prisma.denuncia.findUnique({
+  // 1. BUSCAR EL TIPO DE DENUNCIA PRIMERO
+  const denuncia = await prisma.denuncia.findUnique({
     where: { ID_Denuncia: Number(idDenuncia) },
     select: { ID_TipoDe: true }
   });
