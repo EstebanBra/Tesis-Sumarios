@@ -57,7 +57,10 @@ export const login = async (req, res) => {
                 rut: usuario.Rut,
                 nombre: usuario.Nombre,
                 email: usuario.Correo,
-                roles
+                roles,
+                region: usuario.region || null,
+                comuna: usuario.comuna || null,
+                direccion: usuario.direccion || null
             }
         })
 
@@ -95,7 +98,10 @@ export const me = async (req, res) => {
             rut: usuario.Rut,
             nombre: usuario.Nombre,
             email: usuario.Correo,
-            roles: roles
+            roles: roles,
+            region: usuario.region || null,
+            comuna: usuario.comuna || null,
+            direccion: usuario.direccion || null
         })
     } catch (error) {
         console.error('Me error:', error)

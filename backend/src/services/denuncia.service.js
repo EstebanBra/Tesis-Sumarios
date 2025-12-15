@@ -54,8 +54,11 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     const denunciante = await tx.persona.upsert({
       where: { Rut: payload.Rut },
       update: {
-        // Si la persona ya existe, actualizamos su género con el dato nuevo
-        genero: payload.genero
+        // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
+        genero: payload.genero,
+        region: payload.regionDenunciante || undefined,
+        comuna: payload.comunaDenunciante || undefined,
+        direccion: payload.direccionDenunciante || undefined
       },
       create: {
         Rut: payload.Rut,
@@ -63,7 +66,10 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         Nombre: payload.nombreDenunciante || '',
         Correo: payload.correoDenunciante || '',
         Telefono: payload.telefonoDenunciante || '',
-        genero: payload.genero
+        genero: payload.genero,
+        region: payload.regionDenunciante || null,
+        comuna: payload.comunaDenunciante || null,
+        direccion: payload.direccionDenunciante || null
       }
     });
 
@@ -138,12 +144,15 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
             // Si tiene RUT
             const persona = await tx.persona.upsert({
               where: { Rut: t.rut },
-              update: {},
+              update: {
+                Correo: t.contacto?.includes('@') ? t.contacto : undefined,
+                Telefono: t.contacto?.includes('@') ? undefined : (t.contacto || undefined)
+              },
               create: {
                 Rut: t.rut,
                 Nombre: t.nombre ?? "Desconocido",
-                Correo: "",
-                Telefono: ""
+                Correo: t.contacto?.includes('@') ? t.contacto : "",
+                Telefono: t.contacto?.includes('@') ? "" : (t.contacto || "")
               }
             });
             personaId = persona.ID;
@@ -153,8 +162,8 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
               data: {
                 Rut: null,
                 Nombre: t.nombre ?? "Testigo sin identificar",
-                Correo: "",
-                Telefono: ""
+                Correo: t.contacto?.includes('@') ? t.contacto : "",
+                Telefono: t.contacto?.includes('@') ? "" : (t.contacto || "")
               }
             });
             personaId = personaAnonima.ID;
