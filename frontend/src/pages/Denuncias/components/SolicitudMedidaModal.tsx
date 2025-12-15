@@ -61,7 +61,7 @@ export default function SolicitudMedidaModal({ idDenuncia, isOpen, onClose, onSu
         <div className="relative rounded-lg bg-white p-6 shadow-xl transition-all sm:my-8 w-full max-w-md">
           <h3 className="text-xl font-bold text-gray-900 mb-4">Solicitar Medida de Resguardo</h3>
           <p className="text-sm text-gray-600 mb-4">
-            Esta solicitud será revisada por DIRGEGEN, quien elaborará un informe técnico (Art. 15, DUE 4560).
+            Esta solicitud será derivada a la unidad competente ({idDenuncia < 200 ? 'Dirgegen' : 'VRA/Fiscalía'}) para su evaluación urgente.
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
