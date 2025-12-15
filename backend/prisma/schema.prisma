@@ -27,7 +27,7 @@ model Persona {
   denuncias          Denuncia[]
   participantes_denuncia Participante_Denuncia[]
   datos_sindicados       Datos_Denunciado[]
-
+  informes_redactados InformeTecnico[] // Nuevo campo
   @@map("Persona")
 }
 
@@ -68,6 +68,7 @@ model Denuncia {
   historial_estado      Historial_Estado[]
   solicitudes_medidas   SolicitudMedida[]
   datos_denunciados     Datos_Denunciado[]
+  informe_tecnico InformeTecnico?
 
   @@map("Denuncia")
 }
@@ -128,6 +129,7 @@ model Participante_Denuncia {
 
   @@map("Participante_Denuncia")
 }
+
 
 // ==========================================
 // RELACIÓN PERSONA-PARTICIPANTE-DENUNCIA
@@ -202,6 +204,34 @@ model SolicitudMedida {
 
   @@map("SolicitudMedida")
 }
+
+// ==========================================
+// INFORME TÉCNICO (DIRGEGEN)
+// ==========================================
+
+model InformeTecnico {
+  ID_Informe       Int      @id @default(autoincrement())
+  ID_Denuncia      Int      @unique // Relación 1 a 1: Una denuncia tiene un solo informe técnico inicial
+  ID_Autor         Int      // ID de la Persona (profesional) que lo redactó
+  Fecha_Emision    DateTime @default(now())
+
+  // Contenido Estructurado según Protocolo
+  Antecedentes     String   @db.Text
+  Analisis_Social  String   @db.Text
+  Analisis_Psico   String   @db.Text
+  Analisis_Juridico String  @db.Text
+  
+  // Conclusiones
+  Sugerencias      String   @db.Text // Aquí van las medidas sugeridas
+  Es_Confidencial  Boolean  @default(true)
+
+  // Relaciones
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade)
+  autor     Persona  @relation(fields: [ID_Autor], references: [ID], onDelete: NoAction)
+
+  @@map("InformeTecnico")
+}
+  
 
 // ==========================================
 // HITOS Y ARCHIVOS
