@@ -11,6 +11,9 @@ CREATE TABLE [dbo].[Persona] (
     [Telefono] VARCHAR(20) NOT NULL,
     [password] VARCHAR(255),
     [genero] NVARCHAR(50),
+    [region] VARCHAR(100),
+    [comuna] VARCHAR(100),
+    [direccion] VARCHAR(200),
     CONSTRAINT [Persona_pkey] PRIMARY KEY CLUSTERED ([ID]),
     CONSTRAINT [Persona_Rut_key] UNIQUE NONCLUSTERED ([Rut])
 );

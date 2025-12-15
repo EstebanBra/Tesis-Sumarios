@@ -5,7 +5,8 @@ import { http } from './api'
 export type DenuncianteParticipante = {
   rut?: string
   nombre?: string
-  descripcion?: string 
+  descripcion?: string
+  contacto?: string
 }
 
 export type EvidenciaInput = {
@@ -18,6 +19,9 @@ export type CrearDenunciaInput = {
   Nombre?: string
   Correo?: string
   Telefono?: string
+  regionDenunciante?: string | null
+  comunaDenunciante?: string | null
+  direccionDenunciante?: string | null
   
   ID_TipoDe: number
   Fecha_Inicio: string // ISO
