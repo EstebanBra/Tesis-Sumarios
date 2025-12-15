@@ -39,7 +39,9 @@ export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEst
       },
       include: {
         tipo_denuncia: true,
-        estado_denuncia: true
+        estado_denuncia: true,
+        solicitudes_medidas: true,
+        informe_tecnico: true
       }
     });
 

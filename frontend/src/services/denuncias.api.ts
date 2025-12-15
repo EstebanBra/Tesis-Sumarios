@@ -87,6 +87,11 @@ export type DenunciaListado = {
     Tipo_Estado: string
   }
   solicitudes_medidas?: SolicitudMedida[]
+
+  informe_tecnico?: {
+    ID_Informe: number
+    Fecha_Emision: string
+  } | null
 }
 
 export type ListarDenunciasParams = {
