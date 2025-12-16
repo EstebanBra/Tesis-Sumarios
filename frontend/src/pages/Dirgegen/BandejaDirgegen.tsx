@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import {  useNavigate } from 'react-router-dom'
 // 1. IMPORTAR la nueva función y tipos
 import { listarDenuncias, listarMedidasPendientes, type DenunciaListado, type SolicitudMedida } from '@/services/denuncias.api'
 import { useAuth } from '@/context/AuthContext'

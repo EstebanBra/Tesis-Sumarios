@@ -25,3 +25,12 @@ export const crearInformeTecnico = async (data: CrearInformeDTO) => {
 export const obtenerInformePorDenuncia = async (idDenuncia: number) => {
   return http(`/informes-tecnicos/${idDenuncia}`)
 }
+export const actualizarInformeTecnico = async (
+  idDenuncia: number, 
+  data: Omit<CrearInformeDTO, 'idDenuncia' | 'idAutor'> // No enviamos IDs en el body al editar
+) => {
+  return http(`/informes-tecnicos/${idDenuncia}`, { 
+    method: 'PUT', 
+    body: data 
+  })
+}
