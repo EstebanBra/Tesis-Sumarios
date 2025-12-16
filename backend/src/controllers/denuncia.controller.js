@@ -74,6 +74,9 @@ export async function createDenuncia(req, res, next) {
       nombreDenunciante: req.body.Nombre, // Ojo con el nombre del campo en tu frontend
       correoDenunciante: req.body.Correo,
       telefonoDenunciante: req.body.Telefono,
+      regionDenunciante: req.body.regionDenunciante || null,
+      comunaDenunciante: req.body.comunaDenunciante || null,
+      direccionDenunciante: req.body.direccionDenunciante || null,
       // ---------------------------------------------
 
       ID_TipoDe: Number(req.body.ID_TipoDe),

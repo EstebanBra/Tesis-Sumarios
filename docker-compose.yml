@@ -1,13 +1,10 @@
-# Usamos una versión moderna de la sintaxis de compose
-version: '3.8'
-
 # Aquí definimos todos nuestros servicios (cajas)
 services:
 
   # --- SERVICIO DE BACKEND (Node.js + Prisma) ---
   backend:
     build:
-      context: ./backend  # Busca el Dockerfile en la carpeta 'backend/'
+      context: ./backend # Busca el Dockerfile en la carpeta 'backend/'
     ports:
       # Mapea el puerto 3000 de tu PC al 3000 del contenedor
       - "3000:3000"
@@ -18,50 +15,21 @@ services:
       # 2. Excepción: no sobrescribas node_modules. Usa el de la imagen.
       - /app/backend/node_modules
     env_file:
-      - ./backend/.env.docker # Ruta al archivo de variables de entorno
-    depends_on:
-      db:
-        condition: service_healthy # No arranca hasta que la DB esté lista
-    command: npm run dev 
+      - ./backend/.env
+    command: sh -c "npx prisma generate && node --watch index.js"
+
 
   # --- SERVICIO DE FRONTEND (React + Vite) ---
   frontend:
     build:
-      context: ./frontend # Busca el Dockerfile en la carpeta 'frontend/'
+      context: ./frontend
+      target: dev
     ports:
-      # Mapea el puerto 5173 de tu PC al 5173 del contenedor (puerto de Vite)
       - "5173:5173"
     volumes:
-      # --- Volúmenes para Desarrollo (Hot-Reload) ---
       # 1. Sincroniza tu código local con el del contenedor
       - ./frontend:/app/frontend
       # 2. Excepción: no sobrescribas node_modules. Usa el de la imagen.
       - /app/frontend/node_modules
-    # ¡IMPORTANTE! Esto anula el CMD del Dockerfile y ejecuta el server de Vite
-    command: npm run dev
-
-  # --- SERVICIO DE BASE DE DATOS (SQL Server) ---
-  db:
-    #image: mcr.microsoft.com/mssql/server:2019-latest # Usamos la imagen oficial
-    image: mcr.microsoft.com/azure-sql-edge
     environment:
-      # ¡OBLIGATORIO para la imagen de SQL Server!
-      ACCEPT_EULA: 'Y'
-      SA_PASSWORD: '${DB_SAPASSWORD}' # Cambia esto por una clave segura
-    ports:
-      # Mapea el puerto 1433 de tu PC al 1433 del contenedor
-      - "1433:1433"
-    volumes:
-      # 'mssql-data' es un "volumen nombrado". Docker lo gestiona.
-      # Esto asegura que tus datos persistan si el contenedor se reinicia.
-      - mssql-data:/var/opt/mssql
-    healthcheck:
-      # Docker revisará que la DB esté realmente operativa
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P '${DB_SAPASSWORD}' -Q 'SELECT 1' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-# Aquí se define el "volumen nombrado" que usamos en la DB
-volumes:
-  mssql-data:
+      - VITE_API_URL=${VITE_API_URL}

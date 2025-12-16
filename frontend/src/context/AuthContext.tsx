@@ -7,6 +7,9 @@ interface User {
     nombre: string
     email: string
     roles: string[]
+    region?: string | null
+    comuna?: string | null
+    direccion?: string | null
 }
 
 interface AuthContextType {

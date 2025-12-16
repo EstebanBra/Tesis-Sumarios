@@ -23,11 +23,11 @@ export const verifyToken = async (req, res, next) => {
 export const hasRole = (rolesPermitidos) => {
     return async (req, res, next) => {
         try {
-            const { rut } = req.user
+            const { id } = req.user  // Ahora usamos ID del token
 
             // Buscar roles en Participante_Caso
             const rolesUsuario = await prisma.participante_Caso.findMany({
-                where: { Rut: rut },
+                where: { ID_Persona: id },
                 select: { Tipo_PC: true }
             })
 
@@ -48,4 +48,4 @@ export const hasRole = (rolesPermitidos) => {
     }
 }
 
-export const isAdmin = hasRole(['Admin', 'VRA', 'VRAE', 'Fiscal', 'Fiscalia','Dirgergen']) // Ajustar según necesidad
+export const isAdmin = hasRole(['Admin', 'VRA', 'VRAE', 'Fiscal', 'Fiscalia', 'Dirgergen']) // Ajustar según necesidad
