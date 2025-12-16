@@ -1,7 +1,5 @@
-// src/services/informTecnico.service.js
 import prisma from "../config/prisma.js"; // Asegúrate que esta ruta es correcta en tu proyecto
 
-// CAMBIO: Usamos 'export const' en lugar de 'const' solo
 export const createInforme = async (data) => {
   const { 
     idDenuncia, 
@@ -41,18 +39,42 @@ export const createInforme = async (data) => {
       }
     });
 
-    // Actualizar estado de la denuncia (Descomentar si tienes el ID de estado correcto)
-    /*
+
     await tx.denuncia.update({
         where: { ID_Denuncia: Number(idDenuncia) },
         data: { ID_EstadoDe: 3 } 
     });
-    */
+    
 
     return informe;
   });
 
   return nuevoInforme;
+};
+
+export const updateInforme = async (idDenuncia, data) => {
+  const { 
+    antecedentes, 
+    analisisSocial, 
+    analisisPsico, 
+    analisisJuridico, 
+    sugerencias 
+  } = data;
+
+  // Actualizamos buscando por ID_Denuncia (ya que es relación 1 a 1)
+  const informeActualizado = await prisma.informeTecnico.update({
+    where: { ID_Denuncia: Number(idDenuncia) },
+    data: {
+      Antecedentes: antecedentes,
+      Analisis_Social: analisisSocial,
+      Analisis_Psico: analisisPsico,
+      Analisis_Juridico: analisisJuridico,
+      Sugerencias: sugerencias
+      // No actualizamos autor ni denuncia, esos vínculos son fijos
+    }
+  });
+
+  return informeActualizado;
 };
 
 // CAMBIO: Usamos 'export const'
@@ -65,5 +87,3 @@ export const getInformeByDenunciaId = async (idDenuncia) => {
     }
   });
 };
-
-// ELIMINAR: module.exports = { ... } ya no es necesario con export const
