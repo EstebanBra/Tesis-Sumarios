@@ -20,6 +20,10 @@ model Persona {
   Telefono               String                  @db.VarChar(20)
   password               String?                 @db.VarChar(255)
   genero                 String?                 @db.NVarChar(50)
+  region                 String?                 @db.VarChar(100)
+  comuna                 String?                 @db.VarChar(100)
+  direccion              String?                 @db.VarChar(200)
+  
   // Relaciones
   participantes_caso     Participante_Caso[]
   per_par_den            Per_Par_Den[]
@@ -57,6 +61,7 @@ model Denuncia {
   Relato_Hechos       String   @db.Text
   Ubicacion           String?  @db.VarChar(200)
   observacionDirgegen String?  @db.NVarChar(MAX)
+  
 
   // Relaciones
   denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)

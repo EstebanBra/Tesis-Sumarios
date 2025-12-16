@@ -1,13 +1,10 @@
-# Usamos una versión moderna de la sintaxis de compose
-version: '3.8'
-
 # Aquí definimos todos nuestros servicios (cajas)
 services:
 
   # --- SERVICIO DE BACKEND (Node.js + Prisma) ---
   backend:
     build:
-      context: ./backend  # Busca el Dockerfile en la carpeta 'backend/'
+      context: ./backend # Busca el Dockerfile en la carpeta 'backend/'
     ports:
       # Mapea el puerto 3000 de tu PC al 3000 del contenedor
       - "3000:3000"
@@ -18,13 +15,14 @@ services:
       # 2. Excepción: no sobrescribas node_modules. Usa el de la imagen.
       - /app/backend/node_modules
     env_file:
-      - ./backend/.env.docker # Ruta al archivo de variables de entorno
-    command: npm run dev 
+      - ./backend/.env
+    command: sh -c "npx prisma generate && node --watch index.js"
+
 
   # --- SERVICIO DE FRONTEND (React + Vite) ---
   frontend:
     build:
-      context: ./frontend 
+      context: ./frontend
       target: dev
     ports:
       - "5173:5173"
@@ -33,3 +31,5 @@ services:
       - ./frontend:/app/frontend
       # 2. Excepción: no sobrescribas node_modules. Usa el de la imagen.
       - /app/frontend/node_modules
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
