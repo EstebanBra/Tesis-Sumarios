@@ -42,11 +42,12 @@ export const login = async (req, res) => {
             { expiresIn: JWT_EXPIRES_IN }
         )
 
+        const isSecure = process.env.COOKIE_SECURE === 'true';
         // 5. Setear Cookie
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isSecure, // Será false en tu servidor Ubuntu si no tienes SSL
+            sameSite: isSecure ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 horas
         })
 
