@@ -17,11 +17,15 @@ import {
 } from "../validations/denuncia.validation.js";
 
 
+// IMPORTANTE: Traer los middlewares de seguridad
+import { verifyToken, hasRole } from "../middlewares/auth.middleware.js";
+
 const router = Router();
 
-// GET /api/denuncias?rut=&tipoId=&estadoId=&desde=YYYY-MM-DD&hasta=YYYY-MM-DD&page=1&pageSize=10
-router.get("/", listDenunciasRules, listDenuncias);
+router.use(verifyToken);
 
+
+router.get("/", listDenunciasRules, listDenuncias);
 
 router.get("/:id", idParamRule, getDenunciaById);
 
@@ -30,8 +34,11 @@ router.post("/", createDenunciaRules, createDenuncia);
 
 router.put("/:id", updateDenunciaRules, updateDenuncia);
 
-router.patch("/:id/estado", changeEstadoRules, changeEstado);
-
-router.delete("/:id", idParamRule, deleteDenuncia);
+// esto es para el cambio de estado 
+router.patch("/:id/estado", verifyToken, hasRole(['Autoridad', 'Fiscal', 'Dirgegen','VRA','VRAE' ]),
+ changeEstadoRules, changeEstado
+);
+// ver bien esto
+router.delete("/:id", hasRole(['Admin']), idParamRule, deleteDenuncia);
 
 export default router;

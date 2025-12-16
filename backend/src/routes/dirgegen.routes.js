@@ -15,11 +15,5 @@ const derivarRules = [
 ];
 
 // solo esto por ahora despues vendria el formulario y eso creo !!!!! no olvidar preguntar 
-router.patch(
-  "/denuncias/:id/derivar", 
-  verifyToken, 
-  hasRole(['Dirgegen']), 
-  derivarRules, 
-  derivarDenuncia
-);
+router.patch("/denuncias/:id/derivar", verifyToken, hasRole(['Dirgegen']), derivarRules, derivarDenuncia);
 export default router;

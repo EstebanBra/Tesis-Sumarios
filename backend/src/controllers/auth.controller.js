@@ -30,33 +30,38 @@ export const login = async (req, res) => {
 
         // 3. Obtener roles
         const rolesData = await prisma.participante_Caso.findMany({
-            where: { Rut: rut },
+            where: { ID_Persona: usuario.ID },
             select: { Tipo_PC: true }
         })
         const roles = rolesData.map(r => r.Tipo_PC)
 
-        // 4. Generar Token
+        // 4. Generar Token (ahora guardamos ID en vez de RUT)
         const token = jwt.sign(
-            { rut: usuario.Rut, nombre: usuario.Nombre, roles },
+            { id: usuario.ID, rut: usuario.Rut, nombre: usuario.Nombre, roles },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN }
         )
 
+        const isSecure = process.env.COOKIE_SECURE === 'true';
         // 5. Setear Cookie
         res.cookie(COOKIE_NAME, token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isSecure, // Será false en tu servidor Ubuntu si no tienes SSL
+            sameSite: isSecure ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000 // 24 horas
         })
 
         res.json({
             message: 'Login exitoso',
             user: {
+                id: usuario.ID,
                 rut: usuario.Rut,
                 nombre: usuario.Nombre,
                 email: usuario.Correo,
-                roles
+                roles,
+                region: usuario.region || null,
+                comuna: usuario.comuna || null,
+                direccion: usuario.direccion || null
             }
         })
 
@@ -73,10 +78,10 @@ export const logout = (req, res) => {
 
 export const me = async (req, res) => {
     try {
-        const { rut } = req.user
+        const { id } = req.user  // Ahora leemos ID del token
 
         const usuario = await prisma.persona.findUnique({
-            where: { Rut: rut }
+            where: { ID: id }
         })
 
         if (!usuario) {
@@ -84,17 +89,21 @@ export const me = async (req, res) => {
         }
 
         const rolesData = await prisma.participante_Caso.findMany({
-            where: { Rut: rut },
+            where: { ID_Persona: id },
             select: { Tipo_PC: true }
         })
         const roles = rolesData.map(r => r.Tipo_PC)
 
         res.json({
+            id: usuario.ID,
             rut: usuario.Rut,
             nombre: usuario.Nombre,
             email: usuario.Correo,
-            roles: roles
-})
+            roles: roles,
+            region: usuario.region || null,
+            comuna: usuario.comuna || null,
+            direccion: usuario.direccion || null
+        })
     } catch (error) {
         console.error('Me error:', error)
         res.status(500).json({ message: 'Error en el servidor' })

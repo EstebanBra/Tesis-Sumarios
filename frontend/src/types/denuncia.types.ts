@@ -23,6 +23,12 @@ export type Involucrado = {
     descripcionFisica: string
 }
 
+export type Testigo = {
+    nombreCompleto: string
+    rut?: string
+    contacto: string
+}
+
 export type FormularioDenuncia = {
     rut: string
     nombre: string
@@ -33,7 +39,7 @@ export type FormularioDenuncia = {
 
     tipoId: number
     subtipoId: number | null
-    
+
     descripcionOtro: string
 
     regionDenunciante: string
@@ -63,6 +69,7 @@ export type FormularioDenuncia = {
     relato: string
     involucrados: Involucrado[]
     nuevoInvolucrado: Involucrado
+    testigos: Testigo[]
 }
 
 export type FaseRegistro = 'seleccion_tipo' | 'seleccion_subtipo' | 'formulario'
