@@ -1,6 +1,4 @@
-// src/controllers/informeTecnico.controller.js
-import { createInforme, getInformeByDenunciaId } from "../services/informTecnico.service.js"; 
-// Asegúrate de que la ruta "../services/informTecnico.service.js" sea correcta (cuidado con la 'e' en informe)
+import { createInforme, getInformeByDenunciaId,updateInforme } from "../services/informTecnico.service.js"; 
 
 export const crearInformeTecnico = async (req, res) => {
   try {
@@ -42,5 +40,24 @@ export const obtenerInforme = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Error al obtener el informe" });
+  }
+};
+
+export const actualizarInformeTecnico = async (req, res) => {
+  try {
+    const { idDenuncia } = req.params;
+    const datosActualizados = await updateInforme(idDenuncia, req.body);
+
+    return res.json({
+      mensaje: "Informe técnico actualizado correctamente",
+      informe: datosActualizados
+    });
+  } catch (error) {
+    console.error("Error actualizando:", error);
+    // Prisma lanza error código P2025 si no encuentra el registro
+    if (error.code === 'P2025') {
+        return res.status(404).json({ error: "No existe un informe para actualizar." });
+    }
+    return res.status(500).json({ error: "Error al actualizar el informe." });
   }
 };

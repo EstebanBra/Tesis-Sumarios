@@ -194,20 +194,20 @@ export default function DetalleDirgegen() {
                     - Si NO TIENE informe: Botón Azul/Gris (Crear).
                 */}
                 {tieneInforme ? (
-                    <button 
-                        onClick={() => alert(`Descargando PDF del Informe #${denuncia.informe_tecnico?.ID_Informe}`)}
-                        className="px-5 py-2.5 bg-white border border-green-500 text-green-700 rounded-lg text-sm font-bold hover:bg-green-50 shadow-sm transition-all flex items-center justify-center gap-2"
-                    >
-                        <span>📄</span> Ver Informe Técnico
-                    </button>
-                ) : (
-                    <button 
-                        onClick={() => setShowInformeModal(true)}
-                        className="px-5 py-2.5 bg-ubb-blue text-white rounded-lg text-sm font-bold hover:bg-blue-900 shadow-md transition-all flex items-center justify-center gap-2"
-                    >
-                        <span>📝</span> Generar Informe Técnico
-                    </button>
-                )}
+                      <button 
+                          onClick={() => setShowInformeModal(true)} // ¡Abrimos el mismo modal!
+                          className="px-5 py-2.5 bg-white border border-green-500 text-green-700 rounded-lg text-sm font-bold hover:bg-green-50 shadow-sm transition-all flex items-center justify-center gap-2"
+                      >
+                          <span>📄</span> Ver / Editar Informe
+                      </button>
+                      ) : (
+                      <button 
+                          onClick={() => setShowInformeModal(true)}
+                          className="px-5 py-2.5 bg-ubb-blue text-white..."
+                      >
+                          Generar Informe
+                      </button>
+                  )}
                 
                 <div className="h-auto w-px bg-gray-300 hidden sm:block mx-1"></div>
 
@@ -236,8 +236,8 @@ export default function DetalleDirgegen() {
         isProcessing={processing}
       />
 
-      {/* Solo mostramos el modal si NO tiene informe, por seguridad extra */}
-      {denuncia && !tieneInforme && (
+     {/* Renderizamos el modal siempre que haya denuncia, para permitir Crear o Editar */}
+      {denuncia && (
         <InformeTecnicoModal
           isOpen={showInformeModal}
           onClose={() => setShowInformeModal(false)}
@@ -245,7 +245,7 @@ export default function DetalleDirgegen() {
           idDenuncia={denuncia.ID_Denuncia}
           // @ts-ignore
           idAutor={user?.id || 0} 
-          denunciaData={denuncia} // Pasamos la data para el acordeón
+          denunciaData={denuncia} 
         />
       )}
 
