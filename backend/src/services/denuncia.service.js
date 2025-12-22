@@ -47,7 +47,7 @@ export async function getDenunciaByIdService(id) {
 }
 
 export async function createDenunciaService(payload, { historial = true } = {}) {
- 
+
   const estadoInicial = 1;
 
   return prisma.$transaction(async (tx) => {
@@ -114,18 +114,17 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
               }
             });
             personaId = persona.ID;
-          } else {
-            // Si NO tiene RUT, crear persona anónima
-            const personaAnonima = await tx.persona.create({
-              data: {
-                Rut: null,
-                Nombre: p.nombre ?? "Denunciado sin identificar",
-                Correo: "",
-                Telefono: ""
-              }
-            });
-            personaId = personaAnonima.ID;
           }
+
+          // Crear registro en Datos_Denunciado (SIEMPRE para denunciados)
+          await tx.datos_Denunciado.create({
+            data: {
+              ID_Denuncia: denuncia.ID_Denuncia,
+              Nombre_Ingresado: p.nombre ?? "Desconocido",
+              Descripcion: p.descripcion ?? null,
+              ID_Persona: personaId
+            }
+          });
 
           participantes.push({
             ID_Denuncia: denuncia.ID_Denuncia,
@@ -158,17 +157,6 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
               }
             });
             personaId = persona.ID;
-          } else {
-            // Sin RUT - persona anónima
-            const personaAnonima = await tx.persona.create({
-              data: {
-                Rut: null,
-                Nombre: t.nombre ?? "Testigo sin identificar",
-                Correo: t.contacto?.includes('@') ? t.contacto : "",
-                Telefono: t.contacto?.includes('@') ? "" : (t.contacto || "")
-              }
-            });
-            personaId = personaAnonima.ID;
           }
 
           participantes.push({
@@ -269,6 +257,10 @@ export async function updateDenunciaService(id, data) {
       await tx.participante_Denuncia.deleteMany({
         where: { ID_Denuncia: Number(id) },
       });
+      // Eliminamos los registros de Datos_Denunciado previos
+      await tx.datos_Denunciado.deleteMany({
+        where: { ID_Denuncia: Number(id) },
+      });
 
       const nuevosParticipantes = [];
 
@@ -290,17 +282,17 @@ export async function updateDenunciaService(id, data) {
                 }
               });
               personaId = persona.ID;
-            } else {
-              const personaAnonima = await tx.persona.create({
-                data: {
-                  Rut: null,
-                  Nombre: p.nombre ?? "Denunciado sin identificar",
-                  Correo: "",
-                  Telefono: ""
-                }
-              });
-              personaId = personaAnonima.ID;
             }
+
+            // Crear registro en Datos_Denunciado
+            await tx.datos_Denunciado.create({
+              data: {
+                ID_Denuncia: Number(id),
+                Nombre_Ingresado: p.nombre ?? "Desconocido",
+                Descripcion: p.descripcion ?? null,
+                ID_Persona: personaId
+              }
+            });
 
             nuevosParticipantes.push({
               ID_Denuncia: Number(id),
@@ -320,25 +312,18 @@ export async function updateDenunciaService(id, data) {
             if (t.rut) {
               const persona = await tx.persona.upsert({
                 where: { Rut: t.rut },
-                update: {},
+                update: {
+                  Correo: t.contacto?.includes('@') ? t.contacto : undefined,
+                  Telefono: t.contacto?.includes('@') ? undefined : (t.contacto || undefined)
+                },
                 create: {
                   Rut: t.rut,
                   Nombre: t.nombre ?? "Desconocido",
-                  Correo: "",
-                  Telefono: ""
+                  Correo: t.contacto?.includes('@') ? t.contacto : "",
+                  Telefono: t.contacto?.includes('@') ? "" : (t.contacto || "")
                 }
               });
               personaId = persona.ID;
-            } else {
-              const personaAnonima = await tx.persona.create({
-                data: {
-                  Rut: null,
-                  Nombre: t.nombre ?? "Testigo sin identificar",
-                  Correo: "",
-                  Telefono: ""
-                }
-              });
-              personaId = personaAnonima.ID;
             }
 
             nuevosParticipantes.push({
