@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { crearDenuncia, type CrearDenunciaInput } from '@/services/denuncias.api'
 import { routes } from '@/services/routes'
 import { Cards } from '@/components/ui/Cards'
-import { TIPOS_DENUNCIA, SUBTIPOS_DENUNCIA, REGIONES, COMUNAS, SEDES, LUGARES_SEDE, VINCULACIONES } from '@/data/denuncias.data'
+import { TIPOS_DENUNCIA, SUBTIPOS_DENUNCIA, SEDES, LUGARES_SEDE, VINCULACIONES } from '@/data/denuncias.data'
 import type { FormularioDenuncia, Involucrado, FaseRegistro, Testigo } from '@/types/denuncia.types'
 import FormularioLayout from './components/FormularioLayout'
 import { useAuth } from '@/context/AuthContext'
+import { clRegions } from '@clregions/data';
+
 
 const initialInvolucrado: Involucrado = {
   nombre: '',
@@ -29,11 +31,11 @@ const initialForm: FormularioDenuncia = {
   victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '',
   victimaCorreo: '', victimaTelefono: '',
 
-    regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '',
-    fechaHecho: '', horaHecho: '', relato: '',
-    involucrados: [],
-    nuevoInvolucrado: { ...initialInvolucrado },
-    testigos: [],
+  regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '',
+  fechaHecho: '', horaHecho: '', relato: '',
+  involucrados: [],
+  nuevoInvolucrado: { ...initialInvolucrado },
+  testigos: [],
 }
 
 const steps = [
@@ -75,6 +77,44 @@ export default function NuevaDenuncia() {
     return LUGARES_SEDE[form.sedeHecho] || []
   }, [form.sedeHecho])
 
+  // --- Dynamic Regions and Communes ---
+  const allRegions = useMemo(() => {
+    // clRegions.regions is an object with ID as key
+    return Object.values(clRegions.regions).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const communesDenunciante = useMemo(() => {
+    if (!form.regionDenunciante) return [];
+    // Find region by name
+    const region = allRegions.find(r => r.name === form.regionDenunciante);
+    if (!region) return [];
+
+    // Extract all communes from all provinces in that region
+    const allCommunes: any[] = [];
+    Object.values(region.provinces).forEach((province: any) => {
+      Object.values(province.communes).forEach((commune: any) => {
+        allCommunes.push(commune);
+      });
+    });
+
+    return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
+  }, [form.regionDenunciante, allRegions]);
+
+  const communesHecho = useMemo(() => {
+    if (!form.regionHecho) return [];
+    const region = allRegions.find(r => r.name === form.regionHecho);
+    if (!region) return [];
+
+    const allCommunes: any[] = [];
+    Object.values(region.provinces).forEach((province: any) => {
+      Object.values(province.communes).forEach((commune: any) => {
+        allCommunes.push(commune);
+      });
+    });
+
+    return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
+  }, [form.regionHecho, allRegions]);
+
   useEffect(() => {
     if (user) {
       setForm((prev) => {
@@ -84,9 +124,16 @@ export default function NuevaDenuncia() {
           rut: user.rut,
           nombre: user.nombre,
           correo: user.email,
+          telefono: user.telefono || prev.telefono,
+          genero: user.genero || prev.genero,
+          regionDenunciante: user.region || prev.regionDenunciante,
+          comunaDenunciante: user.comuna || prev.comunaDenunciante,
+          direccionDenunciante: user.direccion || prev.direccionDenunciante,
           victimaRut: isVictima ? user.rut : prev.victimaRut,
           victimaNombre: isVictima ? user.nombre : prev.victimaNombre,
-          victimaCorreo: isVictima ? user.email : prev.victimaCorreo
+          victimaCorreo: isVictima ? user.email : prev.victimaCorreo,
+          victimaTelefono: isVictima ? (user.telefono || prev.telefono) : prev.victimaTelefono,
+          victimaGenero: isVictima ? (user.genero || prev.victimaGenero) : prev.victimaGenero
         }
       })
     }
@@ -130,10 +177,10 @@ export default function NuevaDenuncia() {
         victimaRut: user.rut,
         victimaNombre: user.nombre,
         victimaCorreo: user.email,
-        victimaTelefono: prev.telefono,
-        regionDenunciante: user.region || prev.regionDenunciante,
-        comunaDenunciante: user.comuna || prev.comunaDenunciante,
-        direccionDenunciante: user.direccion || prev.direccionDenunciante
+        victimaTelefono: user.telefono || prev.telefono,
+        victimaGenero: user.genero || '',
+        // Se autocompleta con datos del denunciante ya existentes en el form
+        // o directamente del user si se prefiere
       }))
     } else {
       setForm(prev => ({
@@ -142,7 +189,9 @@ export default function NuevaDenuncia() {
         victimaRut: '',
         victimaNombre: '',
         victimaCorreo: '',
-        victimaTelefono: ''
+        victimaTelefono: '',
+        victimaGenero: '',
+        victimaSexo: ''
       }))
     }
   }
@@ -396,16 +445,28 @@ export default function NuevaDenuncia() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700">Región *</label>
-                <select className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.regionDenunciante} onChange={(e) => updateField('regionDenunciante', e.target.value)}>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  value={form.regionDenunciante}
+                  onChange={(e) => {
+                    updateField('regionDenunciante', e.target.value);
+                    updateField('comunaDenunciante', ''); // Clear commune when region changes
+                  }}
+                >
                   <option value="">Seleccionar</option>
-                  {REGIONES.map(r => <option key={r}>{r}</option>)}
+                  {allRegions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Comuna *</label>
-                <select className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.comunaDenunciante} onChange={(e) => updateField('comunaDenunciante', e.target.value)}>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  value={form.comunaDenunciante}
+                  onChange={(e) => updateField('comunaDenunciante', e.target.value)}
+                  disabled={!form.regionDenunciante}
+                >
                   <option value="">Seleccionar</option>
-                  {COMUNAS.map(c => <option key={c}>{c}</option>)}
+                  {communesDenunciante.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
             </div>
@@ -728,10 +789,31 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Región</label>
-                  <input className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.regionHecho} readOnly />
+                  <select
+                    className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50"
+                    value={form.regionHecho}
+                    onChange={e => {
+                      updateField('regionHecho', e.target.value);
+                      updateField('comunaHecho', '');
+                    }}
+                  >
+                    <option value="">Seleccionar Región</option>
+                    {allRegions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                  </select>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Comuna</label>
+                  <select
+                    className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    value={form.comunaHecho || ''}
+                    onChange={e => updateField('comunaHecho', e.target.value)}
+                  >
+                    <option value="">Seleccionar Comuna</option>
+                    {communesHecho.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Lugar Específico</label>
                   <select className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.lugarHecho} onChange={e => updateField('lugarHecho', e.target.value)} disabled={!form.sedeHecho}>
