@@ -64,7 +64,9 @@ export type FormularioDenuncia = {
     sedeHecho: string
     lugarHecho: string
     detalleHecho: string
+    tipoFecha: 'unica' | 'rango'
     fechaHecho: string
+    fechaHechoFin: string
     horaHecho: string
     relato: string
     involucrados: Involucrado[]
