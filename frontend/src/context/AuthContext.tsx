@@ -6,10 +6,12 @@ interface User {
     rut: string
     nombre: string
     email: string
+    telefono?: string | null
     roles: string[]
     region?: string | null
     comuna?: string | null
     direccion?: string | null
+    genero?: string | null
 }
 
 interface AuthContextType {
