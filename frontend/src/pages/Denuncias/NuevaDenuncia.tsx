@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { crearDenuncia, type CrearDenunciaInput } from '@/services/denuncias.api'
 import { routes } from '@/services/routes'
 import { Cards } from '@/components/ui/Cards'
-import { TIPOS_DENUNCIA, SUBTIPOS_DENUNCIA, REGIONES, COMUNAS, SEDES, LUGARES_SEDE, VINCULACIONES } from '@/data/denuncias.data'
+import { TIPOS_DENUNCIA, SUBTIPOS_DENUNCIA, SEDES, LUGARES_SEDE, VINCULACIONES } from '@/data/denuncias.data'
 import type { FormularioDenuncia, Involucrado, FaseRegistro, Testigo } from '@/types/denuncia.types'
 import FormularioLayout from './components/FormularioLayout'
 import { useAuth } from '@/context/AuthContext'
+import { clRegions } from '@clregions/data';
+
 
 const initialInvolucrado: Involucrado = {
   nombre: '',
@@ -29,11 +31,11 @@ const initialForm: FormularioDenuncia = {
   victimaGenero: '', victimaSexo: '', victimaNacionalidad: '', victimaNacimiento: '',
   victimaCorreo: '', victimaTelefono: '',
 
-    regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '',
-    fechaHecho: '', horaHecho: '', relato: '',
-    involucrados: [],
-    nuevoInvolucrado: { ...initialInvolucrado },
-    testigos: [],
+  regionHecho: '', comunaHecho: '', sedeHecho: '', lugarHecho: '', detalleHecho: '',
+  tipoFecha: 'unica', fechaHecho: '', fechaHechoFin: '', horaHecho: '', relato: '',
+  involucrados: [],
+  nuevoInvolucrado: { ...initialInvolucrado },
+  testigos: [],
 }
 
 const steps = [
@@ -56,7 +58,7 @@ export default function NuevaDenuncia() {
   const [error, setError] = useState<string | null>(null)
   const [detalles, setDetalles] = useState<{ field: string; msg: string }[] | null>(null)
   const [mostrarCamposAdicionalesDenunciado, setMostrarCamposAdicionalesDenunciado] = useState(false)
-  const [modalTestigoAbierto, setModalTestigoAbierto] = useState(false)
+  const [mostrarFormTestigo, setMostrarFormTestigo] = useState(false)
   const [nuevoTestigo, setNuevoTestigo] = useState<Testigo>({ nombreCompleto: '', rut: '', contacto: '' })
 
   const stepTitle = useMemo(() => steps[step - 1]?.label ?? '', [step])
@@ -75,6 +77,30 @@ export default function NuevaDenuncia() {
     return LUGARES_SEDE[form.sedeHecho] || []
   }, [form.sedeHecho])
 
+  // --- Dynamic Regions and Communes ---
+  const allRegions = useMemo(() => {
+    // clRegions.regions is an object with ID as key
+    return Object.values(clRegions.regions).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  const communesDenunciante = useMemo(() => {
+    if (!form.regionDenunciante) return [];
+    // Find region by name
+    const region = allRegions.find(r => r.name === form.regionDenunciante);
+    if (!region) return [];
+
+    // Extract all communes from all provinces in that region
+    const allCommunes: any[] = [];
+    Object.values(region.provinces).forEach((province: any) => {
+      Object.values(province.communes).forEach((commune: any) => {
+        allCommunes.push(commune);
+      });
+    });
+
+    return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
+  }, [form.regionDenunciante, allRegions]);
+
+
   useEffect(() => {
     if (user) {
       setForm((prev) => {
@@ -84,9 +110,16 @@ export default function NuevaDenuncia() {
           rut: user.rut,
           nombre: user.nombre,
           correo: user.email,
+          telefono: user.telefono || prev.telefono,
+          genero: user.genero || prev.genero,
+          regionDenunciante: user.region || prev.regionDenunciante,
+          comunaDenunciante: user.comuna || prev.comunaDenunciante,
+          direccionDenunciante: user.direccion || prev.direccionDenunciante,
           victimaRut: isVictima ? user.rut : prev.victimaRut,
           victimaNombre: isVictima ? user.nombre : prev.victimaNombre,
-          victimaCorreo: isVictima ? user.email : prev.victimaCorreo
+          victimaCorreo: isVictima ? user.email : prev.victimaCorreo,
+          victimaTelefono: isVictima ? (user.telefono || prev.telefono) : prev.victimaTelefono,
+          victimaGenero: isVictima ? (user.genero || prev.victimaGenero) : prev.victimaGenero
         }
       })
     }
@@ -130,10 +163,10 @@ export default function NuevaDenuncia() {
         victimaRut: user.rut,
         victimaNombre: user.nombre,
         victimaCorreo: user.email,
-        victimaTelefono: prev.telefono,
-        regionDenunciante: user.region || prev.regionDenunciante,
-        comunaDenunciante: user.comuna || prev.comunaDenunciante,
-        direccionDenunciante: user.direccion || prev.direccionDenunciante
+        victimaTelefono: user.telefono || prev.telefono,
+        victimaGenero: user.genero || '',
+        // Se autocompleta con datos del denunciante ya existentes en el form
+        // o directamente del user si se prefiere
       }))
     } else {
       setForm(prev => ({
@@ -142,7 +175,9 @@ export default function NuevaDenuncia() {
         victimaRut: '',
         victimaNombre: '',
         victimaCorreo: '',
-        victimaTelefono: ''
+        victimaTelefono: '',
+        victimaGenero: '',
+        victimaSexo: ''
       }))
     }
   }
@@ -170,7 +205,7 @@ export default function NuevaDenuncia() {
       testigos: [...prev.testigos, { ...nuevoTestigo }],
     }))
     setNuevoTestigo({ nombreCompleto: '', rut: '', contacto: '' })
-    setModalTestigoAbierto(false)
+    setMostrarFormTestigo(false)
   }
 
   function handleEliminarTestigo(index: number) {
@@ -243,7 +278,9 @@ export default function NuevaDenuncia() {
       direccionDenunciante: form.direccionDenunciante || null,
       ID_TipoDe: Number(form.subtipoId),
       Fecha_Inicio: form.fechaHecho ? new Date(form.fechaHecho).toISOString() : new Date().toISOString(),
-      Relato_Hechos: relatoFinal,
+      Relato_Hechos: form.tipoFecha === 'rango' && form.fechaHechoFin
+        ? `[FECHA OCURRENCIA: Del ${form.fechaHecho} al ${form.fechaHechoFin}]\n\n${relatoFinal}`
+        : relatoFinal,
       Ubicacion: ubicacionCompleta,
       denunciados: form.involucrados.map((i) => ({
         nombre: `${i.nombre} ${i.apellido1}`.trim() || 'Sin nombre',
@@ -396,16 +433,28 @@ export default function NuevaDenuncia() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700">Región *</label>
-                <select className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.regionDenunciante} onChange={(e) => updateField('regionDenunciante', e.target.value)}>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  value={form.regionDenunciante}
+                  onChange={(e) => {
+                    updateField('regionDenunciante', e.target.value);
+                    updateField('comunaDenunciante', ''); // Clear commune when region changes
+                  }}
+                >
                   <option value="">Seleccionar</option>
-                  {REGIONES.map(r => <option key={r}>{r}</option>)}
+                  {allRegions.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Comuna *</label>
-                <select className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.comunaDenunciante} onChange={(e) => updateField('comunaDenunciante', e.target.value)}>
+                <select
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  value={form.comunaDenunciante}
+                  onChange={(e) => updateField('comunaDenunciante', e.target.value)}
+                  disabled={!form.regionDenunciante}
+                >
                   <option value="">Seleccionar</option>
-                  {COMUNAS.map(c => <option key={c}>{c}</option>)}
+                  {communesDenunciante.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </select>
               </div>
             </div>
@@ -705,11 +754,35 @@ export default function NuevaDenuncia() {
             )}
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Fecha *</label>
-                <input type="date" className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.fechaHecho} onChange={e => updateField('fechaHecho', e.target.value)} />
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">¿Cuándo ocurrieron los hechos? *</p>
+                <div className="flex gap-6 mb-3">
+                  <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="tipoFecha" checked={form.tipoFecha === 'unica'} onChange={() => updateField('tipoFecha', 'unica')} /> Fecha única
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="tipoFecha" checked={form.tipoFecha === 'rango'} onChange={() => updateField('tipoFecha', 'rango')} /> Rango de fechas
+                  </label>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">
+                      {form.tipoFecha === 'unica' ? 'Fecha de los hechos' : 'Fecha de inicio'}
+                    </label>
+                    <input type="date" className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.fechaHecho} onChange={e => updateField('fechaHecho', e.target.value)} />
+                  </div>
+                  {form.tipoFecha === 'rango' && (
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">Fecha de término</label>
+                      <input type="date" className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.fechaHechoFin} onChange={e => updateField('fechaHechoFin', e.target.value)} />
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-500 mt-1 italic">Si no recuerdas la fecha exacta, por favor indica un rango aproximado.</p>
               </div>
-              <div className="md:col-span-2 grid gap-4 md:grid-cols-2">
+
+              <div className="border-t border-gray-200 pt-4 mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Sede *</label>
                   <select
@@ -728,10 +801,12 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">Región</label>
-                  <input className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.regionHecho} readOnly />
+                  <div className="mt-1 w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-600 font-medium h-[38px] flex items-center">
+                    {form.regionHecho || 'Selecciona una sede'}
+                  </div>
                 </div>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2 pt-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Lugar Específico</label>
                   <select className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" value={form.lugarHecho} onChange={e => updateField('lugarHecho', e.target.value)} disabled={!form.sedeHecho}>
@@ -767,15 +842,62 @@ export default function NuevaDenuncia() {
                   <label className="text-sm font-medium text-gray-700">Testigos</label>
                   <button
                     type="button"
-                    onClick={() => setModalTestigoAbierto(true)}
+                    onClick={() => setMostrarFormTestigo(!mostrarFormTestigo)}
                     className="text-sm text-ubb-blue hover:text-blue-800 font-medium flex items-center gap-2 transition-colors"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-4 h-4 transition-transform ${mostrarFormTestigo ? 'rotate-45' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Agregar Testigo
+                    {mostrarFormTestigo ? 'Cancelar' : 'Agregar Testigo'}
                   </button>
                 </div>
+
+                {/* Formulario Inline de Testigo */}
+                {mostrarFormTestigo && (
+                  <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4 animate-in fade-in slide-in-from-top-2">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Nombre Completo *</label>
+                        <input
+                          type="text"
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                          placeholder="Nombre del testigo"
+                          value={nuevoTestigo.nombreCompleto}
+                          onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, nombreCompleto: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">RUT (Opcional)</label>
+                        <input
+                          type="text"
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                          placeholder="12.345.678-9"
+                          value={nuevoTestigo.rut}
+                          onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, rut: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">Contacto *</label>
+                      <input
+                        type="text"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                        placeholder="Correo o teléfono"
+                        value={nuevoTestigo.contacto}
+                        onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, contacto: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleAgregarTestigo}
+                        className="text-sm bg-ubb-blue text-white px-4 py-2 rounded font-medium hover:bg-blue-800 transition-colors"
+                      >
+                        Confirmar Testigo
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Lista de testigos */}
                 {form.testigos.length > 0 && (
@@ -853,90 +975,6 @@ export default function NuevaDenuncia() {
         </div>
       )}
 
-      {/* Modal de Testigo */}
-      {modalTestigoAbierto && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Agregar Testigo</h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setModalTestigoAbierto(false)
-                  setNuevoTestigo({ nombreCompleto: '', rut: '', contacto: '' })
-                }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Nombre Completo *
-                </label>
-                <input
-                  type="text"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-ubb-blue focus:border-transparent outline-none"
-                  placeholder="Nombre completo del testigo"
-                  value={nuevoTestigo.nombreCompleto}
-                  onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, nombreCompleto: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  RUT (Opcional)
-                </label>
-                <input
-                  type="text"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-ubb-blue focus:border-transparent outline-none"
-                  placeholder="12.345.678-9"
-                  value={nuevoTestigo.rut}
-                  onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, rut: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Contacto *
-                </label>
-                <input
-                  type="text"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-ubb-blue focus:border-transparent outline-none"
-                  placeholder="Teléfono o correo electrónico"
-                  value={nuevoTestigo.contacto}
-                  onChange={(e) => setNuevoTestigo({ ...nuevoTestigo, contacto: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setModalTestigoAbierto(false)
-                  setNuevoTestigo({ nombreCompleto: '', rut: '', contacto: '' })
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleAgregarTestigo}
-                disabled={!nuevoTestigo.nombreCompleto.trim() || !nuevoTestigo.contacto.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-ubb-blue rounded-md hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </FormularioLayout>
   )
 }
