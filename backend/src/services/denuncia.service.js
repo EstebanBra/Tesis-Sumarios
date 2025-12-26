@@ -6,9 +6,12 @@ const includeFull = {
   tipo_denuncia: true,
   estado_denuncia: true,
   historial_estado: true,
+  denunciante: true, 
+  datos_denunciados: true, 
   participante_denuncia: true,
   medidas_cautelares: { include: { tipos_cautelar: true } },
   informe_tecnico: true,
+  solicitudes_medidas: true
 };
 
 

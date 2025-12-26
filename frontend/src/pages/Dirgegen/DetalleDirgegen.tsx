@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getDenunciaById, gestionarDenuncia, type DenunciaListado, type SolicitudMedida } from '@/services/denuncias.api'
+import { getDenunciaById, gestionarDenuncia, type SolicitudMedida } from '@/services/denuncias.api'
 import DerivacionModal from "@/pages/Denuncias/components/Derivacion"
 import InformeTecnicoModal from './components/InformeTecnicoModal'
 import { useAuth } from '@/context/AuthContext'
@@ -10,10 +10,10 @@ export default function DetalleDirgegen() {
   const navigate = useNavigate()
   const { user } = useAuth()
   
-  const [denuncia, setDenuncia] = useState<DenunciaListado | null>(null)
+  const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false) // Modal Derivación
-  const [showInformeModal, setShowInformeModal] = useState(false) // Modal Informe Técnico
+  const [showModal, setShowModal] = useState(false)
+  const [showInformeModal, setShowInformeModal] = useState(false)
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
@@ -24,6 +24,7 @@ export default function DetalleDirgegen() {
   async function cargarDatos() {
     try {
       const data = await getDenunciaById(Number(id))
+      console.log("Datos recibidos:", data) 
       setDenuncia(data)
     } catch (err) {
       console.error(err)
@@ -36,7 +37,8 @@ export default function DetalleDirgegen() {
     if (!denuncia) return
     try {
       setProcessing(true)
-      await gestionarDenuncia(denuncia.ID_Denuncia, { observacion, nuevoEstadoId: 3 })
+      const idDenuncia = denuncia.ID_Denuncia || denuncia.id;
+      await gestionarDenuncia(idDenuncia, { observacion, nuevoEstadoId: 3 })
       setShowModal(false)
       alert('Denuncia derivada exitosamente a VRA.')
       navigate('/dirgegen/bandeja')
@@ -48,9 +50,21 @@ export default function DetalleDirgegen() {
     }
   }
 
+  const getProp = (obj: any, keyCap: string, keyLow: string) => {
+    if (!obj) return '';
+    return obj[keyCap] || obj[keyLow] || '';
+  }
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'No registrada';
+    return new Date(dateString).toLocaleDateString('es-CL', { 
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
+
   if (loading) return (
-    <div className="flex h-64 items-center justify-center text-ubb-blue font-medium animate-pulse">
-      Cargando caso...
+    <div className="flex h-64 items-center justify-center text-blue-800 font-medium animate-pulse">
+      Cargando información del caso...
     </div>
   )
   
@@ -60,195 +74,335 @@ export default function DetalleDirgegen() {
     </div>
   )
 
-  const solicitudesDeMedida: SolicitudMedida[] = denuncia.solicitudes_medidas || [];
-  const solicitudPendiente = solicitudesDeMedida.find((s: SolicitudMedida) => s.Estado === 'Pendiente Informe');
+  // --- CORRECCIÓN 1: Leer correctamente 'datos_denunciados' ---
+  // Ahora tu backend envía 'datos_denunciados', así que lo ponemos primero en la lista
+  const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
   
-  // ✅ Detectar si ya existe informe
-  const tieneInforme = !!(denuncia.informe_tecnico );
-  console.log("¿Tiene informe?", tieneInforme);
+  // Testigos (ahora suele venir en participante_denuncia, pero mantenemos compatibilidad)
+  const listaTestigos = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
+  
+  const listaEvidencias = denuncia.Evidencias || denuncia.evidencias || denuncia.Archivos || [];
+  
+  // Normalización de Datos Principales
+  const idCaso = denuncia.ID_Denuncia || denuncia.id;
+  const fechaCaso = denuncia.Fecha_Inicio || denuncia.fechaCreacion;
+  const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
+  const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
+  
+  // Datos Denunciante (buscamos dentro del objeto 'denunciante' si existe)
+  const datosDenuncianteObj = denuncia.denunciante || denuncia; 
+  const nombreDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
+  const apellidoDenunciante = getProp(datosDenuncianteObj, 'Apellido', 'apellido'); 
+  const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
+  const correoDenunciante = getProp(datosDenuncianteObj, 'Correo', 'correo');
+  const telefonoDenunciante = getProp(datosDenuncianteObj, 'Telefono', 'telefono');
+  const estamentoDenunciante = getProp(datosDenuncianteObj, 'Estamento', 'estamento');
+
+  // Datos Víctima
+  const victimaNombre = getProp(denuncia, 'VictimaNombre', 'victimaNombre');
+  const victimaRut = getProp(denuncia, 'VictimaRut', 'victimaRut');
+  const esVictima = getProp(denuncia, 'EsVictima', 'esVictima');
+  const victimaMenor = getProp(denuncia, 'VictimaMenor', 'victimaMenor');
+
+  // Solicitudes
+  const solicitudesDeMedida: SolicitudMedida[] = denuncia.solicitudes_medidas || denuncia.SolicitudesMedidas || [];
+  const solicitudPendiente = solicitudesDeMedida.find((s: any) => s.Estado === 'Pendiente Informe');
+  const tieneInforme = !!(denuncia.informe_tecnico || denuncia.InformeTecnico);
 
   return (
-    <section className="mx-auto max-w-5xl pb-12 px-4 py-8 space-y-6">
+    <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
       
-      {/* =================================================================================
-          SECCIÓN DE ALERTAS DE ESTADO (PRIORIDAD ALTA)
-          ================================================================================= */}
-      
+      {/* --- ALERTAS --- */}
       <div className="space-y-4">
-        {/* 1. Alerta de Medidas Pendientes (ROJO/AMARILLO) */}
         {solicitudesDeMedida.length > 0 && (
             <div className={`rounded-lg border shadow-sm overflow-hidden ${solicitudPendiente ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-white'}`}>
                 <div className="px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <span className="text-2xl">{solicitudPendiente ? '🚨' : '🛡️'}</span>
                         <div>
-                            <h2 className={`text-sm font-bold uppercase tracking-wider ${solicitudPendiente ? 'text-red-800' : 'text-ubb-blue'}`}>
-                                {solicitudPendiente ? 'Acción Requerida: Solicitud de Medida Pendiente' : 'Historial de Medidas de Resguardo'}
+                            <h2 className={`text-sm font-bold uppercase tracking-wider ${solicitudPendiente ? 'text-red-800' : 'text-blue-800'}`}>
+                                {solicitudPendiente ? 'Atención: Medida Pendiente' : 'Historial de Medidas'}
                             </h2>
-                            {solicitudPendiente && <p className="text-xs text-red-600 mt-1">Se requiere evaluar la solicitud para avanzar.</p>}
+                            {solicitudPendiente && <p className="text-xs text-red-600 mt-1">Se requiere revisar la solicitud.</p>}
                         </div>
                     </div>
-                    {/* Botón de acción rápida si no hay informe aún */}
-                    {solicitudPendiente && !tieneInforme && (
-                        <button
-                            onClick={() => setShowInformeModal(true)}
-                            className="text-xs bg-white border border-red-300 text-red-700 px-3 py-2 rounded-md font-bold hover:bg-red-50 shadow-sm transition-colors"
-                        >
-                            Gestionar Ahora
-                        </button>
-                    )}
                 </div>
             </div>
         )}
-
-        {/* 2. ✅ MENSAJE DE ÉXITO: INFORME TÉCNICO EMITIDO (VERDE) */}
         {tieneInforme && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-2">
-                <div className="bg-green-100 p-2 rounded-full text-green-600">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                </div>
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex items-center gap-3 shadow-sm">
+                <span className="text-xl">✅</span>
                 <div>
-                    <h3 className="text-sm font-bold text-green-800 uppercase tracking-wide">Informe Técnico Psicosociojurídico Emitido</h3>
-                    <p className="text-sm text-green-700 mt-1">
-                        Este caso ya cuenta con un informe oficial asociado. No es necesario generar uno nuevo.
-                        Puede visualizarlo o descargarlo en la sección inferior.
-                    </p>
-                    <div className="mt-2 flex gap-4 text-xs text-green-800/70 font-medium">
-                        <span>ID Informe: #{denuncia.informe_tecnico?.ID_Informe}</span>
-                        <span>•</span>
-                        <span>Estado: Finalizado</span>
-                    </div>
+                    <h3 className="text-sm font-bold text-green-800 uppercase">Informe Técnico Emitido</h3>
+                    <p className="text-xs text-green-700">El caso cuenta con documentación técnica finalizada.</p>
                 </div>
             </div>
         )}
       </div>
 
-      {/* --- HEADER PRINCIPAL --- */}
+      {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4 pt-2">
         <div>
-          <h1 className="font-condensed text-3xl font-bold text-gray-900">
-            Gestión de Caso #{denuncia.ID_Denuncia}
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Protocolo de Género y Equidad (DUE 4560)</p>
+          <h1 className="text-3xl font-bold text-gray-900">Caso #{idCaso}</h1>
+          <p className="text-sm text-gray-500 mt-1">Fecha de Ingreso: {formatDate(fechaCaso)}</p>
         </div>
-        <span className={`inline-flex items-center rounded-full px-4 py-1.5 text-sm font-bold border ${
-          denuncia.estado_denuncia?.Tipo_Estado === 'Cerrada' ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-        }`}>
-          {denuncia.estado_denuncia?.Tipo_Estado}
+        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+          {estadoCaso}
         </span>
       </div>
 
-      {/* --- TARJETA DE DETALLE DEL CASO --- */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        <div className="p-6 md:p-8 space-y-8">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <dt className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tipo de Denuncia</dt>
-              <dd className="text-base font-semibold text-gray-900">{denuncia.tipo_denuncia?.Nombre}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fecha de Ingreso</dt>
-              <dd className="text-base font-medium text-gray-900">{new Date(denuncia.Fecha_Inicio).toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</dd>
-            </div>
-          </div>
+      {/* --- DETALLE --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <dt className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Identidad Denunciante</dt>
-              <dd className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-900">Usuario Confidencial</span>
-                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded font-mono">
-                  {denuncia.Rut}
-                </span>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Ubicación</dt>
-              <dd className="text-sm font-medium text-gray-900">{denuncia.Ubicacion || 'No informada'}</dd>
-            </div>
-          </div>
-
-          <div>
-            <dt className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</dt>
-            <div className="w-full rounded-lg border border-gray-200 bg-gray-50/50 p-5 text-sm text-gray-700 min-h-[120px] whitespace-pre-wrap leading-relaxed">
-              {denuncia.Relato_Hechos}
-            </div>
-          </div>
-        </div>
-
-        {/* --- FOOTER DE ACCIONES --- */}
-        <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+        {/* COLUMNA IZQUIERDA (8) */}
+        <div className="lg:col-span-8 space-y-6">
             
-            {/* Mensaje de estado en el footer (Opcional, refuerzo) */}
-            <div className="text-xs text-gray-500 font-medium">
-                {tieneInforme 
-                    ? "✅ Documentación técnica completa." 
-                    : "⚠️ Pendiente: Emisión de Informe Técnico."
-                }
+            {/* 1. CLASIFICACIÓN Y RELATO */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="mb-4 pb-4 border-b border-gray-100">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Clasificación del Hecho</h3>
+                    <p className="text-lg font-semibold text-blue-900">
+                        {denuncia.tipo_denuncia?.Nombre || denuncia.tipo?.nombre || 'Tipo no especificado'}
+                    </p>
+                    <p className="text-gray-600 text-sm mt-1">
+                         {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
+                    </p>
+                </div>
+                
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
+                {/* --- CORRECCIÓN 2: DELIMITAR RELATO ---
+                   Usamos max-h-96 (altura máx) y overflow-y-auto (scroll)
+                   break-words evita que palabras largas rompan el diseño
+                */}
+                <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
+                    {relatoCaso}
+                </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                {/* LÓGICA DEL BOTÓN PRINCIPAL:
-                    - Si TIENE informe: Botón Verde (Ver/Descargar).
-                    - Si NO TIENE informe: Botón Azul/Gris (Crear).
-                */}
-                {tieneInforme ? (
-                      <button 
-                          onClick={() => setShowInformeModal(true)} // ¡Abrimos el mismo modal!
-                          className="px-5 py-2.5 bg-white border border-green-500 text-green-700 rounded-lg text-sm font-bold hover:bg-green-50 shadow-sm transition-all flex items-center justify-center gap-2"
-                      >
-                          <span>📄</span> Ver / Editar Informe
-                      </button>
-                      ) : (
-                      <button 
-                          onClick={() => setShowInformeModal(true)}
-                          className="px-5 py-2.5 bg-ubb-blue text-white..."
-                      >
-                          Generar Informe
-                      </button>
-                  )}
-                
-                <div className="h-auto w-px bg-gray-300 hidden sm:block mx-1"></div>
+            {/* 2. PERSONAS DENUNCIADAS (CORREGIDO) */}
+            <div className="bg-white rounded-xl shadow-sm border border-orange-200 overflow-hidden">
+                <div className="bg-orange-50 px-6 py-3 border-b border-orange-100 flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-orange-800 uppercase">⚠️ Personas Denunciadas</h3>
+                    <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full font-bold">
+                        {listaInvolucrados.length} Persona(s)
+                    </span>
+                </div>
+                <div className="p-6">
+                    {listaInvolucrados.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-4">
+                            {listaInvolucrados.map((inv: any, idx: number) => (
+                                <div key={idx} className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm">
+                                    <div className="flex justify-between items-start">
+                                        <div className="w-full">
+                                            {/* --- LECTURA DE PROPIEDADES CORREGIDA ---
+                                               Ahora lee 'Nombre_Ingresado' (API nueva) o 'Nombre' (API vieja) 
+                                            */}
+                                            <p className="font-bold text-gray-900 text-base">
+                                                {inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre'} {inv.Apellido1 || ''}
+                                            </p>
+                                            
+                                            {/* Aquí mostramos la descripción completa concatenada 
+                                                que viene en 'Descripcion' o 'descripcion'
+                                            */}
+                                            {(inv.Descripcion || inv.descripcion) ? (
+                                                <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
+                                                    {inv.Descripcion || inv.descripcion}
+                                                </p>
+                                            ) : (
+                                                <p className="text-sm text-gray-600 mt-1">
+                                                    <span className="font-semibold">Vinculación:</span> {inv.Vinculacion || inv.vinculacion || 'No especificada'}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded ml-2 whitespace-nowrap">
+                                          Sindicado #{idx + 1}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Compatibilidad con campos antiguos si existieran */}
+                                    {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
+                                        <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
+                                            "Descripción física: {inv.DescripcionFisica || inv.descripcionFisica}"
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 italic text-sm text-center py-4">
+                            No se encontraron datos de involucrados específicos.
+                        </p>
+                    )}
+                </div>
+            </div>
 
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="px-5 py-2.5 bg-white border border-orange-300 text-orange-600 rounded-lg text-sm font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
-                >
-                    <span>↗️</span> Derivar Caso
-                </button>
+            {/* 3. TESTIGOS Y EVIDENCIAS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Testigos */}
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">👀 Testigos</h3>
+                    {listaTestigos.length > 0 ? (
+                        <ul className="space-y-3">
+                            {listaTestigos.map((t: any, idx: number) => (
+                                <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
+                                    {/* Lee Nombre_PD (nuevo) o Nombre (viejo) */}
+                                    <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
+                                    <span className="text-xs text-gray-500 block mt-0.5">
+                                      {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p className="text-sm text-gray-400 italic">No hay testigos registrados.</p>
+                    )}
+                 </div>
+
+                 {/* Archivos */}
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📎 Archivos</h3>
+                    {listaEvidencias.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                             {listaEvidencias.map((arch: any, i: number) => (
+                                <a key={i} href={arch.url || arch.Url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition border border-blue-100">
+                                    <span>📄</span>
+                                    <span className="truncate">{arch.nombreOriginal || arch.NombreOriginal || `Documento ${i+1}`}</span>
+                                </a>
+                             ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
+                    )}
+                 </div>
             </div>
         </div>
-      </div> 
+
+        {/* COLUMNA DERECHA (4) */}
+        <div className="lg:col-span-4 space-y-6">
+            
+            {/* CARD: DENUNCIANTE */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
+                    <h3 className="font-bold text-gray-800 text-sm">👤 Datos Denunciante</h3>
+                    {(denuncia.reservaIdentidad || denuncia.ReservaIdentidad) && (
+                        <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded border border-purple-200">
+                            CONFIDENCIAL
+                        </span>
+                    )}
+                </div>
+                <div className="p-5 text-sm space-y-4">
+                    {(denuncia.anonimo || denuncia.Anonimo) ? (
+                        <div className="text-center py-4 bg-gray-50 rounded text-gray-500 italic">
+                            Denuncia Anónima
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre</label>
+                                <p className="font-medium text-gray-900">{nombreDenunciante} {apellidoDenunciante}</p>
+                                <p className="text-xs text-gray-500">{rutDenunciante}</p>
+                            </div>
+                            <div className="pt-2 border-t border-gray-100">
+                                <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Contacto</label>
+                                <p className="text-gray-700 break-words">{correoDenunciante}</p>
+                                <p className="text-gray-700">{telefonoDenunciante}</p>
+                            </div>
+                            <div className="pt-2 border-t border-gray-100">
+                                <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Estamento</label>
+                                <span className="inline-block bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
+                                    {estamentoDenunciante || 'No informado'}
+                                </span>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {/* CARD: VÍCTIMA */}
+            <div className={`rounded-xl shadow-sm border overflow-hidden ${(victimaMenor === 'si' || victimaMenor === true) ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                <div className={`px-5 py-3 border-b flex justify-between items-center ${(victimaMenor === 'si' || victimaMenor === true) ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <h3 className={`font-bold text-sm ${(victimaMenor === 'si' || victimaMenor === true) ? 'text-red-800' : 'text-gray-800'}`}>
+                        🛡️ Datos de la Víctima
+                    </h3>
+                    {(victimaMenor === 'si' || victimaMenor === true) && (
+                        <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-1 rounded shadow-sm">
+                            MENOR DE EDAD
+                        </span>
+                    )}
+                </div>
+                <div className="p-5 text-sm space-y-3">
+                    {((esVictima === 'si' || esVictima === true) && !(denuncia.anonimo)) ? (
+                        <div className="bg-white/50 p-3 rounded text-center text-gray-600 italic text-xs border border-gray-100">
+                            El denunciante declara ser la víctima.
+                        </div>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Víctima</label>
+                                <p className="font-medium text-gray-900">{victimaNombre || 'No identificado'}</p>
+                                <p className="text-xs text-gray-500">{victimaRut}</p>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+            
+            {/* Medidas */}
+            {(denuncia.solicitaMedidas || denuncia.SolicitaMedidas) && (
+                 <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
+                      <div className="px-5 py-3 border-b border-yellow-200">
+                         <h3 className="font-bold text-yellow-900 text-sm">✋ Medidas Solicitadas</h3>
+                      </div>
+                      <div className="p-5 text-sm text-gray-800 italic bg-white/50">
+                        "{denuncia.detalleMedidas || denuncia.DetalleMedidas || 'Sin detalle adicional'}"
+                      </div>
+                </div>
+            )}
+        </div>
+      </div>
+      
+      {/* --- FOOTER --- */}
+      <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-xl mt-6">
+        <div className="text-xs text-gray-500 font-medium">
+            {tieneInforme ? "✅ Documentación completa." : "⚠️ Pendiente: Informe Técnico."}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {tieneInforme ? (
+                  <button onClick={() => setShowInformeModal(true)} className="px-5 py-2.5 bg-white border border-green-500 text-green-700 rounded-lg text-sm font-bold hover:bg-green-50 shadow-sm transition-all">
+                      📄 Ver Informe
+                  </button>
+              ) : (
+                  <button onClick={() => setShowInformeModal(true)} className="px-5 py-2.5 bg-blue-600 text-white border border-blue-700 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-all">
+                      📝 Generar Informe
+                  </button>
+              )}
+            <div className="h-auto w-px bg-gray-300 hidden sm:block mx-1"></div>
+            <button onClick={() => setShowModal(true)} className="px-5 py-2.5 bg-white border border-orange-300 text-orange-600 rounded-lg text-sm font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2">
+                <span>↗️</span> Derivar Caso
+            </button>
+        </div>
+      </div>
 
       <div className="flex justify-start pt-2"> 
-        <button onClick={() => navigate('/dirgegen/bandeja')} className="text-sm font-medium text-gray-500 hover:text-ubb-blue transition-colors flex items-center gap-2">
+        <button onClick={() => navigate('/dirgegen/bandeja')} className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">
           ← Volver a la Bandeja
         </button>
       </div>
 
       {/* --- MODALES --- */}
-      <DerivacionModal 
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        // @ts-ignore
-        onConfirm={handleDerivacionConfirm}
-        isProcessing={processing}
-      />
-
-     {/* Renderizamos el modal siempre que haya denuncia, para permitir Crear o Editar */}
+      <DerivacionModal isOpen={showModal} onClose={() => setShowModal(false)} onConfirm={handleDerivacionConfirm} isProcessing={processing} />
       {denuncia && (
-        <InformeTecnicoModal
-          isOpen={showInformeModal}
-          onClose={() => setShowInformeModal(false)}
-          onSuccess={() => cargarDatos()}
-          idDenuncia={denuncia.ID_Denuncia}
-          // @ts-ignore
-          idAutor={user?.id || 0} 
-          denunciaData={denuncia} 
+        <InformeTecnicoModal 
+            isOpen={showInformeModal} 
+            onClose={() => setShowInformeModal(false)} 
+            onSuccess={() => cargarDatos()} 
+            idDenuncia={idCaso} 
+            // @ts-ignore
+            idAutor={user?.id || 0} 
+            denunciaData={denuncia} 
         />
       )}
-
     </section>
   )
 }
