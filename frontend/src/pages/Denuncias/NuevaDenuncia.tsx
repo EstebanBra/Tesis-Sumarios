@@ -282,14 +282,20 @@ export default function NuevaDenuncia() {
         ? `[FECHA OCURRENCIA: Del ${form.fechaHecho} al ${form.fechaHechoFin}]\n\n${relatoFinal}`
         : relatoFinal,
       Ubicacion: ubicacionCompleta,
+
+      // --- (aca hice un cambio para probar)
       denunciados: form.involucrados.map((i) => ({
-        nombre: `${i.nombre} ${i.apellido1}`.trim() || 'Sin nombre',
-        descripcion: i.descripcionFisica
+      // 1. Unimos ambos apellidos
+      nombre: `${i.nombre} ${i.apellido1} ${i.apellido2 || ''}`.trim() || 'Sin nombre',
+    
+      // 2. Concatenamos TODOS los datos en la descripción para que la API los guarde
+      descripcion: `Vinculación: ${i.vinculacion || 'N/A'}. Parentesco: ${i.parentesco || 'N/A'}. Físico: ${i.descripcionFisica || 'N/A'}. Antecedentes: ${i.antecedentes || 'Ninguno'}`
       })),
+      
       testigos: form.testigos.map((t) => ({
-        nombre: t.nombreCompleto,
-        rut: t.rut || undefined,
-        contacto: t.contacto || undefined
+      nombre: t.nombreCompleto,
+      rut: t.rut || undefined,
+      contacto: t.contacto || undefined,
       })),
       evidencias: [],
       caracteristicasDenunciado: notasAdicionales,

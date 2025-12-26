@@ -9,6 +9,23 @@ export type DenuncianteParticipante = {
   contacto?: string
 }
 
+export type ParticipanteOutput = {
+  ID_Participante: number;
+  Nombre: string;
+  Rut?: string;
+  Correo?: string;
+  Tipo_Participante: 'DENUNCIANTE' | 'DENUNCIADO' | 'TESTIGO' | 'VICTIMA';
+  Estamento?: string;
+  Descripcion?: string;
+}
+
+export type ArchivoOutput = {
+  ID_Archivo: number;
+  Nombre_Archivo: string;
+  Ruta_Archivo: string;
+  Fecha_Subida: string;
+}
+
 export type EvidenciaInput = {
   archivo: string 
 }
@@ -70,7 +87,6 @@ export async function listarMedidasPendientes() {
   return http('/solicitudes/medidas/pendientes/dirgegen')
 }
 
-
 export type DenunciaListado = {
   ID_Denuncia: number
   Rut: string
@@ -78,19 +94,23 @@ export type DenunciaListado = {
   Relato_Hechos: string
   Ubicacion: string | null
   
-  // ✅ Campo clave para que Dirgegen vea si ya escribió algo
   observacionDirgegen?: string | null 
 
   tipo_denuncia?: {
     ID_TipoDe: number
     Nombre: string
-    Area?: string // ✅ Útil para filtrar visualmente si se necesita
+    Area?: string 
   }
   estado_denuncia?: {
     ID_EstadoDe: number
     Tipo_Estado: string
   }
+  
   solicitudes_medidas?: SolicitudMedida[]
+
+  // Listas usadas en el detalle
+  participante_denuncia?: ParticipanteOutput[]
+  archivos_denuncia?: ArchivoOutput[]
 
   informe_tecnico?: {
     ID_Informe: number
@@ -156,3 +176,14 @@ export async function gestionarDenuncia(id: number, payload: {
         body: payload
     })
 }
+
+export async function subirEvidenciaDenuncia(idDenuncia: number, archivo: File) {
+  const formData = new FormData();
+  formData.append('archivo', archivo);
+  
+  return http(`/denuncias/${idDenuncia}/evidencia`, {
+    method: 'POST',
+    body: formData, 
+  });
+}
+
