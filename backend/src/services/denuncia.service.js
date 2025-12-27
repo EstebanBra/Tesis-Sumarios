@@ -7,8 +7,16 @@ const includeFull = {
   estado_denuncia: true,
   historial_estado: true,
   denunciante: true, 
-  datos_denunciados: true, 
-  participante_denuncia: true,
+  datos_denunciados: { 
+    include: { 
+      persona: true // Incluir la relación con Persona si fue identificado
+    } 
+  }, 
+  participante_denuncia: { 
+    include: { 
+      persona: true // Incluir la relación con Persona si tiene RUT
+    } 
+  },
   medidas_cautelares: { include: { tipos_cautelar: true } },
   informe_tecnico: true,
   solicitudes_medidas: true
@@ -19,7 +27,12 @@ const includeFull = {
 export async function listDenunciasService(filters = {}, page = 1, pageSize = 10) {
   const where = {};
 
-  if (filters.rut) where.Rut = filters.rut;
+  // Filtrar por RUT del denunciante (a través de la relación)
+  if (filters.rut) {
+    where.denunciante = {
+      Rut: filters.rut
+    };
+  }
   if (filters.tipoId) where.ID_TipoDe = Number(filters.tipoId);
   if (filters.estadoId) where.ID_EstadoDe = Number(filters.estadoId);
   if (filters.desde || filters.hasta) {
@@ -53,11 +66,17 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
   const estadoInicial = 1;
 
+  // Validar que el denunciante siempre tenga RUT
+  if (!payload.Rut || !payload.Rut.trim()) {
+    throw new Error("El RUT del denunciante es obligatorio");
+  }
+
   return prisma.$transaction(async (tx) => {
 
     // 1️⃣ CREAR O ACTUALIZAR PERSONA DENUNCIANTE
+    // El denunciante SIEMPRE debe tener RUT (es quien hace la denuncia)
     const denunciante = await tx.persona.upsert({
-      where: { Rut: payload.Rut },
+      where: { Rut: payload.Rut.trim() },
       update: {
         // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
         genero: payload.genero,
@@ -120,12 +139,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           }
 
           // Crear registro en Datos_Denunciado (SIEMPRE para denunciados)
+          // Aquí guardamos la información original del denunciante, incluso si no tiene RUT
           await tx.datos_Denunciado.create({
             data: {
               ID_Denuncia: denuncia.ID_Denuncia,
               Nombre_Ingresado: p.nombre ?? "Desconocido",
               Descripcion: p.descripcion ?? null,
-              ID_Persona: personaId
+              Ubicacion_Hechos: payload.Ubicacion ?? null, // Guardar ubicación del hecho
+              ID_Persona: personaId // null si no tiene RUT, se actualizará cuando DIRGEGEN identifique
             }
           });
 
@@ -288,12 +309,14 @@ export async function updateDenunciaService(id, data) {
             }
 
             // Crear registro en Datos_Denunciado
+            // Guardamos la información original, incluso si no tiene RUT
             await tx.datos_Denunciado.create({
               data: {
                 ID_Denuncia: Number(id),
                 Nombre_Ingresado: p.nombre ?? "Desconocido",
                 Descripcion: p.descripcion ?? null,
-                ID_Persona: personaId
+                Ubicacion_Hechos: data.Ubicacion ?? null, // Guardar ubicación del hecho
+                ID_Persona: personaId // null si no tiene RUT, se actualizará cuando DIRGEGEN identifique
               }
             });
 
@@ -380,13 +403,7 @@ export async function updateDenunciaService(id, data) {
     // 5️⃣ Devolver la denuncia final completa
     const updatedFull = await tx.denuncia.findUnique({
       where: { ID_Denuncia: Number(id) },
-      include: {
-        tipo_denuncia: true,
-        estado_denuncia: true,
-        historial_estado: true,
-        participante_denuncia: true,
-        medidas_cautelares: { include: { tipos_cautelar: true } },
-      },
+      include: includeFull, // Usar includeFull para traer todos los datos
     });
 
     return updatedFull;

@@ -29,3 +29,24 @@ export async function derivarDenuncia(id: number, nuevoTipoId: number, nuevoEsta
 export async function getDetalleDenuncia(id: string | number): Promise<DetalleDenunciaCompleta> {
   return http(`/denuncias/${id}`)
 }
+
+/**
+ * Identifica un denunciado con datos reales
+ * @param idDatosDenunciado - ID de Datos_Denunciado
+ * @param datosPersona - Datos reales de la persona (RUT, Nombre, etc.)
+ */
+export async function identificarDenunciado(idDatosDenunciado: number, datosPersona: {
+  Rut: string
+  Nombre?: string
+  Correo?: string
+  Telefono?: string
+  genero?: string
+  region?: string
+  comuna?: string
+  direccion?: string
+}) {
+  return http(`/gestion/denunciados/${idDatosDenunciado}/identificar`, {
+    method: 'PUT',
+    body: datosPersona
+  })
+}

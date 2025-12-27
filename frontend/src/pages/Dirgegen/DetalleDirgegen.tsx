@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById, gestionarDenuncia, type SolicitudMedida } from '@/services/denuncias.api'
 import DerivacionModal from "@/pages/Denuncias/components/Derivacion"
 import InformeTecnicoModal from './components/InformeTecnicoModal'
+import IdentificarDenunciadoModal from './components/IdentificarDenunciadoModal'
 import { useAuth } from '@/context/AuthContext'
 
 export default function DetalleDirgegen() {
@@ -14,6 +15,8 @@ export default function DetalleDirgegen() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [showInformeModal, setShowInformeModal] = useState(false)
+  const [showIdentificarModal, setShowIdentificarModal] = useState(false)
+  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string } | null>(null)
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
@@ -78,8 +81,21 @@ export default function DetalleDirgegen() {
   // Ahora tu backend envía 'datos_denunciados', así que lo ponemos primero en la lista
   const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
   
-  // Testigos (ahora suele venir en participante_denuncia, pero mantenemos compatibilidad)
-  const listaTestigos = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
+  // Testigos: filtrar participantes que NO están en datos_denunciados
+  // Los denunciados están en datos_denunciados Y en participante_denuncia
+  // Los testigos SOLO están en participante_denuncia
+  const todosParticipantes = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
+  const nombresDenunciados = new Set(
+    listaInvolucrados.map((inv: any) => 
+      (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
+    )
+  );
+  
+  // Filtrar: testigos son los que NO están en datos_denunciados
+  const listaTestigos = todosParticipantes.filter((p: any) => {
+    const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
+    return !nombresDenunciados.has(nombreParticipante);
+  });
   
   const listaEvidencias = denuncia.Evidencias || denuncia.evidencias || denuncia.Archivos || [];
   
@@ -190,16 +206,38 @@ export default function DetalleDirgegen() {
                 <div className="p-6">
                     {listaInvolucrados.length > 0 ? (
                         <div className="grid grid-cols-1 gap-4">
-                            {listaInvolucrados.map((inv: any, idx: number) => (
+                            {listaInvolucrados.map((inv: any, idx: number) => {
+                              const nombreCompleto = (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
+                              const estaIdentificado = !!(inv.ID_Persona || inv.persona)
+                              
+                              return (
                                 <div key={idx} className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm">
                                     <div className="flex justify-between items-start">
                                         <div className="w-full">
-                                            {/* --- LECTURA DE PROPIEDADES CORREGIDA ---
-                                               Ahora lee 'Nombre_Ingresado' (API nueva) o 'Nombre' (API vieja) 
-                                            */}
-                                            <p className="font-bold text-gray-900 text-base">
-                                                {inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre'} {inv.Apellido1 || ''}
-                                            </p>
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <p className="font-bold text-gray-900 text-base">
+                                                  {nombreCompleto} {inv.Apellido1 || ''}
+                                              </p>
+                                              {estaIdentificado && (
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                                                  ✓ Identificado
+                                                </span>
+                                              )}
+                                              {!estaIdentificado && (
+                                                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-semibold">
+                                                  Sin identificar
+                                                </span>
+                                              )}
+                                            </div>
+                                            
+                                            {/* Mostrar datos de persona si está identificado */}
+                                            {estaIdentificado && inv.persona && (
+                                              <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
+                                                <p><span className="font-semibold">RUT:</span> {inv.persona.Rut || 'N/A'}</p>
+                                                {inv.persona.Correo && <p><span className="font-semibold">Correo:</span> {inv.persona.Correo}</p>}
+                                                {inv.persona.Telefono && <p><span className="font-semibold">Teléfono:</span> {inv.persona.Telefono}</p>}
+                                              </div>
+                                            )}
                                             
                                             {/* Aquí mostramos la descripción completa concatenada 
                                                 que viene en 'Descripcion' o 'descripcion'
@@ -219,6 +257,21 @@ export default function DetalleDirgegen() {
                                         </span>
                                     </div>
                                     
+                                    {/* Botón para identificar si no está identificado */}
+                                    {!estaIdentificado && (
+                                      <div className="mt-3 pt-3 border-t border-orange-100">
+                                        <button
+                                          onClick={() => {
+                                            setDenunciadoAIdentificar({ id: inv.ID_Datos || inv.id, nombre: nombreCompleto })
+                                            setShowIdentificarModal(true)
+                                          }}
+                                          className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                                        >
+                                          🔍 Identificar Denunciado
+                                        </button>
+                                      </div>
+                                    )}
+                                    
                                     {/* Compatibilidad con campos antiguos si existieran */}
                                     {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
                                         <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
@@ -226,7 +279,8 @@ export default function DetalleDirgegen() {
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                              )
+                            })}
                         </div>
                     ) : (
                         <p className="text-gray-500 italic text-sm text-center py-4">
@@ -401,6 +455,21 @@ export default function DetalleDirgegen() {
             // @ts-ignore
             idAutor={user?.id || 0} 
             denunciaData={denuncia} 
+        />
+      )}
+      {denunciadoAIdentificar && (
+        <IdentificarDenunciadoModal
+          isOpen={showIdentificarModal}
+          onClose={() => {
+            setShowIdentificarModal(false)
+            setDenunciadoAIdentificar(null)
+          }}
+          onSuccess={() => {
+            cargarDatos()
+            setDenunciadoAIdentificar(null)
+          }}
+          idDatosDenunciado={denunciadoAIdentificar.id}
+          nombreActual={denunciadoAIdentificar.nombre}
         />
       )}
     </section>
