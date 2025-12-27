@@ -20,7 +20,21 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-app.use(morgan("dev"));
+// Solo mostrar errores en producción, en desarrollo mostrar todo
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : (tokens, req, res) => {
+  // Solo mostrar errores (status >= 400)
+  const status = res.statusCode;
+  if (status >= 400) {
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'), '-',
+      tokens['response-time'](req, res), 'ms'
+    ].join(' ');
+  }
+  return null;
+}));
 
 app.get("/", (req, res) => res.send("Servidor backend operativo 🚀"));
 app.use("/api/auth", authRoutes);
@@ -49,6 +63,6 @@ app.use((err, req, res, next) => {
 
   app.listen(PORT, () => {
     console.log(`Servidor escuchando en http://localhost:${PORT}`);
-    console.log(`CORS habilitado para: ${FRONTEND_URL}`);
+    console.log(`CORS habilitado`);
   });
 })();

@@ -84,3 +84,113 @@ export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEst
     return denunciaActualizada;
   });
 }
+
+/**
+ * Identifica un denunciado: crea/actualiza Persona con datos reales y vincula a Datos_Denunciado
+ * @param {number} idDatosDenunciado - ID de Datos_Denunciado a identificar
+ * @param {object} datosPersona - Datos reales de la persona (RUT, Nombre, Correo, Telefono, etc.)
+ * @param {number} idUsuarioDirgegen - ID del usuario DIRGEGEN que realiza la identificación
+ */
+export async function identificarDenunciadoService(idDatosDenunciado, datosPersona, idUsuarioDirgegen) {
+  return prisma.$transaction(async (tx) => {
+    
+    // 1️⃣ Validar que el registro de Datos_Denunciado existe
+    const datosDenunciado = await tx.datos_Denunciado.findUnique({
+      where: { ID_Datos: Number(idDatosDenunciado) },
+      include: {
+        denuncia: {
+          include: {
+            participante_denuncia: true
+          }
+        }
+      }
+    });
+
+    if (!datosDenunciado) {
+      throw new Error("Registro de denunciado no encontrado");
+    }
+
+    // 2️⃣ Validar que el RUT sea obligatorio para identificar
+    if (!datosPersona.Rut || !datosPersona.Rut.trim()) {
+      throw new Error("El RUT es obligatorio para identificar a un denunciado");
+    }
+
+    // 3️⃣ Crear o actualizar Persona con los datos reales
+    const persona = await tx.persona.upsert({
+      where: { Rut: datosPersona.Rut.trim() },
+      update: {
+        // Si la persona ya existe, actualizamos con los datos reales proporcionados
+        Nombre: datosPersona.Nombre || undefined,
+        Correo: datosPersona.Correo || undefined,
+        Telefono: datosPersona.Telefono || undefined,
+        genero: datosPersona.genero || undefined,
+        region: datosPersona.region || undefined,
+        comuna: datosPersona.comuna || undefined,
+        direccion: datosPersona.direccion || undefined,
+      },
+      create: {
+        Rut: datosPersona.Rut.trim(),
+        Nombre: datosPersona.Nombre || "Sin nombre",
+        Correo: datosPersona.Correo || "",
+        Telefono: datosPersona.Telefono || "",
+        genero: datosPersona.genero || null,
+        region: datosPersona.region || null,
+        comuna: datosPersona.comuna || null,
+        direccion: datosPersona.direccion || null,
+      }
+    });
+
+    // 4️⃣ Actualizar Datos_Denunciado con el ID_Persona identificado
+    await tx.datos_Denunciado.update({
+      where: { ID_Datos: Number(idDatosDenunciado) },
+      data: {
+        ID_Persona: persona.ID, // Vincular con la persona identificada
+        // Mantenemos Nombre_Ingresado y Descripcion originales (historial)
+        // Solo actualizamos la vinculación con Persona
+      }
+    });
+
+    // 5️⃣ Buscar y actualizar Participante_Denuncia correspondiente
+    // Buscamos el participante que coincida con el nombre original del denunciado
+    const participante = await tx.participante_Denuncia.findFirst({
+      where: {
+        ID_Denuncia: datosDenunciado.ID_Denuncia,
+        Nombre_PD: datosDenunciado.Nombre_Ingresado,
+        ID_Persona: null // Solo actualizamos los que aún no tienen persona vinculada
+      }
+    });
+
+    if (participante) {
+      await tx.participante_Denuncia.update({
+        where: { ID_PD: participante.ID_PD },
+        data: {
+          ID_Persona: persona.ID, // Vincular participante con la persona identificada
+          Nombre_PD: datosPersona.Nombre || participante.Nombre_PD // Actualizar nombre si se proporciona
+        }
+      });
+    }
+
+    // 6️⃣ Retornar los datos actualizados
+    const datosActualizados = await tx.datos_Denunciado.findUnique({
+      where: { ID_Datos: Number(idDatosDenunciado) },
+      include: {
+        persona: true,
+        denuncia: {
+          include: {
+            participante_denuncia: {
+              include: {
+                persona: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return {
+      message: "Denunciado identificado correctamente",
+      datosDenunciado: datosActualizados,
+      persona: persona
+    };
+  });
+}
