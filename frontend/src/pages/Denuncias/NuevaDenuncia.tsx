@@ -1063,7 +1063,7 @@ export default function NuevaDenuncia() {
                   onClick={handleAddInvolucrado}
                   className="text-sm bg-ubb-blue text-white px-4 py-2 rounded font-medium hover:bg-blue-800 transition-colors flex items-center gap-1"
                 >
-                  <span>+</span> Agregar Denunciado
+                  <span>+</span> Confirmar Denunciado
                 </button>
               </div>
             </div>

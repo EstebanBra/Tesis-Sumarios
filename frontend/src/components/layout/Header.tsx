@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Notificaciones from '../Notificaciones'
 
 export default function Header() {
   const { isAuthenticated, logout, hasRole } = useAuth()
@@ -89,6 +90,9 @@ export default function Header() {
 
           {/* Zona de usuario al extremo derecho (placeholder) */}
           <div className="ml-auto inline-flex items-center gap-3 py-2">
+            {isAuthenticated && (
+              <Notificaciones />
+            )}
             {isAuthenticated ? (
               <button
                 onClick={() => logout()}
