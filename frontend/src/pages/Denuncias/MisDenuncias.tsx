@@ -153,7 +153,13 @@ export default function MisDenuncias() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {formatFecha(denuncia.Fecha_Inicio)}
+                      {denuncia.Fecha_Fin ? (
+                        <span className="text-sm">
+                          {formatFecha(denuncia.Fecha_Inicio)} - {formatFecha(denuncia.Fecha_Fin)}
+                        </span>
+                      ) : (
+                        formatFecha(denuncia.Fecha_Inicio)
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {denuncia.Ubicacion ?? '—'}

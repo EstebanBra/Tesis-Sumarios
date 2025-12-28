@@ -75,7 +75,13 @@ export default function BandejaAutoridad() {
                                 <td className="px-6 py-4">
                                     <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
                                     <div className="text-xs text-gray-500 mt-0.5">
-                                        {new Date(d.Fecha_Inicio).toLocaleDateString()}
+                                        {d.Fecha_Fin ? (
+                                            <span>
+                                                {new Date(d.Fecha_Inicio).toLocaleDateString()} - {new Date(d.Fecha_Fin).toLocaleDateString()}
+                                            </span>
+                                        ) : (
+                                            new Date(d.Fecha_Inicio).toLocaleDateString()
+                                        )}
                                     </div>
                                 </td>
 

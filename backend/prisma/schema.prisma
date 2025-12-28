@@ -54,14 +54,16 @@ model Participante_Caso {
 // ==========================================
 
 model Denuncia {
-  ID_Denuncia         Int      @id @default(autoincrement())
+  ID_Denuncia         Int       @id @default(autoincrement())
   ID_Denunciante      Int
   ID_TipoDe           Int
   ID_EstadoDe         Int
-  Fecha_Inicio        DateTime @db.Date
-  Relato_Hechos       String   @db.Text
-  Ubicacion           String?  @db.VarChar(200)
-  observacionDirgegen String?  @db.NVarChar(MAX)
+  Fecha_Ingreso       DateTime  @default(now()) @db.Date // Fecha de ingreso de la denuncia al sistema
+  Fecha_Inicio        DateTime  @db.Date // Fecha de inicio de los hechos (o fecha única)
+  Fecha_Fin           DateTime? @db.Date // Fecha fin del rango de hechos (opcional, solo si es rango)
+  Relato_Hechos       String    @db.Text
+  Ubicacion           String?   @db.VarChar(200)
+  observacionDirgegen String?   @db.NVarChar(MAX)
   
 
   // Relaciones

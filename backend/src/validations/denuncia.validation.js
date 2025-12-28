@@ -5,6 +5,15 @@ export const createDenunciaRules = [
   body("Rut").isString().trim().notEmpty(),
   body("ID_TipoDe").isInt({ min: 1 }),
   body("Fecha_Inicio").isISO8601(),
+  body("Fecha_Fin")
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      // Si viene null, undefined o string vacío, está bien
+      if (value === null || value === undefined || value === '') return true;
+      // Si viene un valor, debe ser ISO8601 válido
+      return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value) || /^\d{4}-\d{2}-\d{2}$/.test(value);
+    })
+    .withMessage("Fecha_Fin debe ser una fecha válida en formato ISO8601"),
   body("Relato_Hechos").isString().trim().notEmpty(),
   body("Ubicacion").optional().isString().isLength({ max: 200 }),
 ];
@@ -15,6 +24,13 @@ export const updateDenunciaRules = [
   body("ID_TipoDe").optional().isInt({ min: 1 }),
   body("ID_EstadoDe").optional().isInt({ min: 1 }),
   body("Fecha_Inicio").optional().isISO8601(),
+  body("Fecha_Fin")
+    .optional({ nullable: true, checkFalsy: true })
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') return true;
+      return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value) || /^\d{4}-\d{2}-\d{2}$/.test(value);
+    })
+    .withMessage("Fecha_Fin debe ser una fecha válida en formato ISO8601"),
   body("Relato_Hechos").optional().isString().trim().notEmpty(),
   body("Ubicacion").optional().isString().isLength({ max: 200 }),
 ];

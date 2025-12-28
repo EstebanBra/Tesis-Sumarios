@@ -101,7 +101,10 @@ export default function DetalleDirgegen() {
   
   // Normalización de Datos Principales
   const idCaso = denuncia.ID_Denuncia || denuncia.id;
-  const fechaCaso = denuncia.Fecha_Inicio || denuncia.fechaCreacion;
+  const fechaIngreso = denuncia.Fecha_Ingreso || denuncia.fechaCreacion; // Fecha de ingreso al sistema
+  const fechaHechos = denuncia.Fecha_Inicio || denuncia.fechaHechos; // Fecha de los hechos
+  const fechaFinCaso = denuncia.Fecha_Fin || denuncia.fechaFin; // Fecha fin del rango (opcional)
+  const esRangoFechas = !!fechaFinCaso; // Si hay Fecha_Fin, es un rango
   const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
   const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
   
@@ -160,7 +163,18 @@ export default function DetalleDirgegen() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4 pt-2">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Caso #{idCaso}</h1>
-          <p className="text-sm text-gray-500 mt-1">Fecha de Ingreso: {formatDate(fechaCaso)}</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Fecha de Ingreso: {formatDate(fechaIngreso)}
+          </p>
+          {esRangoFechas ? (
+            <p className="text-sm text-gray-600 mt-1">
+              Fecha de los hechos: <span className="font-medium">Del {formatDate(fechaHechos)} al {formatDate(fechaFinCaso)}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600 mt-1">
+              Fecha de los hechos: <span className="font-medium">{formatDate(fechaHechos)}</span>
+            </p>
+          )}
         </div>
         <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
           {estadoCaso}
