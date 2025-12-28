@@ -98,12 +98,26 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     });
 
     // 2️⃣ CREAR LA DENUNCIA
+    // Función helper para convertir fecha sin problemas de zona horaria
+    const parsearFecha = (fechaStr) => {
+      if (!fechaStr) return null;
+      // Si viene en formato YYYY-MM-DD, crear fecha en zona local para evitar cambio de día
+      if (typeof fechaStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        const [year, month, day] = fechaStr.split('-').map(Number);
+        return new Date(year, month - 1, day); // Mes es 0-indexed
+      }
+      // Si viene con hora, usar directamente
+      return new Date(fechaStr);
+    };
+
     const denuncia = await tx.denuncia.create({
       data: {
         ID_Denunciante: denunciante.ID,  // Usamos el ID de la persona
         ID_TipoDe: Number(payload.ID_TipoDe), // ID específico (ej: 101, 201)
         ID_EstadoDe: estadoInicial,
-        Fecha_Inicio: payload.Fecha_Inicio ? new Date(payload.Fecha_Inicio) : new Date(),
+        Fecha_Ingreso: new Date(), // Fecha de ingreso al sistema (ahora)
+        Fecha_Inicio: parsearFecha(payload.Fecha_Inicio) || new Date(), // Fecha de los hechos
+        Fecha_Fin: parsearFecha(payload.Fecha_Fin), // Fecha fin del rango (opcional)
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
 
@@ -260,6 +274,16 @@ export async function updateDenunciaService(id, data) {
     });
     if (!prev) throw new Error("Denuncia no encontrada");
 
+    // Función helper para parsear fechas sin problemas de zona horaria
+    const parsearFecha = (fechaStr) => {
+      if (!fechaStr) return null;
+      if (typeof fechaStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        const [year, month, day] = fechaStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      }
+      return new Date(fechaStr);
+    };
+
     // 1️⃣ Actualizar los campos base
     const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(id) },
@@ -267,7 +291,8 @@ export async function updateDenunciaService(id, data) {
         ID_Denunciante: data.ID_Denunciante ?? prev.ID_Denunciante,
         ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
         ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
-        Fecha_Inicio: data.Fecha_Inicio ?? prev.Fecha_Inicio,
+        Fecha_Inicio: data.Fecha_Inicio ? parsearFecha(data.Fecha_Inicio) : prev.Fecha_Inicio,
+        Fecha_Fin: data.Fecha_Fin !== undefined ? parsearFecha(data.Fecha_Fin) : prev.Fecha_Fin,
         Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
         Ubicacion: data.Ubicacion ?? prev.Ubicacion,
       },

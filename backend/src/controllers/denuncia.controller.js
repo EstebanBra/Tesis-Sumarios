@@ -81,7 +81,8 @@ export async function createDenuncia(req, res, next) {
 
       ID_TipoDe: Number(req.body.ID_TipoDe),
       ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
-      Fecha_Inicio: new Date(req.body.Fecha_Inicio),
+      Fecha_Inicio: req.body.Fecha_Inicio, // Se parseará en el servicio para evitar problemas de zona horaria
+      Fecha_Fin: req.body.Fecha_Fin || null, // Fecha fin del rango (opcional, puede ser null)
       Relato_Hechos: String(req.body.Relato_Hechos),
       Ubicacion: req.body.Ubicacion ?? null,
       

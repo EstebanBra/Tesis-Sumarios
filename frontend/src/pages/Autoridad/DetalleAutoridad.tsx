@@ -161,7 +161,13 @@ export default function DetalleAutoridad() {
                                 Fecha Hecho
                             </dt>
                             <dd className="text-sm font-medium text-gray-900">
-                                {new Date(denuncia.Fecha_Inicio).toLocaleDateString()}
+                                {denuncia.Fecha_Fin ? (
+                                    <span>
+                                        Del {new Date(denuncia.Fecha_Inicio).toLocaleDateString()} al {new Date(denuncia.Fecha_Fin).toLocaleDateString()}
+                                    </span>
+                                ) : (
+                                    new Date(denuncia.Fecha_Inicio).toLocaleDateString()
+                                )}
                             </dd>
                         </div>
                     </div>

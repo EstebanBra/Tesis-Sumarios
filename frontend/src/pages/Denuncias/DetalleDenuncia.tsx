@@ -62,7 +62,10 @@ export default function DetalleDenuncia() {
   // --- LÓGICA DE VISUALIZACIÓN ---
 
   // 1. Fechas y Textos (Con respaldos por si cambia el nombre en BD)
-  const fechaRaw = denuncia?.Fecha_Inicio 
+  const fechaIngreso = denuncia?.Fecha_Ingreso || denuncia?.fechaCreacion // Fecha de ingreso al sistema
+  const fechaHechos = denuncia?.Fecha_Inicio || denuncia?.fechaHechos // Fecha de los hechos
+  const fechaFinRaw = denuncia?.Fecha_Fin // Fecha fin del rango (opcional)
+  const esRangoFechas = !!fechaFinRaw // Si hay Fecha_Fin, es un rango
   const relato = denuncia?.Relato_Hechos 
   const ubicacion = denuncia?.Ubicacion 
 
@@ -99,7 +102,7 @@ export default function DetalleDenuncia() {
   };
   
   const activeStep = getPasoActual(estadoTexto);
-  const diasTranscurridos = fechaRaw ? Math.floor((new Date().getTime() - new Date(fechaRaw).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const diasTranscurridos = fechaIngreso ? Math.floor((new Date().getTime() - new Date(fechaIngreso).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
 
   if (loading) return <div className="p-12 text-center text-gray-500">Cargando información...</div>;
@@ -111,7 +114,16 @@ export default function DetalleDenuncia() {
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Denuncia #{denuncia?.ID_Denuncia}</h1>
-          <p className="text-gray-500 mt-1">Ingresada el {formatearFecha(fechaRaw)}</p>
+          <p className="text-gray-500 mt-1">Ingresada el {formatearFecha(fechaIngreso)}</p>
+          {esRangoFechas ? (
+            <p className="text-sm text-gray-600 mt-1">
+              Fecha de los hechos: <span className="font-medium">Del {formatearFecha(fechaHechos)} al {formatearFecha(fechaFinRaw)}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-gray-600 mt-1">
+              Fecha de los hechos: <span className="font-medium">{formatearFecha(fechaHechos)}</span>
+            </p>
+          )}
         </div>
         <div className="flex gap-3 mt-4 md:mt-0">
            <button onClick={() => navigate(-1)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">Volver</button>

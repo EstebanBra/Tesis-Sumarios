@@ -348,13 +348,12 @@ export default function NuevaDenuncia() {
       comunaDenunciante: form.comunaDenunciante || null,
       direccionDenunciante: form.direccionDenunciante || null,
       ID_TipoDe: Number(form.subtipoId),
-      Fecha_Inicio: form.fechaHecho
-        ? new Date(form.fechaHecho).toISOString()
-        : new Date().toISOString(),
-      Relato_Hechos:
-        form.tipoFecha === "rango" && form.fechaHechoFin
-          ? `[FECHA OCURRENCIA: Del ${form.fechaHecho} al ${form.fechaHechoFin}]\n\n${relatoFinal}`
-          : relatoFinal,
+      // Enviar fechas en formato YYYY-MM-DD para evitar problemas de zona horaria
+      Fecha_Inicio: form.fechaHecho || new Date().toISOString().split('T')[0],
+      Fecha_Fin: form.tipoFecha === "rango" && form.fechaHechoFin
+        ? form.fechaHechoFin // Ya viene en formato YYYY-MM-DD del input type="date"
+        : null, // Solo enviar Fecha_Fin si es un rango
+      Relato_Hechos: relatoFinal, // Ya no concatenamos las fechas en el relato
       Ubicacion: ubicacionCompleta,
 
       // --- (aca hice un cambio para probar)

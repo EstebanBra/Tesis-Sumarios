@@ -42,6 +42,7 @@ export type CrearDenunciaInput = {
   
   ID_TipoDe: number
   Fecha_Inicio: string // ISO
+  Fecha_Fin?: string | null // ISO - Fecha fin del rango (opcional, solo si es rango)
   Relato_Hechos: string
   Ubicacion?: string | null
 
@@ -90,7 +91,9 @@ export async function listarMedidasPendientes() {
 export type DenunciaListado = {
   ID_Denuncia: number
   Rut: string
-  Fecha_Inicio: string
+  Fecha_Ingreso?: string // Fecha de ingreso al sistema
+  Fecha_Inicio: string // Fecha de los hechos (o fecha única)
+  Fecha_Fin?: string | null // Fecha fin del rango (opcional)
   Relato_Hechos: string
   Ubicacion: string | null
   
