@@ -3,16 +3,22 @@ import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import { createServer } from "http";
 import prisma from "./src/config/prisma.js";
 import routes from "./src/routes/index.routes.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import { runInitialSetup } from "./prisma/seed.js";
+import { initializeSocket } from "./src/socket/socket.js";
 
 dotenv.config();
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+
+// Inicializar Socket.io
+const io = initializeSocket(server);
 
 app.use(cors({
   origin: true,
@@ -61,8 +67,9 @@ app.use((err, req, res, next) => {
     console.error("❌ Error al conectar o inicializar datos:", e.message);
   }
 
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Servidor escuchando en http://localhost:${PORT}`);
     console.log(`CORS habilitado`);
+    console.log(`🔌 WebSocket habilitado`);
   });
 })();

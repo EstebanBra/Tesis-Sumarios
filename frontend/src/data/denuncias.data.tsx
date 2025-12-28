@@ -77,6 +77,7 @@ export const LUGARES_SEDE: Record<string, string[]> = {
         'Laboratorio de Idiomas',
         'Laboratorio Economía Espacial',
         'Laboratorio de Ciencias de la Construcción',
+        'Rectoria',
         'Biblioteca',
         'Paraninfo',
         'Gimnasio',

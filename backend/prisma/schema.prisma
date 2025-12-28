@@ -32,6 +32,7 @@ model Persona {
   participantes_denuncia Participante_Denuncia[]
   datos_sindicados       Datos_Denunciado[]
   informes_redactados    InformeTecnico[]
+  notificaciones         Notificacion[]
 
   @@map("Persona")
 }
@@ -74,6 +75,7 @@ model Denuncia {
   solicitudes_medidas   SolicitudMedida[]
   datos_denunciados     Datos_Denunciado[]
   informe_tecnico       InformeTecnico?
+  notificaciones        Notificacion[]
 
   @@map("Denuncia")
 }
@@ -293,4 +295,26 @@ model Datos_Denunciado {
   persona  Persona? @relation(fields: [ID_Persona], references: [ID], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("Datos_Denunciado")
+}
+
+// ==========================================
+// NOTIFICACIONES
+// ==========================================
+
+model Notificacion {
+  ID_Notificacion Int      @id @default(autoincrement())
+  ID_Usuario      Int      // Usuario destinatario
+  Tipo            String   @db.VarChar(50) // 'NUEVA_DENUNCIA', 'RECORDATORIO', etc.
+  Titulo          String   @db.VarChar(200)
+  Mensaje         String   @db.Text
+  Leida           Boolean  @default(false)
+  Fecha_Creacion  DateTime @default(now())
+  ID_Denuncia     Int?     // FK opcional a Denuncia relacionada
+  Enviado_Email   Boolean  @default(false) // Si se envió correo electrónico
+
+  // Relaciones
+  usuario  Persona  @relation(fields: [ID_Usuario], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  denuncia Denuncia? @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("Notificacion")
 }

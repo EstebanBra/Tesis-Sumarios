@@ -226,10 +226,26 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     }
 
     // 5️⃣ Retornar denuncia completa
-    return await tx.denuncia.findUnique({
+    const denunciaCompleta = await tx.denuncia.findUnique({
       where: { ID_Denuncia: denuncia.ID_Denuncia },
       include: includeFull,
     });
+
+    // 6️⃣ Notificar a DIRGEGEN sobre la nueva denuncia (fuera de la transacción)
+    // Importamos dinámicamente para evitar dependencias circulares
+    try {
+      const { notificarNuevaDenuncia } = await import("./notificacion.service.js");
+      const { getIO } = await import("../socket/socket.js");
+      const io = getIO();
+      // Ejecutar notificación de forma asíncrona (no bloquea la respuesta)
+      notificarNuevaDenuncia(denuncia.ID_Denuncia, io).catch(err => {
+        console.error("Error al notificar nueva denuncia:", err);
+      });
+    } catch (err) {
+      console.error("Error importando servicios de notificación:", err);
+    }
+
+    return denunciaCompleta;
   });
 }
 export async function updateDenunciaService(id, data) {
