@@ -74,4 +74,4 @@ export type FormularioDenuncia = {
     testigos: Testigo[]
 }
 
-export type FaseRegistro = 'seleccion_tipo' | 'seleccion_subtipo' | 'formulario'
+export type FaseRegistro = 'seleccion_tipo' | 'formulario'

@@ -8,7 +8,6 @@ import { routes } from "@/services/routes";
 import { Cards } from "@/components/ui/Cards";
 import {
   TIPOS_DENUNCIA,
-  SUBTIPOS_DENUNCIA,
   SEDES,
   LUGARES_SEDE,
   VINCULACIONES,
@@ -81,9 +80,6 @@ const steps = [
   { id: 3, label: "Revisión" },
 ];
 
-// ✅ HELPER: Detecta si el ID seleccionado corresponde a "Otro" (Género o Convivencia)
-const esOtro = (id: number | null) => id === 199 || id === 299;
-
 export default function NuevaDenuncia() {
   const nav = useNavigate();
   const { user } = useAuth();
@@ -109,16 +105,6 @@ export default function NuevaDenuncia() {
 
   const stepTitle = useMemo(() => steps[step - 1]?.label ?? "", [step]);
 
-  const subtiposDisponibles = useMemo(() => {
-    if (!form.tipoId) return [];
-    // Filtramos solo por el tipoId correspondiente (1 o 2)
-    return SUBTIPOS_DENUNCIA.filter((s) => s.tipoId === form.tipoId);
-  }, [form.tipoId]);
-
-  const subtipoSeleccionado = useMemo(
-    () => SUBTIPOS_DENUNCIA.find((s) => s.id === form.subtipoId) ?? null,
-    [form.subtipoId]
-  );
   const tipoSeleccionado = useMemo(
     () => TIPOS_DENUNCIA.find((t) => t.id === form.tipoId) ?? null,
     [form.tipoId]
@@ -183,13 +169,11 @@ export default function NuevaDenuncia() {
   }, [user]);
 
   function handleSelectTipo(id: number) {
-    setForm((prev) => ({ ...prev, tipoId: id, subtipoId: null }));
-    setFase("seleccion_subtipo");
-    window.scrollTo(0, 0);
-  }
-
-  function handleSelectSubtipo(id: number) {
-    setForm((prev) => ({ ...prev, subtipoId: id, descripcionOtro: "" }));
+    // Asignar subtipo por defecto basado en el tipo seleccionado
+    // 199 = "Otro motivo (Género)" para tipo 1 (Género)
+    // 299 = "Otro motivo (Convivencia)" para tipo 2 (Convivencia)
+    const subtipoPorDefecto = id === 1 ? 199 : 299;
+    setForm((prev) => ({ ...prev, tipoId: id, subtipoId: subtipoPorDefecto, descripcionOtro: "" }));
     setFase("formulario");
     window.scrollTo(0, 0);
   }
@@ -201,8 +185,8 @@ export default function NuevaDenuncia() {
 
   function handleBackToSubtipo() {
     if (step === 1) {
-      setFase("seleccion_subtipo");
-      setForm((prev) => ({ ...prev, subtipoId: null }));
+      setFase("seleccion_tipo");
+      setForm((prev) => ({ ...prev, tipoId: 0, subtipoId: null }));
     } else {
       handlePrev();
     }
@@ -284,8 +268,6 @@ export default function NuevaDenuncia() {
     if (step === 1)
       return !!form.rut.trim() && !!form.nombre.trim() && !!form.genero;
     if (step === 2) {
-      // ✅ CORRECCIÓN 1: Usar esOtro() en lugar de === 999
-      if (esOtro(form.subtipoId) && !form.descripcionOtro.trim()) return false;
       return !!form.relato.trim() && !!form.sedeHecho;
     }
     return true;
@@ -319,8 +301,8 @@ export default function NuevaDenuncia() {
 
     let relatoFinal = form.relato.trim();
 
-    // ✅ CORRECCIÓN 2: Usar esOtro() para concatenar la descripción
-    if (esOtro(form.subtipoId) && form.descripcionOtro.trim()) {
+    // Si el usuario proporcionó una descripción adicional, la incluimos en el relato
+    if (form.descripcionOtro.trim()) {
       relatoFinal = `[MOTIVO ESPECÍFICO: ${form.descripcionOtro}]\n\n${relatoFinal}`;
     }
 
@@ -430,44 +412,6 @@ export default function NuevaDenuncia() {
     );
   }
 
-  if (fase === "seleccion_subtipo") {
-    return (
-      <section className="mx-auto max-w-6xl py-10">
-        <header className="mb-8 px-4">
-          <button
-            onClick={handleBackToTipo}
-            className="group mb-6 inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-200"
-          >
-            <span className="mr-2 transition-transform group-hover:-translate-x-1">
-              &larr;
-            </span>{" "}
-            Volver a categorías
-          </button>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <span className="text-sm font-bold tracking-wider text-ubb-blue uppercase bg-blue-50 px-2 py-1 rounded">
-              {tipoSeleccionado?.nombre}
-            </span>
-            <h1 className="font-condensed text-3xl font-bold tracking-tight text-gray-900">
-              Especifica el motivo
-            </h1>
-          </div>
-          <p className="mt-2 text-gray-600">
-            Selecciona la opción que mejor describa los hechos.
-          </p>
-        </header>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 px-4">
-          {subtiposDisponibles.map((subtipo) => (
-            <Cards
-              key={subtipo.id}
-              title={subtipo.nombre}
-              description={subtipo.descripcion}
-              onClick={() => handleSelectSubtipo(subtipo.id)}
-            />
-          ))}
-        </div>
-      </section>
-    );
-  }
 
   return (
     <FormularioLayout
@@ -497,13 +441,13 @@ export default function NuevaDenuncia() {
                 Cambiar
               </button>
             </div>
-            <div className="grid md:grid-cols-1 gap-6">
+              <div className="grid md:grid-cols-1 gap-6">
               <div>
                 <label className="text-[10px] uppercase tracking-wide text-gray-500 font-bold block mb-1">
                   Tipo de Denuncia
                 </label>
                 <p className="text-sm font-semibold">
-                  {subtipoSeleccionado?.nombre}
+                  {tipoSeleccionado?.nombre}
                 </p>
               </div>
             </div>
@@ -1112,27 +1056,24 @@ export default function NuevaDenuncia() {
               Lugar y fecha de los hechos
             </h2>
 
-            {/* ✅ CORRECCIÓN 3: Usar esOtro() para mostrar el input */}
-            {esOtro(form.subtipoId) && (
-              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 animate-in fade-in slide-in-from-top-2">
-                <label className="block text-sm font-bold text-yellow-800 mb-1">
-                  Describe brevemente el tipo de situación *
-                </label>
-                <input
-                  type="text"
-                  className="block w-full rounded-md border-yellow-400 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 text-sm"
-                  placeholder="Ej: Problemas con un proveedor externo, ruidos molestos, etc."
-                  value={form.descripcionOtro}
-                  onChange={(e) =>
-                    updateField("descripcionOtro", e.target.value)
-                  }
-                  required
-                />
-                <p className="text-xs text-yellow-700 mt-1">
-                  Esta descripción corta nos ayudará a clasificar tu caso.
-                </p>
-              </div>
-            )}
+            {/* Campo opcional para especificar detalles adicionales del tipo de denuncia */}
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+              <label className="block text-sm font-bold text-blue-800 mb-1">
+                Especificación adicional (Opcional)
+              </label>
+              <input
+                type="text"
+                className="block w-full rounded-md border-blue-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                placeholder="Ej: Detalles específicos sobre el tipo de situación..."
+                value={form.descripcionOtro}
+                onChange={(e) =>
+                  updateField("descripcionOtro", e.target.value)
+                }
+              />
+              <p className="text-xs text-blue-700 mt-1">
+                Si deseas agregar más detalles sobre el tipo de denuncia, puedes hacerlo aquí.
+              </p>
+            </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="mb-4">
@@ -1461,8 +1402,7 @@ export default function NuevaDenuncia() {
                   Tipo de Denuncia
                 </dt>
                 <dd>
-                  {subtipoSeleccionado?.nombre}{" "}
-                  {esOtro(form.subtipoId) && `(${form.descripcionOtro})`}
+                  {tipoSeleccionado?.nombre}
                 </dd>
               </div>
               <div>
