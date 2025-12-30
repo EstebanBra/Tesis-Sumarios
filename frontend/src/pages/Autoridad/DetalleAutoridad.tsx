@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById } from '@/services/denuncias.api'
 import { useAuth } from '@/context/AuthContext'
 import DerivacionAutoridadModal, { type DestinoDerivacion } from './components/DerivacionAutoridadModal'
+import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
+import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -11,7 +13,9 @@ export default function DetalleAutoridad() {
 
     const [denuncia, setDenuncia] = useState<any | null>(null)
     const [loading, setLoading] = useState(true)
+    const [showSolicitudFiscalia, setShowSolicitudFiscalia] = useState(false)
     const [showDerivacion, setShowDerivacion] = useState(false)
+    const [showInstruirInvestigacion, setShowInstruirInvestigacion] = useState(false)
     const [processing, setProcessing] = useState(false)
 
     // Determinar autoridad actual
@@ -145,6 +149,52 @@ export default function DetalleAutoridad() {
     // Verificar si la denuncia fue derivada y tiene observación
     const observacionDerivacion = denuncia.observacionDirgegen;
     const fueDerivada = denuncia.tipo_denuncia?.ID_TipoDe === 301 || denuncia.tipo_denuncia?.ID_TipoDe === 302 || denuncia.tipo_denuncia?.ID_TipoDe === 303;
+
+    // Verificar si se puede instruir investigación (habilitado solo si ya tiene recomendación de fiscalía)
+    const puedeInstruirInvestigacion = denuncia?.estado_denuncia?.Tipo_Estado === 'Recomendación Recibida' ||
+        denuncia?.estado_denuncia?.Tipo_Estado === 'En Investigación'
+
+    // Handler para solicitar recomendación a fiscalía
+    const handleSolicitudFiscalia = async (fundamentos: string) => {
+        if (!denuncia) return
+        try {
+            setProcessing(true)
+            // TODO: Implementar llamada al backend
+            console.log('Solicitar recomendación a fiscalía:', { id: denuncia.ID_Denuncia, fundamentos })
+
+            setShowSolicitudFiscalia(false)
+            alert('Solicitud enviada a Fiscalía exitosamente (funcionalidad pendiente)')
+            navigate('/autoridad/bandeja')
+        } catch (error) {
+            console.error(error)
+            alert('Error al enviar solicitud')
+        } finally {
+            setProcessing(false)
+        }
+    }
+
+    // Handler para instruir investigación sumaria
+    const handleInstruirInvestigacion = async (fiscalDesignado: string, observaciones: string) => {
+        if (!denuncia) return
+        try {
+            setProcessing(true)
+            // TODO: Implementar llamada al backend
+            console.log('Instruir investigación sumaria:', {
+                id: denuncia.ID_Denuncia,
+                fiscalDesignado,
+                observaciones
+            })
+
+            setShowInstruirInvestigacion(false)
+            alert('Investigación sumaria instruida exitosamente (funcionalidad pendiente)')
+            navigate('/autoridad/bandeja')
+        } catch (error) {
+            console.error(error)
+            alert('Error al instruir investigación')
+        } finally {
+            setProcessing(false)
+        }
+    }
 
     return (
         <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
@@ -416,12 +466,56 @@ export default function DetalleAutoridad() {
             
             {/* --- FOOTER --- */}
             <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-end items-center gap-4 rounded-b-xl mt-6">
-                <button 
-                    onClick={() => setShowDerivacion(true)} 
-                    className="px-5 py-2.5 bg-white border border-orange-300 text-orange-600 rounded-lg text-sm font-bold hover:bg-orange-50 transition-all flex items-center justify-center gap-2"
+                
+                {/* Botón 1: Solicitar Recomendación a Fiscalía */}
+                <button
+                    onClick={() => setShowSolicitudFiscalia(true)}
+                    className="px-4 py-2 bg-ubb-blue border border-ubb-blue text-white rounded-md text-sm font-bold hover:bg-blue-900 shadow-sm transition-colors flex items-center justify-center gap-2"
                 >
-                    <span>↗️</span> Derivar Caso
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    Solicitar Recomendación a Fiscalía
                 </button>
+
+                {/* Botón 2: Derivar a Otra Autoridad */}
+                <button
+                    onClick={() => setShowDerivacion(true)}
+                    className="px-4 py-2 bg-white border border-orange-500 text-orange-600 rounded-md text-sm font-bold hover:bg-orange-50 shadow-sm flex items-center justify-center gap-2 transition-colors"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
+                    </svg>
+                    Derivar a Otra Autoridad
+                </button>
+
+                {/* Botón 3: Instruir Investigación Sumaria (Condicional) */}
+                <div className="relative group">
+                    <button
+                        onClick={() => puedeInstruirInvestigacion && setShowInstruirInvestigacion(true)}
+                        disabled={!puedeInstruirInvestigacion}
+                        className={`px-4 py-2 rounded-md text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition-colors
+                ${puedeInstruirInvestigacion
+                            ? 'bg-green-600 text-white hover:bg-green-700 border border-green-600'
+                            : 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                        </svg>
+                        Instruir Investigación Sumaria
+                    </button>
+
+                    {/* Tooltip cuando está deshabilitado */}
+                    {!puedeInstruirInvestigacion && (
+                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 hidden group-hover:block z-10">
+                            <div className="bg-gray-800 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
+                                Pendiente de recomendación de Fiscalía
+                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="flex justify-start pt-2"> 
@@ -430,13 +524,27 @@ export default function DetalleAutoridad() {
                 </button>
             </div>
 
-            {/* MODAL DE DERIVACIÓN */}
+            {/* MODALES */}
+            <SolicitudFiscaliaModal
+                isOpen={showSolicitudFiscalia}
+                onClose={() => setShowSolicitudFiscalia(false)}
+                onConfirm={handleSolicitudFiscalia}
+                isProcessing={processing}
+            />
+
             <DerivacionAutoridadModal
                 isOpen={showDerivacion}
                 onClose={() => setShowDerivacion(false)}
                 onConfirm={handleDerivacion}
                 isProcessing={processing}
                 autoridadActual={autoridadActual}
+            />
+
+            <InstruirInvestigacionModal
+                isOpen={showInstruirInvestigacion}
+                onClose={() => setShowInstruirInvestigacion(false)}
+                onConfirm={handleInstruirInvestigacion}
+                isProcessing={processing}
             />
         </section>
     )
