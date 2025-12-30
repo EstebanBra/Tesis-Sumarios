@@ -30,20 +30,41 @@ export default function BandejaRevisor() {
     loadData()
   }, [])
 
+  // Función helper para obtener el área generalizada
+  const obtenerAreaGeneralizada = (tipoDenuncia: any): string => {
+    if (!tipoDenuncia) return 'N/A'
+    
+    const idTipo = tipoDenuncia.ID_TipoDe || 0
+    
+    // Serie 100: Género y Equidad (y derivaciones a Dirgegen que vienen de Género)
+    if (idTipo < 200 || idTipo === 303) {
+      return 'Género y Equidad'
+    }
+    
+    // Serie 200: Convivencia Estudiantil (y derivaciones a VRA que vienen de Convivencia)
+    if ((idTipo >= 200 && idTipo < 300) || idTipo === 301 || idTipo === 302) {
+      return 'Convivencia Estudiantil'
+    }
+    
+    return tipoDenuncia.Area || 'N/A'
+  }
+
   // Filtrar denuncias según el filtro seleccionado
   useEffect(() => {
     let denunciasFiltradas = denunciasCompletas
 
     if (filtroTipo === 'convivencia') {
-      // Serie 200: Convivencia Escolar
-      denunciasFiltradas = denunciasCompletas.filter(d => 
-        d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe >= 200 && d.tipo_denuncia.ID_TipoDe < 300
-      )
+      // Serie 200: Convivencia Escolar o derivaciones VRA
+      denunciasFiltradas = denunciasCompletas.filter(d => {
+        const idTipo = d.tipo_denuncia?.ID_TipoDe || 0
+        return (idTipo >= 200 && idTipo < 300) || idTipo === 301 || idTipo === 302
+      })
     } else if (filtroTipo === 'genero') {
-      // Serie 100: Género/Dirgegen
-      denunciasFiltradas = denunciasCompletas.filter(d => 
-        d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe < 200
-      )
+      // Serie 100: Género/Dirgegen o derivación a Dirgegen
+      denunciasFiltradas = denunciasCompletas.filter(d => {
+        const idTipo = d.tipo_denuncia?.ID_TipoDe || 0
+        return idTipo < 200 || idTipo === 303
+      })
     }
 
     setDenuncias(denunciasFiltradas)
@@ -120,7 +141,6 @@ export default function BandejaRevisor() {
           <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-6 py-4">ID / Fecha</th>
-              <th className="px-6 py-4">Tipo de Denuncia</th>
               <th className="px-6 py-4">Área</th>
               <th className="px-6 py-4">Denunciante</th>
               <th className="px-6 py-4">Estado</th>
@@ -130,51 +150,57 @@ export default function BandejaRevisor() {
           <tbody className="divide-y divide-gray-100">
             {denuncias.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                   No se encontraron denuncias con el filtro seleccionado.
                 </td>
               </tr>
             ) : (
-              denuncias.map((d) => (
-                <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {d.Fecha_Fin ? (
-                        <span>
-                          {new Date(d.Fecha_Inicio).toLocaleDateString()} - {new Date(d.Fecha_Fin).toLocaleDateString()}
-                        </span>
-                      ) : (
-                        new Date(d.Fecha_Inicio).toLocaleDateString()
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{d.tipo_denuncia?.Nombre}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      d.tipo_denuncia?.ID_TipoDe && d.tipo_denuncia.ID_TipoDe < 200
-                        ? 'bg-pink-100 text-pink-700 border border-pink-200'
-                        : 'bg-blue-100 text-blue-700 border border-blue-200'
-                    }`}>
-                      {d.tipo_denuncia?.Area || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs">{d.Rut}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
-                      {d.estado_denuncia?.Tipo_Estado}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button 
-                      onClick={() => navigate(`/revisor/denuncia/${d.ID_Denuncia}`)} 
-                      className="text-ubb-blue font-bold text-xs hover:underline"
-                    >
-                      REVISAR
-                    </button>
-                  </td>
-                </tr>
-              ))
+              denuncias.map((d) => {
+                const areaGeneralizada = obtenerAreaGeneralizada(d.tipo_denuncia)
+                const esGenero = areaGeneralizada === 'Género y Equidad'
+                
+                return (
+                  <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {d.Fecha_Fin ? (
+                          <span>
+                            {new Date(d.Fecha_Inicio).toLocaleDateString()} - {new Date(d.Fecha_Fin).toLocaleDateString()}
+                          </span>
+                        ) : (
+                          new Date(d.Fecha_Inicio).toLocaleDateString()
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        esGenero
+                          ? 'bg-pink-100 text-pink-700 border border-pink-200'
+                          : 'bg-blue-100 text-blue-700 border border-blue-200'
+                      }`}>
+                        {areaGeneralizada}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-sm font-semibold text-gray-900">{d.denunciante?.Rut || 'N/A'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
+                        {d.estado_denuncia?.Tipo_Estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button 
+                        onClick={() => navigate(`/revisor/denuncia/${d.ID_Denuncia}`)} 
+                        className="text-ubb-blue font-bold text-xs hover:underline"
+                      >
+                        REVISAR
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

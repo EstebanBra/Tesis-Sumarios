@@ -93,8 +93,8 @@ export default function BandejaAutoridad() {
                                     </div>
                                 </td>
 
-                                <td className="px-6 py-4 font-mono text-gray-600 text-xs">
-                                    {d.Rut}
+                                <td className="px-6 py-4">
+                                    <span className="font-mono text-sm font-semibold text-gray-900">{d.denunciante?.Rut || 'N/A'}</span>
                                 </td>
 
                                 <td className="px-6 py-4">

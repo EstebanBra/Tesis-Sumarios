@@ -131,14 +131,17 @@ export default function DetalleAutoridad() {
     const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
     const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
     
-    // Datos Denunciante
-    const datosDenuncianteObj = denuncia.denunciante || denuncia; 
-    const nombreDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
-    const apellidoDenunciante = getProp(datosDenuncianteObj, 'Apellido', 'apellido'); 
+    // Datos Denunciante: Si existe denuncia.denunciante, usar esos datos (persona con RUT reconocido)
+    const datosDenuncianteObj = denuncia.denunciante || denuncia;
+    const nombreCompletoDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
     const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
     const correoDenunciante = getProp(datosDenuncianteObj, 'Correo', 'correo');
     const telefonoDenunciante = getProp(datosDenuncianteObj, 'Telefono', 'telefono');
-    const estamentoDenunciante = getProp(datosDenuncianteObj, 'Estamento', 'estamento');
+    const generoDenunciante = getProp(datosDenuncianteObj, 'genero', 'genero');
+    const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
+    const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
+    const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
+    
 
     // Datos Víctima
     const victimaNombre = getProp(denuncia, 'VictimaNombre', 'victimaNombre');
@@ -405,21 +408,40 @@ export default function DetalleAutoridad() {
                             ) : (
                                 <>
                                     <div>
-                                        <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre</label>
-                                        <p className="font-medium text-gray-900">{nombreDenunciante} {apellidoDenunciante}</p>
-                                        <p className="text-xs text-gray-500">{rutDenunciante}</p>
+                                        <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
+                                        <p className="font-medium text-gray-900">{nombreCompletoDenunciante || 'No especificado'}</p>
+                                        {rutDenunciante && (
+                                            <p className="text-xs text-gray-500 font-mono mt-1">{rutDenunciante}</p>
+                                        )}
                                     </div>
                                     <div className="pt-2 border-t border-gray-100">
                                         <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Contacto</label>
-                                        <p className="text-gray-700 break-words">{correoDenunciante}</p>
-                                        <p className="text-gray-700">{telefonoDenunciante}</p>
+                                        {correoDenunciante && (
+                                            <p className="text-gray-700 break-words">{correoDenunciante}</p>
+                                        )}
+                                        {telefonoDenunciante && (
+                                            <p className="text-gray-700">{telefonoDenunciante}</p>
+                                        )}
+                                        {!correoDenunciante && !telefonoDenunciante && (
+                                            <p className="text-gray-400 italic text-xs">No disponible</p>
+                                        )}
                                     </div>
-                                    <div className="pt-2 border-t border-gray-100">
-                                        <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Estamento</label>
-                                        <span className="inline-block bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold">
-                                            {estamentoDenunciante || 'No informado'}
-                                        </span>
-                                    </div>
+                                    {(generoDenunciante || regionDenunciante || comunaDenunciante || direccionDenunciante) && (
+                                        <div className="pt-2 border-t border-gray-100">
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Información Adicional</label>
+                                            {generoDenunciante && (
+                                                <p className="text-gray-700 text-xs">Género: {generoDenunciante}</p>
+                                            )}
+                                            {(regionDenunciante || comunaDenunciante) && (
+                                                <p className="text-gray-700 text-xs">
+                                                    {regionDenunciante}{comunaDenunciante ? `, ${comunaDenunciante}` : ''}
+                                                </p>
+                                            )}
+                                            {direccionDenunciante && (
+                                                <p className="text-gray-700 text-xs">{direccionDenunciante}</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>

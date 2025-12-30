@@ -137,7 +137,9 @@ export default function BandejaDirgegen() {
                         </div>
                     </td>
                     <td className="px-6 py-4">{d.tipo_denuncia?.Nombre}</td>
-                    <td className="px-6 py-4 font-mono text-xs">{d.Rut}</td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-sm font-semibold text-gray-900">{d.denunciante?.Rut || 'N/A'}</span>
+                    </td>
                     <td className="px-6 py-4">
                         <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
                             {d.estado_denuncia?.Tipo_Estado}
