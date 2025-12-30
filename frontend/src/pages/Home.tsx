@@ -9,12 +9,13 @@ export default function Home() {
   const isDirgegen = hasRole('Dirgegen') || hasRole('Admin')
   const isVRA = hasRole('VRA')
   const isVRAE = hasRole('VRAE')
+  const isRevisor = hasRole('REVISOR') || hasRole('Revisor')
 
   return (
     <div className="space-y-10 py-6">
 
-      {/* SECCIÓN 1: PANEL DE GESTIÓN (Visible para Dirgegen, VRA o VRAE) */}
-      {(isDirgegen || isVRA || isVRAE) && (
+      {/* SECCIÓN 1: PANEL DE GESTIÓN (Visible para Dirgegen, VRA, VRAE o Revisor) */}
+      {(isDirgegen || isVRA || isVRAE || isRevisor) && (
         <section className="bg-blue-50 border border-blue-100 rounded-xl p-8 text-center animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="inline-flex items-center gap-2 mb-4 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
             Espacio de Trabajo
@@ -24,17 +25,23 @@ export default function Home() {
             {isDirgegen && 'Panel de Gestión Dirgegen'}
             {isVRA && 'Panel de Gestión VRA'}
             {isVRAE && 'Panel de Gestión VRAE'}
+            {isRevisor && 'Panel de Gestión Revisor'}
           </h1>
 
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
             {isDirgegen && 'Accede a la administración de casos de Acoso Sexual, Violencia de Género y Discriminación asignados a tu unidad.'}
             {isVRA && 'Accede a la administración de casos derivados por razones de género o por convivencia estudiantil, donde el denunciado es un estudiante.'}
             {isVRAE && 'Accede a la administración de casos derivados por razones de género, donde el denunciado es un funcionario o académico.'}
+            {isRevisor && 'Accede a la vista transversal de todas las denuncias del sistema para revisión y gestión de datos de denunciados.'}
           </p>
 
           <div className="flex justify-center">
             <Link
-              to={isDirgegen ? '/dirgegen/bandeja' : '/autoridad/bandeja'}
+              to={
+                isDirgegen ? '/dirgegen/bandeja' 
+                : isRevisor ? '/revisor/bandeja'
+                : '/autoridad/bandeja'
+              }
               className="inline-flex items-center gap-2 rounded-md bg-ubb-blue px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-blue-800 transition-all"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

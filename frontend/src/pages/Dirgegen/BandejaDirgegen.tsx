@@ -24,9 +24,9 @@ export default function BandejaDirgegen() {
             listarMedidasPendientes()
         ])
         
-        // ✅ FILTRO DE COMPETENCIA: Solo mostrar Serie 100 (Género)
+        // ✅ FILTRO DE COMPETENCIA: Solo mostrar Género y Equidad (ID 100 o derivación 303)
         const casosGenero = resDenuncias.data.filter(d => 
-            d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe < 200
+            d.tipo_denuncia && (d.tipo_denuncia.ID_TipoDe === 100 || d.tipo_denuncia.ID_TipoDe === 303)
         );
 
         setDenuncias(casosGenero)
@@ -115,7 +115,7 @@ export default function BandejaDirgegen() {
             <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <tr>
                 <th className="px-6 py-4">ID / Fecha</th>
-                <th className="px-6 py-4">Tipo de Denuncia</th>
+                <th className="px-6 py-4">Área</th>
                 <th className="px-6 py-4">Denunciante</th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4 text-right">Acción</th>
@@ -137,8 +137,14 @@ export default function BandejaDirgegen() {
                             )}
                         </div>
                     </td>
-                    <td className="px-6 py-4">{d.tipo_denuncia?.Nombre}</td>
-                    <td className="px-6 py-4 font-mono text-xs">{d.Rut}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-pink-100 text-pink-700 border border-pink-200">
+                        Género y Equidad
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-mono text-sm font-semibold text-gray-900">{d.denunciante?.Rut || 'N/A'}</span>
+                    </td>
                     <td className="px-6 py-4">
                         <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
                             {d.estado_denuncia?.Tipo_Estado}

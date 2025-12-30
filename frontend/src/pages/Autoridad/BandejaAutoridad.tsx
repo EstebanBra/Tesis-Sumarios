@@ -16,6 +16,25 @@ export default function BandejaAutoridad() {
         ? 'Vicerrectoría Académica'
         : 'Vicerrectoría de Asuntos Estudiantiles'
 
+    // Función helper para obtener el área generalizada
+    const obtenerAreaGeneralizada = (tipoDenuncia: any): string => {
+        if (!tipoDenuncia) return 'N/A'
+        
+        const idTipo = tipoDenuncia.ID_TipoDe || 0
+        
+        // ID 100: Género y Equidad (y derivación 303 a Dirgegen)
+        if (idTipo === 100 || idTipo === 303) {
+            return 'Género y Equidad'
+        }
+        
+        // ID 200: Convivencia Estudiantil (y derivaciones 301-302 a VRA)
+        if (idTipo === 200 || idTipo === 301 || idTipo === 302) {
+            return 'Convivencia Estudiantil'
+        }
+        
+        return tipoDenuncia.Area || 'N/A'
+    }
+
     useEffect(() => {
         async function loadData() {
             try {
@@ -64,7 +83,7 @@ export default function BandejaAutoridad() {
                     <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                         <tr>
                             <th className="px-6 py-4">ID / Fecha</th>
-                            <th className="px-6 py-4">Tipo de Denuncia</th>
+                            <th className="px-6 py-4">Área</th>
                             <th className="px-6 py-4">Denunciante</th>
                             <th className="px-6 py-4">Estado</th>
                             <th className="px-6 py-4 text-right">Acción</th>
@@ -87,15 +106,23 @@ export default function BandejaAutoridad() {
                                 </td>
 
                                 <td className="px-6 py-4">
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-gray-900">
-                                            {d.tipo_denuncia?.Nombre || 'Sin Clasificar'}
-                                        </span>
-                                    </div>
+                                    {(() => {
+                                        const areaGeneralizada = obtenerAreaGeneralizada(d.tipo_denuncia)
+                                        const esGenero = areaGeneralizada === 'Género y Equidad'
+                                        return (
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                                esGenero
+                                                    ? 'bg-pink-100 text-pink-700 border border-pink-200'
+                                                    : 'bg-blue-100 text-blue-700 border border-blue-200'
+                                            }`}>
+                                                {areaGeneralizada}
+                                            </span>
+                                        )
+                                    })()}
                                 </td>
 
-                                <td className="px-6 py-4 font-mono text-gray-600 text-xs">
-                                    {d.Rut}
+                                <td className="px-6 py-4">
+                                    <span className="font-mono text-sm font-semibold text-gray-900">{d.denunciante?.Rut || 'N/A'}</span>
                                 </td>
 
                                 <td className="px-6 py-4">

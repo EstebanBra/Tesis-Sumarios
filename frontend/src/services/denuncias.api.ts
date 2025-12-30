@@ -58,6 +58,14 @@ export type CrearDenunciaInput = {
   ID_EstadoDe?: number
   denunciados?: DenuncianteParticipante[]
   testigos?: DenuncianteParticipante[]
+  victima?: {
+    nombre: string
+    rut: string
+    correo?: string
+    telefono?: string
+    genero?: string
+    sexo?: string
+  }
   evidencias?: EvidenciaInput[]
   caracteristicasDenunciado?: string | null
   
@@ -109,7 +117,7 @@ export async function listarMedidasPendientes() {
 
 export type DenunciaListado = {
   ID_Denuncia: number
-  Rut: string
+  Rut?: string // Deprecated: usar denunciante?.Rut en su lugar
   Fecha_Ingreso?: string // Fecha de ingreso al sistema
   Fecha_Inicio: string // Fecha de los hechos (o fecha única)
   Fecha_Fin?: string | null // Fecha fin del rango (opcional)
@@ -117,6 +125,17 @@ export type DenunciaListado = {
   Ubicacion: string | null
   
   observacionDirgegen?: string | null 
+
+  denunciante?: {
+    Rut?: string | null
+    Nombre?: string
+    Correo?: string
+    Telefono?: string
+    genero?: string | null
+    region?: string | null
+    comuna?: string | null
+    direccion?: string | null
+  }
 
   tipo_denuncia?: {
     ID_TipoDe: number

@@ -189,8 +189,37 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       });
     }
 
-    // 3️⃣ PARTICIPANTES (Denunciados + Testigos)
+    // 3️⃣ PARTICIPANTES (Denunciados + Testigos + Víctima Externa)
     const participantes = [];
+
+    // Agregar víctima externa como participante PRIMERO si existe y tiene RUT
+    // Esto es importante para que la víctima esté disponible en la lista de participantes
+    if (payload.victima && payload.victima.rut && typeof payload.victima.rut === 'string' && payload.victima.rut.trim().length > 0) {
+      // Crear o actualizar la persona víctima
+      const personaVictima = await tx.persona.upsert({
+        where: { Rut: payload.victima.rut.trim() },
+        update: {
+          Nombre: payload.victima.nombre || undefined,
+          Correo: payload.victima.correo || undefined,
+          Telefono: payload.victima.telefono || undefined,
+          genero: payload.victima.genero || undefined,
+        },
+        create: {
+          Rut: payload.victima.rut.trim(),
+          Nombre: payload.victima.nombre || "Sin nombre",
+          Correo: payload.victima.correo || "",
+          Telefono: payload.victima.telefono || "",
+          genero: payload.victima.genero || null,
+        }
+      });
+      
+      // Agregar víctima como participante
+      participantes.push({
+        ID_Denuncia: denuncia.ID_Denuncia,
+        ID_Persona: personaVictima.ID,
+        Nombre_PD: payload.victima.nombre || "Sin nombre",
+      });
+    }
 
     // Denunciados
     if (Array.isArray(payload.denunciados)) {
@@ -267,28 +296,30 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       }
     }
 
-    if (participantes.length) {
+    // Guardar todos los participantes (víctima + denunciados + testigos)
+    if (participantes.length > 0) {
       await tx.participante_Denuncia.createMany({ data: participantes });
     }
 
-    // 4️⃣ EVIDENCIAS
-    if (Array.isArray(payload.evidencias) && payload.evidencias.length) {
-      // a) Crear Participante_Caso temporal para vincular archivos
-      const pc = await tx.participante_Caso.create({
-        data: {
-          ID_Persona: denunciante.ID,  // Usamos ID en vez de Rut
-          Tipo_PC: "DENUNCIANTE",
-        },
-      });
+    // 4️⃣ EVIDENCIAS Y CARACTERÍSTICAS
+    // IMPORTANTE: Siempre crear Participante_Caso para poder guardar caracteristicasDenunciado
+    // Esto es necesario incluso si no hay evidencias, para almacenar información de víctima
+    const pc = await tx.participante_Caso.create({
+      data: {
+        ID_Persona: denunciante.ID,  // Usamos ID en vez de Rut
+        Tipo_PC: "DENUNCIANTE",
+      },
+    });
 
-      // b) Hito de Evidencias
-      const hitoEvid = await tx.hitos.create({
-        data: {
-          ID_PC: pc.ID_PC,
-          Nombre: "Evidencias Iniciales",
-          Descripcion: payload.caracteristicasDenunciado ?? "Adjuntos al crear denuncia",
-        },
-      });
+    // Siempre crear el hito para guardar caracteristicasDenunciado (información de víctima)
+    // Esto permite acceder a datos como "Denunciante es la víctima" o "Víctima: Nombre (RUT: ...)"
+    const hitoEvid = await tx.hitos.create({
+      data: {
+        ID_PC: pc.ID_PC,
+        Nombre: payload.caracteristicasDenunciado ? "Información Inicial" : "Evidencias Iniciales",
+        Descripcion: payload.caracteristicasDenunciado ?? "Adjuntos al crear denuncia",
+      },
+    });
 
       // c) Guardar Archivos con metadatos de MinIO
       const archivos = payload.evidencias
@@ -368,9 +399,7 @@ export async function updateDenunciaService(id, data) {
     };
 
     // 1️⃣ Actualizar los campos base
-    const denunciaActualizada = await tx.denuncia.update({
-      where: { ID_Denuncia: Number(id) },
-      data: {
+    const updateData = {
         ID_Denunciante: data.ID_Denunciante ?? prev.ID_Denunciante,
         ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
         ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
@@ -378,7 +407,16 @@ export async function updateDenunciaService(id, data) {
         Fecha_Fin: data.Fecha_Fin !== undefined ? parsearFecha(data.Fecha_Fin) : prev.Fecha_Fin,
         Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
         Ubicacion: data.Ubicacion ?? prev.Ubicacion,
-      },
+    };
+    
+    // Si se proporciona observación, actualizar observacionDirgegen
+    if (data.observacion !== undefined) {
+      updateData.observacionDirgegen = data.observacion ? String(data.observacion) : null;
+    }
+    
+    const denunciaActualizada = await tx.denuncia.update({
+      where: { ID_Denuncia: Number(id) },
+      data: updateData,
       include: {
         tipo_denuncia: true,
         estado_denuncia: true,
@@ -538,6 +576,97 @@ export async function updateDenunciaService(id, data) {
       where: { ID_Denuncia: Number(id) },
       include: includeFull, // Usar includeFull para traer todos los datos
     });
+
+    // 6️⃣ Si se cambió el tipo a VRA (301, 302) o Dirgegen (303) y hay observación, notificar
+    const nuevoTipoId = data.ID_TipoDe ?? prev.ID_TipoDe;
+    if ((nuevoTipoId === 301 || nuevoTipoId === 302 || nuevoTipoId === 303) && data.observacion) {
+      try {
+        const { crearNotificacion } = await import("./notificacion.service.js");
+        const { getIO } = await import("../socket/socket.js");
+        const io = getIO();
+
+        // Determinar a quién notificar según el tipo de derivación
+        if (nuevoTipoId === 303) {
+          // Derivación a Dirgegen - notificar a usuarios Dirgegen
+          const usuariosDirgegen = await prisma.participante_Caso.findMany({
+            where: {
+              Tipo_PC: {
+                in: ["Dirgegen", "Dirgergen", "DIRGEGEN", "DIRGERGEN"]
+              },
+            },
+            include: {
+              persona: true,
+            },
+          });
+
+          if (usuariosDirgegen.length > 0) {
+            const nuevoTipo = await prisma.tipo_Denuncia.findUnique({
+              where: { ID_TipoDe: Number(nuevoTipoId) }
+            });
+            const tipoDestino = nuevoTipo?.Nombre || "Dirgegen";
+            const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
+            
+            const promesasNotificacion = usuariosDirgegen.map((pc) =>
+              crearNotificacion(
+                {
+                  ID_Usuario: pc.ID_Persona,
+                  Tipo: "DENUNCIA_DERIVADA",
+                  Titulo: `Denuncia Derivada a ${tipoDestino}`,
+                  Mensaje: mensajeNotificacion,
+                  ID_Denuncia: Number(id),
+                  enviarEmail: true,
+                },
+                io
+              )
+            );
+
+            Promise.all(promesasNotificacion).catch(err => {
+              console.error("Error al notificar derivación a Dirgegen:", err);
+            });
+          }
+        } else if (nuevoTipoId === 301 || nuevoTipoId === 302) {
+          // Derivación a VRA - notificar a usuarios VRA
+          const usuariosVRA = await prisma.participante_Caso.findMany({
+            where: {
+              Tipo_PC: {
+                in: ["VRA", "vra", "Vicerrectoría Académica"]
+              },
+            },
+            include: {
+              persona: true,
+            },
+          });
+
+          if (usuariosVRA.length > 0) {
+            const nuevoTipo = await prisma.tipo_Denuncia.findUnique({
+              where: { ID_TipoDe: Number(nuevoTipoId) }
+            });
+            const tipoDestino = nuevoTipo?.Nombre || "VRA";
+            const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
+            
+            const promesasNotificacion = usuariosVRA.map((pc) =>
+              crearNotificacion(
+                {
+                  ID_Usuario: pc.ID_Persona,
+                  Tipo: "DENUNCIA_DERIVADA",
+                  Titulo: `Denuncia Derivada a ${tipoDestino}`,
+                  Mensaje: mensajeNotificacion,
+                  ID_Denuncia: Number(id),
+                  enviarEmail: true,
+                },
+                io
+              )
+            );
+
+            Promise.all(promesasNotificacion).catch(err => {
+              console.error("Error al notificar derivación a VRA:", err);
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error importando servicios de notificación:", err);
+      }
+    }
 
     return updatedFull;
   });

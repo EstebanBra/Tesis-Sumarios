@@ -52,8 +52,6 @@ export default function IdentificarDenunciadoModal({
         comuna: form.comuna || undefined,
         direccion: form.direccion || undefined
       })
-      onSuccess()
-      onClose()
       // Reset form
       setForm({
         Rut: '',
@@ -65,6 +63,9 @@ export default function IdentificarDenunciadoModal({
         comuna: '',
         direccion: ''
       })
+      // Cerrar modal y ejecutar onSuccess DESPUÉS de resetear el form
+      onClose()
+      onSuccess()
     } catch (err: any) {
       setError(err.message || 'Error al identificar al denunciado')
     } finally {
@@ -73,8 +74,8 @@ export default function IdentificarDenunciadoModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto pointer-events-auto border-2 border-gray-200">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900">Identificar Denunciado</h2>
           <button

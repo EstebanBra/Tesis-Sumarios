@@ -9,11 +9,11 @@ const router = Router();
 // Rutas de DIRGEGEN
 router.patch("/denuncias/:id/derivar", verifyToken, hasRole(['Dirgegen']), derivarDenunciaRules, derivarDenuncia);
 
-// Ruta para identificar denunciados
+// Ruta para identificar denunciados (Dirgegen y Revisor)
 router.put(
   "/denunciados/:idDatosDenunciado/identificar", 
   verifyToken, 
-  hasRole(['Dirgegen']), 
+  hasRole(['Dirgegen', 'REVISOR', 'Revisor']), 
   identificarDenunciadoRules, 
   identificarDenunciado
 );

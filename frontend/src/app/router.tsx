@@ -9,6 +9,8 @@ import BandejaDirgegen from '@/pages/Dirgegen/BandejaDirgegen'
 import DetalleDirgegen from '@/pages/Dirgegen/DetalleDirgegen'
 import BandejaAutoridad from '@/pages/Autoridad/BandejaAutoridad'
 import DetalleAutoridad from '@/pages/Autoridad/DetalleAutoridad'
+import BandejaRevisor from '@/pages/Revisor/BandejaRevisor'
+import DetalleRevisor from '@/pages/Revisor/DetalleRevisor'
 
 import AuthShell from '@/components/layout/AuthShell'
 import RequireAuth from '@/components/RequireAuth'
@@ -44,7 +46,10 @@ const appRoutes = {
         { path: 'dirgegen/denuncia/:id', element: <DetalleDirgegen /> },
 
         { path: 'autoridad/bandeja', element: <BandejaAutoridad /> },
-        { path: 'autoridad/denuncia/:id', element: <DetalleAutoridad /> }
+        { path: 'autoridad/denuncia/:id', element: <DetalleAutoridad /> },
+
+        { path: 'revisor/bandeja', element: <BandejaRevisor /> },
+        { path: 'revisor/denuncia/:id', element: <DetalleRevisor /> }
       ],
     }
   ]

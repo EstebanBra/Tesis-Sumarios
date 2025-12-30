@@ -40,8 +40,6 @@ export type FormularioDenuncia = {
     tipoId: number
     subtipoId: number | null
 
-    descripcionOtro: string
-
     regionDenunciante: string
     comunaDenunciante: string
     direccionDenunciante: string

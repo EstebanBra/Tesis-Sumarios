@@ -43,7 +43,6 @@ const initialForm: FormularioDenuncia = {
   carreraCargo: "",
   tipoId: 0,
   subtipoId: null,
-  descripcionOtro: "",
   regionDenunciante: "",
   comunaDenunciante: "",
   direccionDenunciante: "",
@@ -182,19 +181,13 @@ export default function NuevaDenuncia() {
   }, [user]);
 
   function handleSelectTipo(id: number) {
-    // Asignar subtipo por defecto basado en el tipo seleccionado
-    // 199 = "Otro motivo (Género)" para tipo 1 (Género)
-    // 299 = "Otro motivo (Convivencia)" para tipo 2 (Convivencia)
-    // 300 = "Campos Clínicos" para tipo 3 (Campo Clínico) - NO tiene subtipos, es el tipo principal
-    const subtipoPorDefecto = id === 1 ? 199 : id === 2 ? 299 : 300;
-    setForm((prev) => ({ ...prev, tipoId: id, subtipoId: subtipoPorDefecto, descripcionOtro: "" }));
+    // Asignar tipo de denuncia por defecto basado en el tipo seleccionado
+    // ID 100 = "Género y Equidad" para tipo 1 (Género)
+    // ID 200 = "Convivencia Estudiantil" para tipo 2 (Convivencia)
+    const tipoPorDefecto = id === 1 ? 100 : 200;
+    setForm((prev) => ({ ...prev, tipoId: id, subtipoId: tipoPorDefecto }));
     setFase("formulario");
     window.scrollTo(0, 0);
-  }
-
-  function handleBackToTipo() {
-    setFase("seleccion_tipo");
-    setForm((prev) => ({ ...prev, tipoId: 0, subtipoId: null }));
   }
 
   function handleBackToSubtipo() {
@@ -350,12 +343,7 @@ export default function NuevaDenuncia() {
         .join(" - ");
     }
 
-    let relatoFinal = form.relato.trim();
-
-    // Si el usuario proporcionó una descripción adicional, la incluimos en el relato
-    if (form.descripcionOtro.trim()) {
-      relatoFinal = `[MOTIVO ESPECÍFICO: ${form.descripcionOtro}]\n\n${relatoFinal}`;
-    }
+    const relatoFinal = form.relato.trim();
 
     const notasAdicionales = [
       `Tipo General: ${tipoSeleccionado?.nombre}`,
@@ -425,12 +413,17 @@ export default function NuevaDenuncia() {
         rut: t.rut || undefined,
         contacto: t.contacto || undefined,
       })),
-      evidencias: archivosEvidencia.map(archivo => ({
-        nombreArchivo: archivo.objectKey,
-        nombreOriginal: archivo.fileName,
-        tipoArchivo: archivo.mimeType,
-        tamaño: archivo.size,
-      })),
+      // Si la víctima es externa (no es el denunciante), agregarla como participante
+      // IMPORTANTE: Solo enviar si tiene RUT (es obligatorio para guardar como participante)
+      victima: form.esVictima === "no" && form.victimaRut && form.victimaRut.trim() ? {
+        nombre: form.victimaNombre || "",
+        rut: form.victimaRut.trim(),
+        correo: form.victimaCorreo || undefined,
+        telefono: form.victimaTelefono || undefined,
+        genero: form.victimaGenero || undefined,
+        sexo: form.victimaSexo || undefined,
+      } : undefined,
+      evidencias: [],
       caracteristicasDenunciado: notasAdicionales,
       
       // Datos específicos para denuncias de campo clínico
@@ -1194,25 +1187,6 @@ export default function NuevaDenuncia() {
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
               Lugar y fecha de los hechos
             </h2>
-
-            {/* Campo opcional para especificar detalles adicionales del tipo de denuncia */}
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-              <label className="block text-sm font-bold text-blue-800 mb-1">
-                Especificación adicional (Opcional)
-              </label>
-              <input
-                type="text"
-                className="block w-full rounded-md border-blue-400 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
-                placeholder="Ej: Detalles específicos sobre el tipo de situación..."
-                value={form.descripcionOtro}
-                onChange={(e) =>
-                  updateField("descripcionOtro", e.target.value)
-                }
-              />
-              <p className="text-xs text-blue-700 mt-1">
-                Si deseas agregar más detalles sobre el tipo de denuncia, puedes hacerlo aquí.
-              </p>
-            </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="mb-4">

@@ -1,26 +1,29 @@
 import { useState } from 'react'
 
+export type TipoDerivacionVRA = 'vra_general' | 'casos_clinicos'
+
 interface Props {
   isOpen: boolean
   onClose: () => void
-  // ✅ CORRECCIÓN AQUÍ: Antes era (id: number) => void
-  onConfirm: (observacion: string) => void 
+  // Ahora también enviamos el tipo de derivación VRA
+  onConfirm: (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => void 
   isProcessing: boolean
 }
 
 export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessing }: Props) {
   const [observacion, setObservacion] = useState('')
+  const [tipoDerivacion, setTipoDerivacion] = useState<TipoDerivacionVRA>('vra_general')
 
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!observacion.trim()) {
-      alert("Debes escribir el Informe Técnico para derivar.")
+      alert("Debes escribir la observación para derivar.")
       return
     }
-    // Enviamos el texto al padre
-    onConfirm(observacion) 
+    // Enviamos el texto y el tipo de derivación al padre
+    onConfirm(observacion, tipoDerivacion) 
   }
 
   return (
@@ -28,20 +31,61 @@ export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessi
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
         <h2 className="text-xl font-bold text-gray-900 mb-2">Derivar Caso a VRA</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Es obligatorio adjuntar el <strong>Informe Técnico</strong> de Dirgegen.
+          Selecciona el tipo de derivación y completa la observación obligatoria.
         </p>
 
         <form onSubmit={handleSubmit}>
+          {/* Selector de tipo de derivación VRA */}
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Tipo de Derivación a VRA *
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name="tipoDerivacion"
+                  value="vra_general"
+                  checked={tipoDerivacion === 'vra_general'}
+                  onChange={(e) => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                  className="mr-3 text-ubb-blue focus:ring-ubb-blue"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">VRA General</span>
+                  <p className="text-xs text-gray-500 mt-0.5">Derivación a Vicerrectoría Académica General</p>
+                </div>
+              </label>
+              <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  type="radio"
+                  name="tipoDerivacion"
+                  value="casos_clinicos"
+                  checked={tipoDerivacion === 'casos_clinicos'}
+                  onChange={(e) => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                  className="mr-3 text-ubb-blue focus:ring-ubb-blue"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Casos Clínicos</span>
+                  <p className="text-xs text-gray-500 mt-0.5">Derivación a área de Casos Clínicos</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Informe Técnico / Observación *
+            Observación *
           </label>
           <textarea
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-ubb-blue focus:ring-ubb-blue text-sm h-32 p-3 border"
-            placeholder="Escribe aquí las conclusiones técnicas..."
+            placeholder="Escribe aquí las observaciones y conclusiones técnicas para la derivación..."
             value={observacion}
             onChange={(e) => setObservacion(e.target.value)}
+            required
             autoFocus
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Este texto será incluido en la notificación enviada al receptor.
+          </p>
 
           <div className="mt-6 flex justify-end gap-3">
             <button

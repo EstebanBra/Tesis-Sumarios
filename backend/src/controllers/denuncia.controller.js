@@ -104,6 +104,7 @@ export async function createDenuncia(req, res, next) {
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : [],
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : [],
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : [],
+      victima: req.body.victima || undefined, // Datos de víctima externa si existe
       caracteristicasDenunciado: req.body.caracteristicasDenunciado ?? null,
       
       // Datos específicos para denuncias de campo clínico
@@ -124,12 +125,13 @@ export async function updateDenuncia(req, res, next) {
 
     const data = {
       Rut: req.body.Rut ? String(req.body.Rut).trim() : undefined,
-      ID_TipoDe: req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined,
-      ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
+      ID_TipoDe: req.body.nuevoTipoId ? Number(req.body.nuevoTipoId) : (req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined),
+      ID_EstadoDe: req.body.nuevoEstadoId ? Number(req.body.nuevoEstadoId) : (req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined),
       Fecha_Inicio: req.body.Fecha_Inicio, // Se parseará en el servicio para evitar problemas de zona horaria
       Fecha_Fin: req.body.Fecha_Fin || null, // Fecha fin del rango (opcional)
       Relato_Hechos: req.body.Relato_Hechos ? String(req.body.Relato_Hechos).trim() : undefined,
       Ubicacion: req.body.Ubicacion ?? undefined,
+      observacion: req.body.observacion ?? undefined,
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : undefined,
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : undefined,
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : undefined,
