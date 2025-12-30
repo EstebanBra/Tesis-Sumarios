@@ -36,13 +36,13 @@ export default function BandejaRevisor() {
     
     const idTipo = tipoDenuncia.ID_TipoDe || 0
     
-    // Serie 100: Género y Equidad (y derivaciones a Dirgegen que vienen de Género)
-    if (idTipo < 200 || idTipo === 303) {
+    // ID 100: Género y Equidad (y derivación 303 a Dirgegen)
+    if (idTipo === 100 || idTipo === 303) {
       return 'Género y Equidad'
     }
     
-    // Serie 200: Convivencia Estudiantil (y derivaciones a VRA que vienen de Convivencia)
-    if ((idTipo >= 200 && idTipo < 300) || idTipo === 301 || idTipo === 302) {
+    // ID 200: Convivencia Estudiantil (y derivaciones 301-302 a VRA)
+    if (idTipo === 200 || idTipo === 301 || idTipo === 302) {
       return 'Convivencia Estudiantil'
     }
     
@@ -54,16 +54,16 @@ export default function BandejaRevisor() {
     let denunciasFiltradas = denunciasCompletas
 
     if (filtroTipo === 'convivencia') {
-      // Serie 200: Convivencia Escolar o derivaciones VRA
+      // ID 200: Convivencia Estudiantil o derivaciones VRA (301-302)
       denunciasFiltradas = denunciasCompletas.filter(d => {
         const idTipo = d.tipo_denuncia?.ID_TipoDe || 0
-        return (idTipo >= 200 && idTipo < 300) || idTipo === 301 || idTipo === 302
+        return idTipo === 200 || idTipo === 301 || idTipo === 302
       })
     } else if (filtroTipo === 'genero') {
-      // Serie 100: Género/Dirgegen o derivación a Dirgegen
+      // ID 100: Género y Equidad o derivación a Dirgegen (303)
       denunciasFiltradas = denunciasCompletas.filter(d => {
         const idTipo = d.tipo_denuncia?.ID_TipoDe || 0
-        return idTipo < 200 || idTipo === 303
+        return idTipo === 100 || idTipo === 303
       })
     }
 

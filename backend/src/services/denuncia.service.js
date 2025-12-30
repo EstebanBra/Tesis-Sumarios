@@ -6,7 +6,15 @@ const includeFull = {
   tipo_denuncia: true,
   estado_denuncia: true,
   historial_estado: true,
-  denunciante: true, 
+  denunciante: {
+    include: {
+      participantes_caso: {
+        include: {
+          hitos: true // Incluir hitos para acceder a caracteristicasDenunciado
+        }
+      }
+    }
+  }, 
   datos_denunciados: { 
     include: { 
       persona: true // Incluir la relación con Persona si fue identificado
@@ -128,8 +136,37 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       },
     });
 
-    // 3️⃣ PARTICIPANTES (Denunciados + Testigos)
+    // 3️⃣ PARTICIPANTES (Denunciados + Testigos + Víctima Externa)
     const participantes = [];
+
+    // Agregar víctima externa como participante PRIMERO si existe y tiene RUT
+    // Esto es importante para que la víctima esté disponible en la lista de participantes
+    if (payload.victima && payload.victima.rut && typeof payload.victima.rut === 'string' && payload.victima.rut.trim().length > 0) {
+      // Crear o actualizar la persona víctima
+      const personaVictima = await tx.persona.upsert({
+        where: { Rut: payload.victima.rut.trim() },
+        update: {
+          Nombre: payload.victima.nombre || undefined,
+          Correo: payload.victima.correo || undefined,
+          Telefono: payload.victima.telefono || undefined,
+          genero: payload.victima.genero || undefined,
+        },
+        create: {
+          Rut: payload.victima.rut.trim(),
+          Nombre: payload.victima.nombre || "Sin nombre",
+          Correo: payload.victima.correo || "",
+          Telefono: payload.victima.telefono || "",
+          genero: payload.victima.genero || null,
+        }
+      });
+      
+      // Agregar víctima como participante
+      participantes.push({
+        ID_Denuncia: denuncia.ID_Denuncia,
+        ID_Persona: personaVictima.ID,
+        Nombre_PD: payload.victima.nombre || "Sin nombre",
+      });
+    }
 
     // Denunciados
     if (Array.isArray(payload.denunciados)) {
@@ -206,30 +243,33 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       }
     }
 
-    if (participantes.length) {
+    // Guardar todos los participantes (víctima + denunciados + testigos)
+    if (participantes.length > 0) {
       await tx.participante_Denuncia.createMany({ data: participantes });
     }
 
-    // 4️⃣ EVIDENCIAS
+    // 4️⃣ EVIDENCIAS Y CARACTERÍSTICAS
+    // IMPORTANTE: Siempre crear Participante_Caso para poder guardar caracteristicasDenunciado
+    // Esto es necesario incluso si no hay evidencias, para almacenar información de víctima
+    const pc = await tx.participante_Caso.create({
+      data: {
+        ID_Persona: denunciante.ID,  // Usamos ID en vez de Rut
+        Tipo_PC: "DENUNCIANTE",
+      },
+    });
+
+    // Siempre crear el hito para guardar caracteristicasDenunciado (información de víctima)
+    // Esto permite acceder a datos como "Denunciante es la víctima" o "Víctima: Nombre (RUT: ...)"
+    const hitoEvid = await tx.hitos.create({
+      data: {
+        ID_PC: pc.ID_PC,
+        Nombre: payload.caracteristicasDenunciado ? "Información Inicial" : "Evidencias Iniciales",
+        Descripcion: payload.caracteristicasDenunciado ?? "Adjuntos al crear denuncia",
+      },
+    });
+
+    // Guardar archivos solo si existen
     if (Array.isArray(payload.evidencias) && payload.evidencias.length) {
-      // a) Crear Participante_Caso temporal para vincular archivos
-      const pc = await tx.participante_Caso.create({
-        data: {
-          ID_Persona: denunciante.ID,  // Usamos ID en vez de Rut
-          Tipo_PC: "DENUNCIANTE",
-        },
-      });
-
-      // b) Hito de Evidencias
-      const hitoEvid = await tx.hitos.create({
-        data: {
-          ID_PC: pc.ID_PC,
-          Nombre: "Evidencias Iniciales",
-          Descripcion: payload.caracteristicasDenunciado ?? "Adjuntos al crear denuncia",
-        },
-      });
-
-      // c) Guardar Archivos
       const archivos = payload.evidencias
         .filter(e => e?.archivo)
         .map(e => ({ ID_Hitos: hitoEvid.ID_Hitos, Archivo: e.archivo }));
@@ -286,13 +326,13 @@ export async function updateDenunciaService(id, data) {
 
     // 1️⃣ Actualizar los campos base
     const updateData = {
-      ID_Denunciante: data.ID_Denunciante ?? prev.ID_Denunciante,
-      ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
-      ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
-      Fecha_Inicio: data.Fecha_Inicio ? parsearFecha(data.Fecha_Inicio) : prev.Fecha_Inicio,
-      Fecha_Fin: data.Fecha_Fin !== undefined ? parsearFecha(data.Fecha_Fin) : prev.Fecha_Fin,
-      Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
-      Ubicacion: data.Ubicacion ?? prev.Ubicacion,
+        ID_Denunciante: data.ID_Denunciante ?? prev.ID_Denunciante,
+        ID_TipoDe: data.ID_TipoDe ?? prev.ID_TipoDe,
+        ID_EstadoDe: data.ID_EstadoDe ?? prev.ID_EstadoDe,
+        Fecha_Inicio: data.Fecha_Inicio ? parsearFecha(data.Fecha_Inicio) : prev.Fecha_Inicio,
+        Fecha_Fin: data.Fecha_Fin !== undefined ? parsearFecha(data.Fecha_Fin) : prev.Fecha_Fin,
+        Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
+        Ubicacion: data.Ubicacion ?? prev.Ubicacion,
     };
     
     // Si se proporciona observación, actualizar observacionDirgegen

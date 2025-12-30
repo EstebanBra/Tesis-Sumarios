@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById } from '@/services/denuncias.api'
 import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunciadoModal'
+import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
+import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import { useAuth } from '@/context/AuthContext'
 
 export default function DetalleRevisor() {
@@ -13,6 +15,10 @@ export default function DetalleRevisor() {
   const [loading, setLoading] = useState(true)
   const [showIdentificarModal, setShowIdentificarModal] = useState(false)
   const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string } | null>(null)
+  const [selectedDenunciado, setSelectedDenunciado] = useState<any | null>(null)
+  const [showModalDenunciado, setShowModalDenunciado] = useState(false)
+  const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
+  const [showModalTestigo, setShowModalTestigo] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -94,11 +100,64 @@ export default function DetalleRevisor() {
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
   
 
-  // Datos Víctima
-  const victimaNombre = getProp(denuncia, 'VictimaNombre', 'victimaNombre');
-  const victimaRut = getProp(denuncia, 'VictimaRut', 'victimaRut');
-  const esVictima = getProp(denuncia, 'EsVictima', 'esVictima');
-  const victimaMenor = getProp(denuncia, 'VictimaMenor', 'victimaMenor');
+    // Determinar si el denunciante es la víctima buscando en los hitos
+    let esVictima = false;
+    let victimaMenor = false;
+    
+    if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+      for (const pc of denuncia.denunciante.participantes_caso) {
+        if (pc.hitos && Array.isArray(pc.hitos)) {
+          for (const hito of pc.hitos) {
+            if (hito.Descripcion && typeof hito.Descripcion === 'string') {
+              const desc = hito.Descripcion;
+              if (desc.includes('Denunciante es la víctima')) {
+                esVictima = true;
+              }
+              if (desc.includes('Víctima es menor de edad') || desc.toLowerCase().includes('menor de edad')) {
+                victimaMenor = true;
+              }
+              if (esVictima && victimaMenor) break;
+            }
+          }
+          if (esVictima && victimaMenor) break;
+        }
+      }
+    }
+    
+    // Si no es víctima, buscar víctima externa en participantes
+    let victimaExterna: any = null;
+    const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
+    
+    if (!esVictima) {
+      victimaExterna = todosParticipantes.find((p: any) => {
+        return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+      });
+    }
+
+    // Datos finales para mostrar
+    const nombreVictima = esVictima 
+      ? nombreCompletoDenunciante
+      : (victimaExterna?.persona?.Nombre || 'No identificado');
+    
+    const rutVictima = esVictima
+      ? rutDenunciante
+      : (victimaExterna?.persona?.Rut || null);
+    
+    const correoVictima = esVictima
+      ? correoDenunciante
+      : (victimaExterna?.persona?.Correo || null);
+    
+    const telefonoVictima = esVictima
+      ? telefonoDenunciante
+      : (victimaExterna?.persona?.Telefono || null);
+    
+    const generoVictima = esVictima
+      ? generoDenunciante
+      : (victimaExterna?.persona?.genero || null);
+    
+    const sexoVictima = esVictima
+      ? null
+      : (victimaExterna?.persona?.sexo || null);
 
   // Verificar si la denuncia fue derivada y tiene observación
   const observacionDerivacion = denuncia.observacionDirgegen;
@@ -186,11 +245,21 @@ export default function DetalleRevisor() {
               {listaInvolucrados.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {listaInvolucrados.map((inv: any, idx: number) => {
-                    const nombreCompleto = (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
+                    // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
+                    const nombreCompleto = inv.persona?.Nombre 
+                      ? inv.persona.Nombre.trim()
+                      : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
                     const estaIdentificado = !!(inv.ID_Persona || inv.persona)
                     
                     return (
-                      <div key={idx} className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm">
+                      <div 
+                        key={idx} 
+                        className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-orange-50 hover:border-orange-300 transition-all"
+                        onClick={() => {
+                          setSelectedDenunciado(inv)
+                          setShowModalDenunciado(true)
+                        }}
+                      >
                         <div className="flex justify-between items-start">
                           <div className="w-full">
                             <div className="flex items-center gap-2 mb-1">
@@ -238,7 +307,8 @@ export default function DetalleRevisor() {
                         {!estaIdentificado && (
                           <div className="mt-3 pt-3 border-t border-orange-100">
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation() // Prevenir que se abra el modal de detalles
                                 setDenunciadoAIdentificar({ id: inv.ID_Datos || inv.id, nombre: nombreCompleto })
                                 setShowIdentificarModal(true)
                               }}
@@ -275,7 +345,14 @@ export default function DetalleRevisor() {
               {listaTestigos.length > 0 ? (
                 <ul className="space-y-3">
                   {listaTestigos.map((t: any, idx: number) => (
-                    <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
+                    <li 
+                      key={idx} 
+                      className="text-sm border-b border-gray-100 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 hover:px-2 hover:-mx-2 rounded transition-all"
+                      onClick={() => {
+                        setSelectedTestigo(t)
+                        setShowModalTestigo(true)
+                      }}
+                    >
                       <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
                       <span className="text-xs text-gray-500 block mt-0.5">
                         {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
@@ -368,29 +445,95 @@ export default function DetalleRevisor() {
           </div>
 
           {/* CARD: VÍCTIMA */}
-          <div className={`rounded-xl shadow-sm border overflow-hidden ${(victimaMenor === 'si' || victimaMenor === true) ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
-            <div className={`px-5 py-3 border-b flex justify-between items-center ${(victimaMenor === 'si' || victimaMenor === true) ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-              <h3 className={`font-bold text-sm ${(victimaMenor === 'si' || victimaMenor === true) ? 'text-red-800' : 'text-gray-800'}`}>
+          <div className={`rounded-xl shadow-sm border overflow-hidden ${victimaMenor ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+            <div className={`px-5 py-3 border-b flex justify-between items-center ${victimaMenor ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+              <h3 className={`font-bold text-sm ${victimaMenor ? 'text-red-800' : 'text-gray-800'}`}>
                 🛡️ Datos de la Víctima
               </h3>
-              {(victimaMenor === 'si' || victimaMenor === true) && (
+              {victimaMenor && (
                 <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-1 rounded shadow-sm">
                   MENOR DE EDAD
                 </span>
               )}
             </div>
-            <div className="p-5 text-sm space-y-3">
-              {((esVictima === 'si' || esVictima === true) && !(denuncia.anonimo)) ? (
-                <div className="bg-white/50 p-3 rounded text-center text-gray-600 italic text-xs border border-gray-100">
-                  El denunciante declara ser la víctima.
-                </div>
-              ) : (
+            <div className="p-5 text-sm space-y-4">
+              {esVictima && !(denuncia.anonimo || denuncia.Anonimo) ? (
+                // Caso A: El Denunciante ES la Víctima
                 <>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Víctima</label>
-                    <p className="font-medium text-gray-900">{victimaNombre || 'No identificado'}</p>
-                    <p className="text-xs text-gray-500">{victimaRut}</p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-blue-800 font-semibold">
+                      ℹ️ El denunciante declara ser la víctima.
+                    </p>
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
+                      <p className="font-medium text-gray-900">{nombreVictima || 'No disponible'}</p>
+                      {rutVictima && (
+                        <p className="text-xs text-gray-500 font-mono mt-1">{rutVictima}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                      <p className="font-mono text-sm font-medium text-gray-900">{rutVictima || 'No disponible'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Correo Electrónico</label>
+                      <p className="text-gray-700 break-words">{correoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Teléfono</label>
+                      <p className="text-gray-700">{telefonoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Género</label>
+                      <p className="text-gray-700">{generoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo</label>
+                      <p className="text-gray-700">{sexoVictima || 'No informado'}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Caso B: El Denunciante NO es la Víctima (Víctima Externa)
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
+                      <p className="font-medium text-gray-900">{nombreVictima || 'No identificado'}</p>
+                      {rutVictima && (
+                        <p className="text-xs text-gray-500 font-mono mt-1">{rutVictima}</p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                      <p className="font-mono text-sm font-medium text-gray-900">{rutVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Correo Electrónico</label>
+                      <p className="text-gray-700 break-words">{correoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Teléfono</label>
+                      <p className="text-gray-700">{telefonoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Género</label>
+                      <p className="text-gray-700">{generoVictima || 'No informado'}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo</label>
+                      <p className="text-gray-700">{sexoVictima || 'No informado'}</p>
+                    </div>
+                  </div>
+                  {!rutVictima && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                      <p className="text-xs text-yellow-800">
+                        ⚠️ <strong>Nota:</strong> La víctima aún no ha sido completamente identificada en el sistema.
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -428,13 +571,35 @@ export default function DetalleRevisor() {
             setDenunciadoAIdentificar(null)
           }}
           onSuccess={() => {
-            cargarDatos()
+            // Cerrar el modal de identificación primero
+            setShowIdentificarModal(false)
             setDenunciadoAIdentificar(null)
+            // Recargar datos sin abrir el modal de detalles
+            cargarDatos()
           }}
           idDatosDenunciado={denunciadoAIdentificar.id}
           nombreActual={denunciadoAIdentificar.nombre}
         />
       )}
+
+      {/* Modales de Detalle */}
+      <ModalDetalleDenunciado
+        isOpen={showModalDenunciado}
+        onClose={() => {
+          setShowModalDenunciado(false)
+          setSelectedDenunciado(null)
+        }}
+        denunciado={selectedDenunciado}
+      />
+
+      <ModalDetalleTestigo
+        isOpen={showModalTestigo}
+        onClose={() => {
+          setShowModalTestigo(false)
+          setSelectedTestigo(null)
+        }}
+        testigo={selectedTestigo}
+      />
     </section>
   )
 }

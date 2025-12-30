@@ -5,6 +5,8 @@ import { useAuth } from '@/context/AuthContext'
 import DerivacionAutoridadModal, { type DestinoDerivacion } from './components/DerivacionAutoridadModal'
 import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
 import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
+import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
+import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -17,6 +19,10 @@ export default function DetalleAutoridad() {
     const [showDerivacion, setShowDerivacion] = useState(false)
     const [showInstruirInvestigacion, setShowInstruirInvestigacion] = useState(false)
     const [processing, setProcessing] = useState(false)
+    const [selectedDenunciado, setSelectedDenunciado] = useState<any | null>(null)
+    const [showModalDenunciado, setShowModalDenunciado] = useState(false)
+    const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
+    const [showModalTestigo, setShowModalTestigo] = useState(false)
 
     // Determinar autoridad actual
     const autoridadActual = (hasRole('VRA') ? 'VRA' : 'VRAE') as 'VRA' | 'VRAE'
@@ -143,11 +149,64 @@ export default function DetalleAutoridad() {
     const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
     
 
-    // Datos Víctima
-    const victimaNombre = getProp(denuncia, 'VictimaNombre', 'victimaNombre');
-    const victimaRut = getProp(denuncia, 'VictimaRut', 'victimaRut');
-    const esVictima = getProp(denuncia, 'EsVictima', 'esVictima');
-    const victimaMenor = getProp(denuncia, 'VictimaMenor', 'victimaMenor');
+    // Determinar si el denunciante es la víctima buscando en los hitos
+    let esVictima = false;
+    let victimaMenor = false;
+    
+    if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+      for (const pc of denuncia.denunciante.participantes_caso) {
+        if (pc.hitos && Array.isArray(pc.hitos)) {
+          for (const hito of pc.hitos) {
+            if (hito.Descripcion && typeof hito.Descripcion === 'string') {
+              const desc = hito.Descripcion;
+              if (desc.includes('Denunciante es la víctima')) {
+                esVictima = true;
+              }
+              if (desc.includes('Víctima es menor de edad') || desc.toLowerCase().includes('menor de edad')) {
+                victimaMenor = true;
+              }
+              if (esVictima && victimaMenor) break;
+            }
+          }
+          if (esVictima && victimaMenor) break;
+        }
+      }
+    }
+    
+    // Si no es víctima, buscar víctima externa en participantes
+    let victimaExterna: any = null;
+    const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
+    
+    if (!esVictima) {
+      victimaExterna = todosParticipantes.find((p: any) => {
+        return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+      });
+    }
+
+    // Datos finales para mostrar
+    const nombreVictima = esVictima 
+      ? nombreCompletoDenunciante
+      : (victimaExterna?.persona?.Nombre || 'No identificado');
+    
+    const rutVictima = esVictima
+      ? rutDenunciante
+      : (victimaExterna?.persona?.Rut || null);
+    
+    const correoVictima = esVictima
+      ? correoDenunciante
+      : (victimaExterna?.persona?.Correo || null);
+    
+    const telefonoVictima = esVictima
+      ? telefonoDenunciante
+      : (victimaExterna?.persona?.Telefono || null);
+    
+    const generoVictima = esVictima
+      ? generoDenunciante
+      : (victimaExterna?.persona?.genero || null);
+    
+    const sexoVictima = esVictima
+      ? null
+      : (victimaExterna?.persona?.sexo || null);
 
     // Verificar si la denuncia fue derivada y tiene observación
     const observacionDerivacion = denuncia.observacionDirgegen;
@@ -267,7 +326,7 @@ export default function DetalleAutoridad() {
                         <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
                             {relatoCaso}
                         </div>
-                    </div>
+                </div>
 
                     {/* 2. PERSONAS DENUNCIADAS */}
                     <div className="bg-white rounded-xl shadow-sm border border-orange-200 overflow-hidden">
@@ -281,11 +340,21 @@ export default function DetalleAutoridad() {
                             {listaInvolucrados.length > 0 ? (
                                 <div className="grid grid-cols-1 gap-4">
                                     {listaInvolucrados.map((inv: any, idx: number) => {
-                                        const nombreCompleto = (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
+                                        // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
+                                        const nombreCompleto = inv.persona?.Nombre 
+                                          ? inv.persona.Nombre.trim()
+                                          : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
                                         const estaIdentificado = !!(inv.ID_Persona || inv.persona)
                                         
                                         return (
-                                            <div key={idx} className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm">
+                                            <div 
+                                                key={idx} 
+                                                className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-orange-50 hover:border-orange-300 transition-all"
+                                                onClick={() => {
+                                                    setSelectedDenunciado(inv)
+                                                    setShowModalDenunciado(true)
+                                                }}
+                                            >
                                                 <div className="flex justify-between items-start">
                                                     <div className="w-full">
                                                         <div className="flex items-center gap-2 mb-1">
@@ -355,7 +424,14 @@ export default function DetalleAutoridad() {
                             {listaTestigos.length > 0 ? (
                                 <ul className="space-y-3">
                                     {listaTestigos.map((t: any, idx: number) => (
-                                        <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
+                                        <li 
+                                            key={idx} 
+                                            className="text-sm border-b border-gray-100 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 hover:px-2 hover:-mx-2 rounded transition-all"
+                                            onClick={() => {
+                                                setSelectedTestigo(t)
+                                                setShowModalTestigo(true)
+                                            }}
+                                        >
                                             <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
                                             <span className="text-xs text-gray-500 block mt-0.5">
                                                 {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
@@ -384,8 +460,8 @@ export default function DetalleAutoridad() {
                                 <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
                             )}
                         </div>
+                        </div>
                     </div>
-                </div>
 
                 {/* COLUMNA DERECHA (4) */}
                 <div className="lg:col-span-4 space-y-6">
@@ -407,7 +483,7 @@ export default function DetalleAutoridad() {
                                 </div>
                             ) : (
                                 <>
-                                    <div>
+                    <div>
                                         <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
                                         <p className="font-medium text-gray-900">{nombreCompletoDenunciante || 'No especificado'}</p>
                                         {rutDenunciante && (
@@ -448,34 +524,100 @@ export default function DetalleAutoridad() {
                     </div>
 
                     {/* CARD: VÍCTIMA */}
-                    <div className={`rounded-xl shadow-sm border overflow-hidden ${(victimaMenor === 'si' || victimaMenor === true) ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
-                        <div className={`px-5 py-3 border-b flex justify-between items-center ${(victimaMenor === 'si' || victimaMenor === true) ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-                            <h3 className={`font-bold text-sm ${(victimaMenor === 'si' || victimaMenor === true) ? 'text-red-800' : 'text-gray-800'}`}>
+                    <div className={`rounded-xl shadow-sm border overflow-hidden ${victimaMenor ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                        <div className={`px-5 py-3 border-b flex justify-between items-center ${victimaMenor ? 'bg-red-100 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                            <h3 className={`font-bold text-sm ${victimaMenor ? 'text-red-800' : 'text-gray-800'}`}>
                                 🛡️ Datos de la Víctima
                             </h3>
-                            {(victimaMenor === 'si' || victimaMenor === true) && (
+                            {victimaMenor && (
                                 <span className="text-[10px] font-bold bg-red-600 text-white px-2 py-1 rounded shadow-sm">
                                     MENOR DE EDAD
                                 </span>
                             )}
                         </div>
-                        <div className="p-5 text-sm space-y-3">
-                            {((esVictima === 'si' || esVictima === true) && !(denuncia.anonimo)) ? (
-                                <div className="bg-white/50 p-3 rounded text-center text-gray-600 italic text-xs border border-gray-100">
-                                    El denunciante declara ser la víctima.
-                                </div>
-                            ) : (
+                        <div className="p-5 text-sm space-y-4">
+                            {esVictima && !(denuncia.anonimo || denuncia.Anonimo) ? (
+                                // Caso A: El Denunciante ES la Víctima
                                 <>
-                                    <div>
-                                        <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Víctima</label>
-                                        <p className="font-medium text-gray-900">{victimaNombre || 'No identificado'}</p>
-                                        <p className="text-xs text-gray-500">{victimaRut}</p>
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                                        <p className="text-xs text-blue-800 font-semibold">
+                                            ℹ️ El denunciante declara ser la víctima.
+                                        </p>
                                     </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
+                                            <p className="font-medium text-gray-900">{nombreVictima || 'No disponible'}</p>
+                                            {rutVictima && (
+                                                <p className="text-xs text-gray-500 font-mono mt-1">{rutVictima}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                                            <p className="font-mono text-sm font-medium text-gray-900">{rutVictima || 'No disponible'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Correo Electrónico</label>
+                                            <p className="text-gray-700 break-words">{correoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Teléfono</label>
+                                            <p className="text-gray-700">{telefonoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Género</label>
+                                            <p className="text-gray-700">{generoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo</label>
+                                            <p className="text-gray-700">{sexoVictima || 'No informado'}</p>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                // Caso B: El Denunciante NO es la Víctima (Víctima Externa)
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Nombre Completo</label>
+                                            <p className="font-medium text-gray-900">{nombreVictima || 'No identificado'}</p>
+                                            {rutVictima && (
+                                                <p className="text-xs text-gray-500 font-mono mt-1">{rutVictima}</p>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                                            <p className="font-mono text-sm font-medium text-gray-900">{rutVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Correo Electrónico</label>
+                                            <p className="text-gray-700 break-words">{correoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Teléfono</label>
+                                            <p className="text-gray-700">{telefonoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Género</label>
+                                            <p className="text-gray-700">{generoVictima || 'No informado'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo</label>
+                                            <p className="text-gray-700">{sexoVictima || 'No informado'}</p>
+                                        </div>
+                                    </div>
+                                    {!rutVictima && (
+                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
+                                            <p className="text-xs text-yellow-800">
+                                                ⚠️ <strong>Nota:</strong> La víctima aún no ha sido completamente identificada en el sistema.
+                                            </p>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
                     </div>
-                    
+
                     {/* Ubicación */}
                     {denuncia.Ubicacion && (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -484,61 +626,61 @@ export default function DetalleAutoridad() {
                         </div>
                     )}
                 </div>
-            </div>
-            
+                </div>
+
             {/* --- FOOTER --- */}
             <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-end items-center gap-4 rounded-b-xl mt-6">
-                
-                {/* Botón 1: Solicitar Recomendación a Fiscalía */}
-                <button
-                    onClick={() => setShowSolicitudFiscalia(true)}
-                    className="px-4 py-2 bg-ubb-blue border border-ubb-blue text-white rounded-md text-sm font-bold hover:bg-blue-900 shadow-sm transition-colors flex items-center justify-center gap-2"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-                    </svg>
-                    Solicitar Recomendación a Fiscalía
-                </button>
 
-                {/* Botón 2: Derivar a Otra Autoridad */}
-                <button
-                    onClick={() => setShowDerivacion(true)}
-                    className="px-4 py-2 bg-white border border-orange-500 text-orange-600 rounded-md text-sm font-bold hover:bg-orange-50 shadow-sm flex items-center justify-center gap-2 transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
-                    </svg>
-                    Derivar a Otra Autoridad
-                </button>
-
-                {/* Botón 3: Instruir Investigación Sumaria (Condicional) */}
-                <div className="relative group">
+                    {/* Botón 1: Solicitar Recomendación a Fiscalía */}
                     <button
-                        onClick={() => puedeInstruirInvestigacion && setShowInstruirInvestigacion(true)}
-                        disabled={!puedeInstruirInvestigacion}
-                        className={`px-4 py-2 rounded-md text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition-colors
-                ${puedeInstruirInvestigacion
-                            ? 'bg-green-600 text-white hover:bg-green-700 border border-green-600'
-                            : 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'}`}
+                        onClick={() => setShowSolicitudFiscalia(true)}
+                        className="px-4 py-2 bg-ubb-blue border border-ubb-blue text-white rounded-md text-sm font-bold hover:bg-blue-900 shadow-sm transition-colors flex items-center justify-center gap-2"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                         </svg>
-                        Instruir Investigación Sumaria
+                        Solicitar Recomendación a Fiscalía
                     </button>
 
-                    {/* Tooltip cuando está deshabilitado */}
-                    {!puedeInstruirInvestigacion && (
-                        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 hidden group-hover:block z-10">
-                            <div className="bg-gray-800 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
-                                Pendiente de recomendación de Fiscalía
-                                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                    {/* Botón 2: Derivar a Otra Autoridad */}
+                    <button
+                        onClick={() => setShowDerivacion(true)}
+                        className="px-4 py-2 bg-white border border-orange-500 text-orange-600 rounded-md text-sm font-bold hover:bg-orange-50 shadow-sm flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
+                        </svg>
+                        Derivar a Otra Autoridad
+                    </button>
+
+                    {/* Botón 3: Instruir Investigación Sumaria (Condicional) */}
+                    <div className="relative group">
+                        <button
+                            onClick={() => puedeInstruirInvestigacion && setShowInstruirInvestigacion(true)}
+                            disabled={!puedeInstruirInvestigacion}
+                            className={`px-4 py-2 rounded-md text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition-colors
+                ${puedeInstruirInvestigacion
+                                    ? 'bg-green-600 text-white hover:bg-green-700 border border-green-600'
+                                    : 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                            </svg>
+                            Instruir Investigación Sumaria
+                        </button>
+
+                        {/* Tooltip cuando está deshabilitado */}
+                        {!puedeInstruirInvestigacion && (
+                            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 hidden group-hover:block z-10">
+                                <div className="bg-gray-800 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
+                                    Pendiente de recomendación de Fiscalía
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
 
             <div className="flex justify-start pt-2"> 
                 <button onClick={() => navigate('/autoridad/bandeja')} className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">
@@ -567,6 +709,25 @@ export default function DetalleAutoridad() {
                 onClose={() => setShowInstruirInvestigacion(false)}
                 onConfirm={handleInstruirInvestigacion}
                 isProcessing={processing}
+            />
+
+            {/* Modales de Detalle */}
+            <ModalDetalleDenunciado
+                isOpen={showModalDenunciado}
+                onClose={() => {
+                    setShowModalDenunciado(false)
+                    setSelectedDenunciado(null)
+                }}
+                denunciado={selectedDenunciado}
+            />
+
+            <ModalDetalleTestigo
+                isOpen={showModalTestigo}
+                onClose={() => {
+                    setShowModalTestigo(false)
+                    setSelectedTestigo(null)
+                }}
+                testigo={selectedTestigo}
             />
         </section>
     )

@@ -200,12 +200,17 @@ export async function identificarDenunciadoService(idDatosDenunciado, datosPerso
     });
 
     // 4️⃣ Actualizar Datos_Denunciado con el ID_Persona identificado
+    // Si se proporciona un nombre nuevo, actualizamos Nombre_Ingresado para reflejar el nombre real
     await tx.datos_Denunciado.update({
       where: { ID_Datos: Number(idDatosDenunciado) },
       data: {
         ID_Persona: persona.ID, // Vincular con la persona identificada
-        // Mantenemos Nombre_Ingresado y Descripcion originales (historial)
-        // Solo actualizamos la vinculación con Persona
+        // Si se proporciona un nombre nuevo, actualizamos Nombre_Ingresado
+        ...(datosPersona.Nombre && datosPersona.Nombre.trim() 
+          ? { Nombre_Ingresado: datosPersona.Nombre.trim() }
+          : {}
+        )
+        // Mantenemos Descripcion original (historial)
       }
     });
 

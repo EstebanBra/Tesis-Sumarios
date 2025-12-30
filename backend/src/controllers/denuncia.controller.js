@@ -89,6 +89,7 @@ export async function createDenuncia(req, res, next) {
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : [],
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : [],
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : [],
+      victima: req.body.victima || undefined, // Datos de víctima externa si existe
       caracteristicasDenunciado: req.body.caracteristicasDenunciado ?? null,
     };
 

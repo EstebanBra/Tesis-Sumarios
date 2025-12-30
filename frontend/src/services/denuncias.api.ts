@@ -49,6 +49,14 @@ export type CrearDenunciaInput = {
   ID_EstadoDe?: number
   denunciados?: DenuncianteParticipante[]
   testigos?: DenuncianteParticipante[]
+  victima?: {
+    nombre: string
+    rut: string
+    correo?: string
+    telefono?: string
+    genero?: string
+    sexo?: string
+  }
   evidencias?: EvidenciaInput[]
   caracteristicasDenunciado?: string | null
 }
