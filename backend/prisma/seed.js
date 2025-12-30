@@ -51,6 +51,12 @@ export async function runInitialSetup() {
     { id: 210, area: 'Convivencia Estudiantil', nombre: 'Discriminación / Ofensa (General)', descripcion: 'Insultos o discriminación no basada en género (raza, religión, etc).' },
     { id: 299, area: 'Convivencia Estudiantil', nombre: 'Otro motivo (Convivencia)', descripcion: 'Situación de convivencia no clasificada.' },
 
+    // --- DERIVACIONES A VRA ---
+    { id: 301, area: 'VRA', nombre: 'VRA General', descripcion: 'Derivación a Vicerrectoría Académica General.' },
+    { id: 302, area: 'VRA', nombre: 'Casos Clínicos', descripcion: 'Derivación a área de Casos Clínicos de VRA.' },
+    // --- DERIVACIONES A DIRGEGEN ---
+    { id: 303, area: 'Dirgegen', nombre: 'Derivación a Dirgegen', descripcion: 'Derivación desde VRA hacia Dirección de Género y Equidad.' },
+
   ]
 
   console.log('... Insertando Tipos Detallados')

@@ -22,7 +22,9 @@ export const updateDenunciaRules = [
   param("id").isInt({ min: 1 }),
   body("Rut").optional().isString().trim().notEmpty(),
   body("ID_TipoDe").optional().isInt({ min: 1 }),
+  body("nuevoTipoId").optional().isInt({ min: 1 }), // Para gestión/derivación
   body("ID_EstadoDe").optional().isInt({ min: 1 }),
+  body("nuevoEstadoId").optional().isInt({ min: 1 }), // Para gestión/derivación
   body("Fecha_Inicio").optional().isISO8601(),
   body("Fecha_Fin")
     .optional({ nullable: true, checkFalsy: true })
@@ -33,6 +35,7 @@ export const updateDenunciaRules = [
     .withMessage("Fecha_Fin debe ser una fecha válida en formato ISO8601"),
   body("Relato_Hechos").optional().isString().trim().notEmpty(),
   body("Ubicacion").optional().isString().isLength({ max: 200 }),
+  body("observacion").optional().isString(),
 ];
 
 export const idParamRule = [param("id").isInt({ min: 1 })];

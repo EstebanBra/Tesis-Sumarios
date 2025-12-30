@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById, gestionarDenuncia, type SolicitudMedida } from '@/services/denuncias.api'
-import DerivacionModal from "@/pages/Denuncias/components/Derivacion"
+import DerivacionModal, { type TipoDerivacionVRA } from "@/pages/Denuncias/components/Derivacion"
 import InformeTecnicoModal from './components/InformeTecnicoModal'
 import IdentificarDenunciadoModal from './components/IdentificarDenunciadoModal'
 import { useAuth } from '@/context/AuthContext'
@@ -36,14 +36,26 @@ export default function DetalleDirgegen() {
     }
   }
 
-  const handleDerivacionConfirm = async (observacion: string) => {
+  const handleDerivacionConfirm = async (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => {
     if (!denuncia) return
     try {
       setProcessing(true)
       const idDenuncia = denuncia.ID_Denuncia || denuncia.id;
-      await gestionarDenuncia(idDenuncia, { observacion, nuevoEstadoId: 3 })
+      
+      // Mapear tipo de derivación a nuevoTipoId
+      // 301 = VRA General, 302 = Casos Clínicos
+      const nuevoTipoId = tipoDerivacion === 'casos_clinicos' ? 302 : 301;
+      
+      await gestionarDenuncia(idDenuncia, { 
+        observacion, 
+        nuevoEstadoId: 3,
+        nuevoTipoId 
+      })
       setShowModal(false)
-      alert('Denuncia derivada exitosamente a VRA.')
+      const mensaje = tipoDerivacion === 'casos_clinicos' 
+        ? 'Denuncia derivada exitosamente a Casos Clínicos.'
+        : 'Denuncia derivada exitosamente a VRA General.'
+      alert(mensaje)
       navigate('/dirgegen/bandeja')
     } catch (error) {
       console.error(error)
@@ -131,6 +143,27 @@ export default function DetalleDirgegen() {
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
       
+      {/* --- BANNER DE OBSERVACIÓN DE DERIVACIÓN (si fue derivada) --- */}
+      {(denuncia.tipo_denuncia?.ID_TipoDe === 301 || denuncia.tipo_denuncia?.ID_TipoDe === 302 || denuncia.tipo_denuncia?.ID_TipoDe === 303) && denuncia.observacionDirgegen && (
+        <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-blue-900 mb-1">
+                Esta denuncia fue derivada a {denuncia.tipo_denuncia?.Nombre || 'VRA'}
+              </h3>
+              <p className="text-sm text-blue-800">
+                <strong>Observación de derivación:</strong> {denuncia.observacionDirgegen}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- ALERTAS --- */}
       <div className="space-y-4">
         {solicitudesDeMedida.length > 0 && (

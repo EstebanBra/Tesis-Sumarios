@@ -106,11 +106,12 @@ export async function updateDenuncia(req, res, next) {
 
     const data = {
       Rut: req.body.Rut ? String(req.body.Rut).trim() : undefined,
-      ID_TipoDe: req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined,
-      ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
+      ID_TipoDe: req.body.nuevoTipoId ? Number(req.body.nuevoTipoId) : (req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined),
+      ID_EstadoDe: req.body.nuevoEstadoId ? Number(req.body.nuevoEstadoId) : (req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined),
       Fecha_Inicio: req.body.Fecha_Inicio ? new Date(req.body.Fecha_Inicio) : undefined,
       Relato_Hechos: req.body.Relato_Hechos ? String(req.body.Relato_Hechos).trim() : undefined,
       Ubicacion: req.body.Ubicacion ?? undefined,
+      observacion: req.body.observacion ?? undefined,
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : undefined,
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : undefined,
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : undefined,
