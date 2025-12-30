@@ -58,6 +58,16 @@ export default function Header() {
             Mis denuncias
           </Link>
 
+          {/* Enlace para Revisor */}
+          {(hasRole('REVISOR') || hasRole('Revisor')) && (
+            <Link
+              to="/revisor/bandeja"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Bandeja de Denuncias
+            </Link>
+          )}
+
           {/* Enlace para Dirgegen */}
           {hasRole('Dirgegen') && (
             <Link

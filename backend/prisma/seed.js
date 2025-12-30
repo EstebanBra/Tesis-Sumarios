@@ -30,26 +30,15 @@ export async function runInitialSetup() {
   // y el campo 'Descripcion' agregado en el schema.prisma.
 
   const tiposDenunciaData = [
-    // --- GÉNERO Y EQUIDAD (Protocolo DUE 4560) ---
-    { id: 101, area: 'Género y Equidad', nombre: 'Acoso Sexual', descripcion: 'Requerimientos de carácter sexual no consentidos.' },
-    { id: 102, area: 'Género y Equidad', nombre: 'Violencia de Género (Física/Psicológica)', descripcion: 'Cualquier acción basada en género que cause daño.' },
-    { id: 103, area: 'Género y Equidad', nombre: 'Violencia Digital / Ciberacoso', descripcion: 'Acoso o difamación a través de medios digitales.' },
-    { id: 104, area: 'Género y Equidad', nombre: 'Discriminación por Género', descripcion: 'Exclusión o menoscabo por identidad u orientación.' },
-    { id: 105, area: 'Género y Equidad', nombre: 'Acoso Laboral', descripcion: 'Hostigamiento reiterado en contexto laboral/académico.' },
-    { id: 199, area: 'Género y Equidad', nombre: 'Otro motivo (Género)', descripcion: 'Situación de género no clasificada.' },
+    // --- TIPOS GENERALES POR ÁREA (sin subtipos) ---
+    { id: 100, area: 'Género y Equidad', nombre: 'Género y Equidad', descripcion: 'Denuncias relacionadas con Protocolo de Género y Equidad (DUE 4560).' },
+    { id: 200, area: 'Convivencia Estudiantil', nombre: 'Convivencia Estudiantil', descripcion: 'Denuncias relacionadas con Reglamento de Convivencia Estudiantil (DUE 5415).' },
 
-    // --- CONVIVENCIA ESTUDIANTIL (Reglamento DUE 5415) ---
-    { id: 201, area: 'Convivencia Estudiantil', nombre: 'Agresión o Pelea (No género)', descripcion: 'Golpes, empujones o insultos graves por conflictos.' },
-    { id: 202, area: 'Convivencia Estudiantil', nombre: 'Drogas: Consumo/Porte', descripcion: 'Presión al consumo o riesgo por estado bajo influencia.' },
-    { id: 203, area: 'Convivencia Estudiantil', nombre: 'Drogas: Tráfico/Elaboración', descripcion: 'Uso de recintos para elaboración o venta.' },
-    { id: 204, area: 'Convivencia Estudiantil', nombre: 'Plagio o Fraude Académico', descripcion: 'Presentar trabajo de terceros o copiar en evaluaciones.' },
-    { id: 205, area: 'Convivencia Estudiantil', nombre: 'Suplantación de Identidad', descripcion: 'Hacerse pasar por otra persona en pruebas o trámites.' },
-    { id: 206, area: 'Convivencia Estudiantil', nombre: 'Daños o Robos', descripcion: 'Destrucción de bienes de la U o de compañeros.' },
-    { id: 207, area: 'Convivencia Estudiantil', nombre: 'Maltrato Animal', descripcion: 'Agresión a animales en campus.' },
-    { id: 208, area: 'Convivencia Estudiantil', nombre: 'Falsificación de Documentos', descripcion: 'Adulteración de certificados o documentos oficiales.' },
-    { id: 209, area: 'Convivencia Estudiantil', nombre: 'Uso de Elementos Peligrosos', descripcion: 'Porte de armas o elementos para dañar.' },
-    { id: 210, area: 'Convivencia Estudiantil', nombre: 'Discriminación / Ofensa (General)', descripcion: 'Insultos o discriminación no basada en género (raza, religión, etc).' },
-    { id: 299, area: 'Convivencia Estudiantil', nombre: 'Otro motivo (Convivencia)', descripcion: 'Situación de convivencia no clasificada.' },
+    // --- DERIVACIONES A VRA ---
+    { id: 301, area: 'VRA', nombre: 'VRA General', descripcion: 'Derivación a Vicerrectoría Académica General.' },
+    { id: 302, area: 'VRA', nombre: 'Casos Clínicos', descripcion: 'Derivación a área de Casos Clínicos de VRA.' },
+    // --- DERIVACIONES A DIRGEGEN ---
+    { id: 303, area: 'Dirgegen', nombre: 'Derivación a Dirgegen', descripcion: 'Derivación desde VRA hacia Dirección de Género y Equidad.' },
 
   ]
 
@@ -123,6 +112,14 @@ export async function runInitialSetup() {
       Telefono: '+56944444444',
       password: passwordHash,
       roles: ['Fiscalia']
+    },
+    {
+      Rut: '55555555-5',
+      Nombre: 'Usuario Revisor',
+      Correo: 'revisor@ubb.cl',
+      Telefono: '+56955555555',
+      password: passwordHash,
+      roles: ['REVISOR']
     },
     // Actores del caso (Sin rol administrativo)
     {

@@ -38,6 +38,8 @@ router.put("/:id", updateDenunciaRules, updateDenuncia);
 router.patch("/:id/estado", verifyToken, hasRole(['Autoridad', 'Fiscal', 'Dirgegen','VRA','VRAE' ]),
  changeEstadoRules, changeEstado
 );
+// Ruta de gestión (usada por Dirgegen y VRA para derivar)
+router.patch("/:id/gestionar", verifyToken, hasRole(['Dirgegen', 'VRA', 'VRAE']), idParamRule, updateDenuncia);
 // ver bien esto
 router.delete("/:id", hasRole(['Admin']), idParamRule, deleteDenuncia);
 

@@ -6,7 +6,6 @@ import prisma from "../config/prisma.js";
 export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEstadoId, observacion, usuarioId }) {
   return prisma.$transaction(async (tx) => {
     
-  
     // --- 🔒 CAPA EXTRA DE SEGURIDAD (Validación en Servicio) ---
     // Buscamos al usuario que intenta hacer la acción en la base de datos
     const quienEjecuta = await tx.persona.findUnique({
@@ -23,10 +22,23 @@ export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEst
 
     //Buscar la denuncia actual para comparar datos
     const denuncia = await tx.denuncia.findUnique({
-      where: { ID_Denuncia: Number(idDenuncia) }
+      where: { ID_Denuncia: Number(idDenuncia) },
+      include: {
+        tipo_denuncia: true
+      }
     });
     
     if (!denuncia) throw new Error("Denuncia no encontrada");
+
+    // Validar que la observación sea obligatoria
+    if (!observacion || !observacion.trim()) {
+      throw new Error("La observación es obligatoria para derivar una denuncia");
+    }
+
+    // Obtener el nuevo tipo de denuncia para determinar el destino
+    const nuevoTipo = await tx.tipo_Denuncia.findUnique({
+      where: { ID_TipoDe: Number(nuevoTipoId) }
+    });
 
     // UPDATE de la denuncia
     // Aquí actualizamos Tipo (si Dirgegen reclasificó), Estado y la Observación
@@ -79,6 +91,52 @@ export async function derivarDenunciaService(idDenuncia, { nuevoTipoId, nuevoEst
           }
         });
       }
+    }
+
+    // 4. Notificar a los usuarios de VRA (fuera de la transacción)
+    // Importamos dinámicamente para evitar dependencias circulares
+    try {
+      const { crearNotificacion } = await import("./notificacion.service.js");
+      const { getIO } = await import("../socket/socket.js");
+      const io = getIO();
+      
+      // Buscar usuarios VRA (similar a DIRGEGEN)
+      const usuariosVRA = await prisma.participante_Caso.findMany({
+        where: {
+          Tipo_PC: {
+            in: ["VRA", "vra", "Vicerrectoría Académica"]
+          },
+        },
+        include: {
+          persona: true,
+        },
+      });
+
+      if (usuariosVRA.length > 0) {
+        const tipoDestino = nuevoTipo?.Nombre || "VRA";
+        const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${observacion}"`;
+        
+        const promesasNotificacion = usuariosVRA.map((pc) =>
+          crearNotificacion(
+            {
+              ID_Usuario: pc.ID_Persona,
+              Tipo: "DENUNCIA_DERIVADA",
+              Titulo: `Denuncia Derivada a ${tipoDestino}`,
+              Mensaje: mensajeNotificacion,
+              ID_Denuncia: Number(idDenuncia),
+              enviarEmail: true,
+            },
+            io
+          )
+        );
+
+        // Ejecutar notificaciones de forma asíncrona (no bloquea la respuesta)
+        Promise.all(promesasNotificacion).catch(err => {
+          console.error("Error al notificar derivación:", err);
+        });
+      }
+    } catch (err) {
+      console.error("Error importando servicios de notificación:", err);
     }
 
     return denunciaActualizada;
@@ -141,12 +199,17 @@ export async function identificarDenunciadoService(idDatosDenunciado, datosPerso
     });
 
     // 4️⃣ Actualizar Datos_Denunciado con el ID_Persona identificado
+    // Si se proporciona un nombre nuevo, actualizamos Nombre_Ingresado para reflejar el nombre real
     await tx.datos_Denunciado.update({
       where: { ID_Datos: Number(idDatosDenunciado) },
       data: {
         ID_Persona: persona.ID, // Vincular con la persona identificada
-        // Mantenemos Nombre_Ingresado y Descripcion originales (historial)
-        // Solo actualizamos la vinculación con Persona
+        // Si se proporciona un nombre nuevo, actualizamos Nombre_Ingresado
+        ...(datosPersona.Nombre && datosPersona.Nombre.trim() 
+          ? { Nombre_Ingresado: datosPersona.Nombre.trim() }
+          : {}
+        )
+        // Mantenemos Descripcion original (historial)
       }
     });
 
