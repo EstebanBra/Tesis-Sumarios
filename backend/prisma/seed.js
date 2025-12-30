@@ -130,6 +130,14 @@ export async function runInitialSetup() {
       password: passwordHash,
       roles: ['Fiscalia']
     },
+    {
+      Rut: '55555555-5',
+      Nombre: 'Usuario Revisor',
+      Correo: 'revisor@ubb.cl',
+      Telefono: '+56955555555',
+      password: passwordHash,
+      roles: ['REVISOR']
+    },
     // Actores del caso (Sin rol administrativo)
     {
       Rut: '10000000-1',
