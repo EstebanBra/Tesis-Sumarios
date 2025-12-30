@@ -60,12 +60,12 @@ export async function crearNotificacion(datos, io = null) {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #1e40af;">${Titulo}</h2>
             <p style="color: #374151; line-height: 1.6;">${Mensaje}</p>
-            ${ID_Denuncia ? `<p style="margin-top: 20px;"><a href="${process.env.FRONTEND_URL}/dirgegen/denuncia/${ID_Denuncia}" style="background-color: #1e40af; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Ver Denuncia</a></p>` : ''}
+            <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">Por favor, accede al sistema para revisar la denuncia.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
             <p style="color: #6b7280; font-size: 12px;">Sistema de Denuncias - Universidad del Bío-Bío</p>
           </div>
         `,
-        text: `${Titulo}\n\n${Mensaje}${ID_Denuncia ? `\n\nVer denuncia: ${process.env.FRONTEND_URL}/dirgegen/denuncia/${ID_Denuncia}` : ''}`,
+        text: `${Titulo}\n\n${Mensaje}\n\nPor favor, accede al sistema para revisar la denuncia.`,
       });
 
       if (resultadoEmail.success) {

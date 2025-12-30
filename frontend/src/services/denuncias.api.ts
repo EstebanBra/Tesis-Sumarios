@@ -21,13 +21,20 @@ export type ParticipanteOutput = {
 
 export type ArchivoOutput = {
   ID_Archivo: number;
-  Nombre_Archivo: string;
-  Ruta_Archivo: string;
-  Fecha_Subida: string;
+  Nombre_Archivo?: string; // Deprecated, usar Nombre_Original
+  Ruta_Archivo?: string; // Deprecated
+  Fecha_Subida?: string; // Deprecated
+  MinIO_Key?: string; // Clave del objeto en MinIO (UUID-nombre)
+  Nombre_Original?: string; // Nombre original del archivo
+  Tipo_Archivo?: string; // MIME type (ej: image/jpeg, application/pdf)
+  Tamaño?: bigint | number | string; // Tamaño en bytes
 }
 
 export type EvidenciaInput = {
-  archivo: string 
+  nombreArchivo: string // MinIO object key (UUID-nombre)
+  nombreOriginal: string // Nombre original del archivo
+  tipoArchivo: string // MIME type
+  tamaño: number // Tamaño en bytes
 }
 
 export type CrearDenunciaInput = {
@@ -39,18 +46,30 @@ export type CrearDenunciaInput = {
   regionDenunciante?: string | null
   comunaDenunciante?: string | null
   direccionDenunciante?: string | null
+  carreraCargo?: string | null // Carrera o Cargo del denunciante
   
   ID_TipoDe: number
   Fecha_Inicio: string // ISO
   Fecha_Fin?: string | null // ISO - Fecha fin del rango (opcional, solo si es rango)
   Relato_Hechos: string
   Ubicacion?: string | null
+  reservaIdentidad?: boolean // Reserva de identidad
 
   ID_EstadoDe?: number
   denunciados?: DenuncianteParticipante[]
   testigos?: DenuncianteParticipante[]
   evidencias?: EvidenciaInput[]
   caracteristicasDenunciado?: string | null
+  
+  // Datos específicos para denuncias de campo clínico
+  detalleCampoClinico?: {
+    nombreEstablecimiento: string
+    unidadServicio: string
+    tipoVinculacionDenunciado: string
+    region?: string
+    comuna?: string
+    direccionEstablecimiento?: string
+  } | null
 }
 //nuevooo
 

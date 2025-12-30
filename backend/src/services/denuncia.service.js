@@ -6,7 +6,20 @@ const includeFull = {
   tipo_denuncia: true,
   estado_denuncia: true,
   historial_estado: true,
-  denunciante: true, 
+  denunciante: {
+    include: {
+      participantes_caso: {
+        include: {
+          hitos: {
+            include: {
+              archivos: true // Incluir archivos a través de hitos (mantener para compatibilidad)
+            }
+          }
+        }
+      }
+    }
+  },
+  archivos: true, // Relación directa: archivos vinculados a esta denuncia específica
   datos_denunciados: { 
     include: { 
       persona: true // Incluir la relación con Persona si fue identificado
@@ -19,7 +32,8 @@ const includeFull = {
   },
   medidas_cautelares: { include: { tipos_cautelar: true } },
   informe_tecnico: true,
-  solicitudes_medidas: true
+  solicitudes_medidas: true,
+  detalle_campo_clinico: true // Detalle específico para denuncias de campo clínico
 };
 
 
@@ -75,15 +89,23 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
     // 1️⃣ CREAR O ACTUALIZAR PERSONA DENUNCIANTE
     // El denunciante SIEMPRE debe tener RUT (es quien hace la denuncia)
+    // Actualizar Carrera_Cargo si viene en el payload (para cualquier tipo de denuncia)
+    const updateData = {
+      // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
+      genero: payload.genero,
+      region: payload.regionDenunciante || undefined,
+      comuna: payload.comunaDenunciante || undefined,
+      direccion: payload.direccionDenunciante || undefined
+    };
+    
+    // Si viene Carrera_Cargo y la persona no lo tenía, actualizarlo
+    if (payload.carreraCargo && payload.carreraCargo.trim()) {
+      updateData.Carrera_Cargo = payload.carreraCargo.trim();
+    }
+    
     const denunciante = await tx.persona.upsert({
       where: { Rut: payload.Rut.trim() },
-      update: {
-        // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
-        genero: payload.genero,
-        region: payload.regionDenunciante || undefined,
-        comuna: payload.comunaDenunciante || undefined,
-        direccion: payload.direccionDenunciante || undefined
-      },
+      update: updateData,
       create: {
         Rut: payload.Rut,
         // Si es nueva, usamos los datos básicos. Ojo: nombre/correo deberían venir del auth o payload
@@ -93,33 +115,53 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         genero: payload.genero,
         region: payload.regionDenunciante || null,
         comuna: payload.comunaDenunciante || null,
-        direccion: payload.direccionDenunciante || null
+        direccion: payload.direccionDenunciante || null,
+        Carrera_Cargo: payload.carreraCargo?.trim() || null
       }
     });
 
     // 2️⃣ CREAR LA DENUNCIA
     // Función helper para convertir fecha sin problemas de zona horaria
+    // Usa UTC midnight para evitar cambios de día al almacenar
     const parsearFecha = (fechaStr) => {
       if (!fechaStr) return null;
-      // Si viene en formato YYYY-MM-DD, crear fecha en zona local para evitar cambio de día
+      // Si viene en formato YYYY-MM-DD, crear fecha en UTC midnight para evitar cambio de día
       if (typeof fechaStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-        const [year, month, day] = fechaStr.split('-').map(Number);
-        return new Date(year, month - 1, day); // Mes es 0-indexed
+        // Crear fecha en UTC midnight para que se almacene como la fecha correcta
+        // independientemente de la zona horaria del servidor
+        return new Date(Date.UTC(
+          parseInt(fechaStr.split('-')[0], 10), // year
+          parseInt(fechaStr.split('-')[1], 10) - 1, // month (0-indexed)
+          parseInt(fechaStr.split('-')[2], 10) // day
+        ));
       }
-      // Si viene con hora, usar directamente
-      return new Date(fechaStr);
+      // Si viene con hora, parsear y extraer solo la parte de fecha
+      const fecha = new Date(fechaStr);
+      // Si es una fecha válida, normalizar a UTC midnight
+      if (!isNaN(fecha.getTime())) {
+        return new Date(Date.UTC(
+          fecha.getUTCFullYear(),
+          fecha.getUTCMonth(),
+          fecha.getUTCDate()
+        ));
+      }
+      return fecha;
     };
 
+    // Determinar si es denuncia de campo clínico (verificar si viene detalleCampoClinico en el payload)
+    const esCampoClinico = !!payload.detalleCampoClinico;
+    
     const denuncia = await tx.denuncia.create({
       data: {
         ID_Denunciante: denunciante.ID,  // Usamos el ID de la persona
-        ID_TipoDe: Number(payload.ID_TipoDe), // ID específico (ej: 101, 201)
+        ID_TipoDe: Number(payload.ID_TipoDe), // ID específico (ej: 101, 201, 301)
         ID_EstadoDe: estadoInicial,
         Fecha_Ingreso: new Date(), // Fecha de ingreso al sistema (ahora)
         Fecha_Inicio: parsearFecha(payload.Fecha_Inicio) || new Date(), // Fecha de los hechos
         Fecha_Fin: parsearFecha(payload.Fecha_Fin), // Fecha fin del rango (opcional)
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
+        Reserva_Identidad: payload.reservaIdentidad ?? false,
 
         // Historial inicial
         historial_estado: historial
@@ -127,6 +169,25 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           : undefined,
       },
     });
+    
+    // 2.5️⃣ Si es denuncia de campo clínico, crear Detalle_Campo_Clinico
+    if (esCampoClinico) {
+      if (!payload.detalleCampoClinico) {
+        throw new Error("Los datos de campo clínico son obligatorios para este tipo de denuncia");
+      }
+      
+      await tx.detalle_Campo_Clinico.create({
+        data: {
+          ID_Denuncia: denuncia.ID_Denuncia,
+          Nombre_Establecimiento: payload.detalleCampoClinico.nombreEstablecimiento,
+          Unidad_Servicio: payload.detalleCampoClinico.unidadServicio,
+          Tipo_Vinculacion_Denunciado: payload.detalleCampoClinico.tipoVinculacionDenunciado,
+          Region: payload.detalleCampoClinico.region || null,
+          Comuna: payload.detalleCampoClinico.comuna || null,
+          Direccion_Establecimiento: payload.detalleCampoClinico.direccionEstablecimiento || null
+        }
+      });
+    }
 
     // 3️⃣ PARTICIPANTES (Denunciados + Testigos)
     const participantes = [];
@@ -229,10 +290,18 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         },
       });
 
-      // c) Guardar Archivos
+      // c) Guardar Archivos con metadatos de MinIO
       const archivos = payload.evidencias
-        .filter(e => e?.archivo)
-        .map(e => ({ ID_Hitos: hitoEvid.ID_Hitos, Archivo: e.archivo }));
+        .filter(e => e?.nombreArchivo) // Validar que tenga nombreArchivo (MinIO key)
+        .map(e => ({
+          ID_Hitos: hitoEvid.ID_Hitos,
+          ID_Denuncia: denuncia.ID_Denuncia, // Vincular directamente a la denuncia
+          Archivo: e.nombreArchivo, // Mantener para compatibilidad (deprecated)
+          MinIO_Key: e.nombreArchivo, // Clave del objeto en MinIO
+          Nombre_Original: e.nombreOriginal || e.nombreArchivo,
+          Tipo_Archivo: e.tipoArchivo || 'application/octet-stream',
+          Tamaño: e.tamaño ? BigInt(e.tamaño) : null,
+        }));
 
       if (archivos.length) {
         await tx.archivo.createMany({ data: archivos });
@@ -275,13 +344,27 @@ export async function updateDenunciaService(id, data) {
     if (!prev) throw new Error("Denuncia no encontrada");
 
     // Función helper para parsear fechas sin problemas de zona horaria
+    // Usa UTC midnight para evitar cambios de día al almacenar
     const parsearFecha = (fechaStr) => {
       if (!fechaStr) return null;
       if (typeof fechaStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-        const [year, month, day] = fechaStr.split('-').map(Number);
-        return new Date(year, month - 1, day);
+        // Crear fecha en UTC midnight para que se almacene como la fecha correcta
+        return new Date(Date.UTC(
+          parseInt(fechaStr.split('-')[0], 10), // year
+          parseInt(fechaStr.split('-')[1], 10) - 1, // month (0-indexed)
+          parseInt(fechaStr.split('-')[2], 10) // day
+        ));
       }
-      return new Date(fechaStr);
+      // Si viene con hora, normalizar a UTC midnight
+      const fecha = new Date(fechaStr);
+      if (!isNaN(fecha.getTime())) {
+        return new Date(Date.UTC(
+          fecha.getUTCFullYear(),
+          fecha.getUTCMonth(),
+          fecha.getUTCDate()
+        ));
+      }
+      return fecha;
     };
 
     // 1️⃣ Actualizar los campos base
@@ -409,10 +492,10 @@ export async function updateDenunciaService(id, data) {
 
     // 4️⃣ Actualizar evidencias (si se envían nuevas)
     if (Array.isArray(data.evidencias) && data.evidencias.length > 0) {
-      // Eliminamos evidencias antiguas vinculadas
+      // Eliminamos evidencias antiguas vinculadas directamente a esta denuncia
       await tx.archivo.deleteMany({
         where: {
-          hitos: { participante_caso: { ID_Persona: denunciaActualizada.ID_Denunciante } },
+          ID_Denuncia: Number(id), // Filtrar por denuncia específica
         },
       });
 
@@ -432,9 +515,18 @@ export async function updateDenunciaService(id, data) {
         },
       });
 
+      // Guardar archivos con metadatos de MinIO
       const archivos = data.evidencias
-        .filter(e => e?.archivo)
-        .map(e => ({ ID_Hitos: hitoEvid.ID_Hitos, Archivo: e.archivo }));
+        .filter(e => e?.nombreArchivo) // Validar que tenga nombreArchivo (MinIO key)
+        .map(e => ({
+          ID_Hitos: hitoEvid.ID_Hitos,
+          ID_Denuncia: Number(id), // Vincular directamente a la denuncia
+          Archivo: e.nombreArchivo, // Mantener para compatibilidad (deprecated)
+          MinIO_Key: e.nombreArchivo, // Clave del objeto en MinIO
+          Nombre_Original: e.nombreOriginal || e.nombreArchivo,
+          Tipo_Archivo: e.tipoArchivo || 'application/octet-stream',
+          Tamaño: e.tamaño ? BigInt(e.tamaño) : null,
+        }));
 
       if (archivos.length) {
         await tx.archivo.createMany({ data: archivos });

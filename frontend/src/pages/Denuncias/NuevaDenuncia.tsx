@@ -11,6 +11,7 @@ import {
   SEDES,
   LUGARES_SEDE,
   VINCULACIONES,
+  VINCULACIONES_CAMPO_CLINICO,
 } from "@/data/denuncias.data";
 import type {
   FormularioDenuncia,
@@ -21,15 +22,14 @@ import type {
 import FormularioLayout from "./components/FormularioLayout";
 import { useAuth } from "@/context/AuthContext";
 import { clRegions } from "@clregions/data";
+import FileUploader, { type FileMetadata } from "@/components/FileUploader";
 
 const initialInvolucrado: Involucrado = {
   nombre: "",
-  apellido1: "",
-  apellido2: "",
-  parentesco: "",
   vinculacion: "",
-  antecedentes: "",
-  descripcionFisica: "",
+  descripcionDenunciado: "",
+  rut: "",
+  unidadCarrera: "",
 };
 
 const initialForm: FormularioDenuncia = {
@@ -37,8 +37,10 @@ const initialForm: FormularioDenuncia = {
   nombre: "",
   telefono: "",
   correo: "",
+  sexo: "",
   genero: "",
   reservaIdentidad: false,
+  carreraCargo: "",
   tipoId: 0,
   subtipoId: null,
   descripcionOtro: "",
@@ -72,6 +74,14 @@ const initialForm: FormularioDenuncia = {
   involucrados: [],
   nuevoInvolucrado: { ...initialInvolucrado },
   testigos: [],
+  
+  // Campos específicos para denuncias de campo clínico
+  nombreEstablecimiento: "",
+  unidadServicio: "",
+  tipoVinculacionDenunciado: "",
+  regionEstablecimiento: "",
+  comunaEstablecimiento: "",
+  direccionEstablecimiento: "",
 };
 
 const steps = [
@@ -102,6 +112,7 @@ export default function NuevaDenuncia() {
     rut: "",
     contacto: "",
   });
+  const [archivosEvidencia, setArchivosEvidencia] = useState<FileMetadata[]>([]);
 
   const stepTitle = useMemo(() => steps[step - 1]?.label ?? "", [step]);
 
@@ -150,10 +161,12 @@ export default function NuevaDenuncia() {
           nombre: user.nombre,
           correo: user.email,
           telefono: user.telefono || prev.telefono,
+          sexo: (user as any).sexo || prev.sexo,
           genero: user.genero || prev.genero,
           regionDenunciante: user.region || prev.regionDenunciante,
           comunaDenunciante: user.comuna || prev.comunaDenunciante,
           direccionDenunciante: user.direccion || prev.direccionDenunciante,
+          carreraCargo: (user as any).carreraCargo || prev.carreraCargo, // Pre-llenar si el usuario ya lo tiene
           victimaRut: isVictima ? user.rut : prev.victimaRut,
           victimaNombre: isVictima ? user.nombre : prev.victimaNombre,
           victimaCorreo: isVictima ? user.email : prev.victimaCorreo,
@@ -172,7 +185,8 @@ export default function NuevaDenuncia() {
     // Asignar subtipo por defecto basado en el tipo seleccionado
     // 199 = "Otro motivo (Género)" para tipo 1 (Género)
     // 299 = "Otro motivo (Convivencia)" para tipo 2 (Convivencia)
-    const subtipoPorDefecto = id === 1 ? 199 : 299;
+    // 300 = "Campos Clínicos" para tipo 3 (Campo Clínico) - NO tiene subtipos, es el tipo principal
+    const subtipoPorDefecto = id === 1 ? 199 : id === 2 ? 299 : 300;
     setForm((prev) => ({ ...prev, tipoId: id, subtipoId: subtipoPorDefecto, descripcionOtro: "" }));
     setFase("formulario");
     window.scrollTo(0, 0);
@@ -228,8 +242,9 @@ export default function NuevaDenuncia() {
 
   function handleAddInvolucrado() {
     if (
-      !form.nuevoInvolucrado.nombre.trim() &&
-      !form.nuevoInvolucrado.descripcionFisica.trim()
+      !form.nuevoInvolucrado.nombre.trim() ||
+      !form.nuevoInvolucrado.vinculacion.trim() ||
+      !form.nuevoInvolucrado.descripcionDenunciado.trim()
     )
       return;
     setForm((prev) => ({
@@ -266,8 +281,18 @@ export default function NuevaDenuncia() {
 
   function puedeAvanzar() {
     if (step === 1)
-      return !!form.rut.trim() && !!form.nombre.trim() && !!form.genero;
+      return !!form.rut.trim() && !!form.nombre.trim() && !!form.sexo;
     if (step === 2) {
+      // Si es denuncia de campo clínico, validar campos específicos
+      if (form.tipoId === 3) {
+        return !!form.relato.trim() && 
+               !!form.nombreEstablecimiento.trim() && 
+               !!form.regionEstablecimiento.trim() &&
+               !!form.comunaEstablecimiento.trim() &&
+               !!form.direccionEstablecimiento.trim() &&
+               !!form.unidadServicio.trim();
+      }
+      // Para denuncias normales, validar campos estándar
       return !!form.relato.trim() && !!form.sedeHecho;
     }
     return true;
@@ -292,12 +317,38 @@ export default function NuevaDenuncia() {
       setError("Faltan campos obligatorios.");
       return;
     }
+    
+    // Para tipo 3 (Campos Clínicos), el subtipoId debe ser 300 (el tipo principal, no hay subtipos)
+    if (form.tipoId === 3 && form.subtipoId !== 300) {
+      setError("Error: El tipo de denuncia de Campos Clínicos no tiene subtipos.");
+      return;
+    }
 
-    const sedeNombre =
-      SEDES.find((s) => s.id === form.sedeHecho)?.nombre || form.sedeHecho;
-    const ubicacionCompleta = [sedeNombre, form.lugarHecho, form.detalleHecho]
-      .filter(Boolean)
-      .join(" - ");
+    // Determinar si es denuncia de campo clínico (tipo 3)
+    const esCampoClinico = form.tipoId === 3;
+    
+    // Construir ubicación según el tipo de denuncia
+    let ubicacionCompleta = "";
+    if (esCampoClinico) {
+      // Para campo clínico: Establecimiento, Región, Comuna, Dirección, Unidad
+      ubicacionCompleta = [
+        form.nombreEstablecimiento,
+        form.regionEstablecimiento,
+        form.comunaEstablecimiento,
+        form.direccionEstablecimiento,
+        form.unidadServicio,
+        form.detalleHecho
+      ]
+        .filter(Boolean)
+        .join(" - ");
+    } else {
+      // Para denuncias normales: Sede, Lugar, Detalles
+      const sedeNombre =
+        SEDES.find((s) => s.id === form.sedeHecho)?.nombre || form.sedeHecho;
+      ubicacionCompleta = [sedeNombre, form.lugarHecho, form.detalleHecho]
+        .filter(Boolean)
+        .join(" - ");
+    }
 
     let relatoFinal = form.relato.trim();
 
@@ -320,6 +371,23 @@ export default function NuevaDenuncia() {
       .filter(Boolean)
       .join(" | ");
 
+    // Validar campos específicos de campo clínico
+    if (esCampoClinico) {
+      if (!form.nombreEstablecimiento.trim() || 
+          !form.regionEstablecimiento.trim() || 
+          !form.comunaEstablecimiento.trim() || 
+          !form.direccionEstablecimiento.trim() || 
+          !form.unidadServicio.trim()) {
+        setError("Para denuncias de campo clínico, los campos de establecimiento, región, comuna, dirección y unidad de servicio son obligatorios.");
+        return;
+      }
+      // Validar que haya al menos un denunciado con vinculación
+      if (form.involucrados.length === 0 || !form.involucrados.some(i => i.vinculacion.trim())) {
+        setError("Para denuncias de campo clínico, debes agregar al menos un denunciado con su vinculación.");
+        return;
+      }
+    }
+
     const payload: CrearDenunciaInput = {
       Rut: form.rut.trim(),
       Nombre: form.nombre.trim(),
@@ -329,6 +397,8 @@ export default function NuevaDenuncia() {
       regionDenunciante: form.regionDenunciante || null,
       comunaDenunciante: form.comunaDenunciante || null,
       direccionDenunciante: form.direccionDenunciante || null,
+      carreraCargo: form.carreraCargo?.trim() || null,
+      reservaIdentidad: form.reservaIdentidad,
       ID_TipoDe: Number(form.subtipoId),
       // Enviar fechas en formato YYYY-MM-DD para evitar problemas de zona horaria
       Fecha_Inicio: form.fechaHecho || new Date().toISOString().split('T')[0],
@@ -338,19 +408,16 @@ export default function NuevaDenuncia() {
       Relato_Hechos: relatoFinal, // Ya no concatenamos las fechas en el relato
       Ubicacion: ubicacionCompleta,
 
-      // --- (aca hice un cambio para probar)
+      // Mapear involucrados (denunciados) con la nueva estructura
       denunciados: form.involucrados.map((i) => ({
-        // 1. Unimos ambos apellidos
-        nombre:
-          `${i.nombre} ${i.apellido1} ${i.apellido2 || ""}`.trim() ||
-          "Sin nombre",
-
-        // 2. Concatenamos TODOS los datos en la descripción para que la API los guarde
-        descripcion: `Vinculación: ${i.vinculacion || "N/A"}. Parentesco: ${
-          i.parentesco || "N/A"
-        }. Físico: ${i.descripcionFisica || "N/A"}. Antecedentes: ${
-          i.antecedentes || "Ninguno"
-        }`,
+        nombre: i.nombre.trim() || "Sin nombre",
+        rut: i.rut?.trim() || undefined,
+        // Concatenar descripción del denunciado y unidad/carrera si existe
+        descripcion: [
+          i.descripcionDenunciado || "Sin descripción",
+          i.unidadCarrera ? `Unidad/Carrera: ${i.unidadCarrera}` : null,
+          i.vinculacion ? `Vinculación: ${i.vinculacion}` : null
+        ].filter(Boolean).join(". "),
       })),
 
       testigos: form.testigos.map((t) => ({
@@ -358,8 +425,25 @@ export default function NuevaDenuncia() {
         rut: t.rut || undefined,
         contacto: t.contacto || undefined,
       })),
-      evidencias: [],
+      evidencias: archivosEvidencia.map(archivo => ({
+        nombreArchivo: archivo.objectKey,
+        nombreOriginal: archivo.fileName,
+        tipoArchivo: archivo.mimeType,
+        tamaño: archivo.size,
+      })),
       caracteristicasDenunciado: notasAdicionales,
+      
+      // Datos específicos para denuncias de campo clínico
+      detalleCampoClinico: esCampoClinico ? {
+        nombreEstablecimiento: form.nombreEstablecimiento.trim(),
+        unidadServicio: form.unidadServicio.trim(),
+        tipoVinculacionDenunciado: form.involucrados.length > 0 && form.involucrados[0].vinculacion 
+          ? form.involucrados[0].vinculacion.trim() 
+          : "",
+        region: form.regionEstablecimiento.trim(),
+        comuna: form.comunaEstablecimiento.trim(),
+        direccionEstablecimiento: form.direccionEstablecimiento.trim()
+      } : null,
     };
 
     try {
@@ -457,151 +541,198 @@ export default function NuevaDenuncia() {
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
               Datos del denunciante
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  RUT *
-                </label>
-                <input
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="12.345.678-9"
-                  value={form.rut}
-                  onChange={(e) => updateField("rut", e.target.value)}
-                  required
-                />
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    RUT *
+                  </label>
+                  <input
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="12.345.678-9"
+                    value={form.rut}
+                    onChange={(e) => updateField("rut", e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Nombre completo *
+                  </label>
+                  <input
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="Tu nombre"
+                    value={form.nombre}
+                    onChange={(e) => updateField("nombre", e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Nombre completo *
-                </label>
-                <input
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="Tu nombre"
-                  value={form.nombre}
-                  onChange={(e) => updateField("nombre", e.target.value)}
-                  required
-                />
-              </div>
-            </div>
 
-            {/* GÉNERO */}
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Género *
-              </label>
-              <select
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white"
-                value={form.genero}
-                onChange={(e) => updateField("genero", e.target.value)}
-                required
-              >
-                <option value="">Seleccionar</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Transgenero Masculino">
-                  Transgenero Masculino
-                </option>
-                <option value="Transgenero Femenino">
-                  Transgenero Femenino
-                </option>
-                <option value="No Binario">No Binario</option>
-                <option value="Otro">Otro / Prefiero no decir</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
+              {/* Sexo y Género - igual que en paso 2 */}
+              <div className="grid gap-4 md:grid-cols-2 mt-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Sexo *
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    value={form.sexo || ""}
+                    onChange={(e) => updateField("sexo", e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Género (Opcional)
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    value={form.genero || ""}
+                    onChange={(e) => updateField("genero", e.target.value)}
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Transgenero Masculino">
+                      Transgenero Masculino
+                    </option>
+                    <option value="Transgenero Femenino">
+                      Transgenero Femenino
+                    </option>
+                    <option value="No Binario">No Binario</option>
+                    <option value="Otro">Otro / Prefiero no decir</option>
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
                 Esta información ayuda a activar los protocolos de protección
                 adecuados.
               </p>
+              
+              {/* CARRERA O CARGO */}
+              <div className="mt-4">
+                <label className="text-sm font-medium text-gray-700">
+                  Carrera o Cargo
+                </label>
+                <input
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  placeholder="Ej: Enfermería, Medicina, Funcionario Administrativo..."
+                  value={form.carreraCargo}
+                  onChange={(e) => updateField("carreraCargo", e.target.value)}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Indica tu carrera (si eres estudiante) o tu cargo (si eres funcionario/académico).
+                </p>
+              </div>
             </div>
+          </section>
+            
+          <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
               Datos de contacto
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Teléfono
-                </label>
-                <input
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="+56 9 ..."
-                  value={form.telefono}
-                  onChange={(e) => updateField("telefono", e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Correo
-                </label>
-                <input
-                  type="email"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  placeholder="correo@ubb.cl"
-                  value={form.correo}
-                  onChange={(e) => updateField("correo", e.target.value)}
-                />
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Teléfono
+                  </label>
+                  <input
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="+56 9 ..."
+                    value={form.telefono}
+                    onChange={(e) => updateField("telefono", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Correo
+                  </label>
+                  <input
+                    type="email"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="correo@ubb.cl"
+                    value={form.correo}
+                    onChange={(e) => updateField("correo", e.target.value)}
+                  />
+                </div>
               </div>
             </div>
+          </section>
 
-            {/* Región y Comuna */}
+          <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
               Dirección del denunciante
             </h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm font-medium text-gray-700">
-                  Región *
-                </label>
-                <select
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  value={form.regionDenunciante}
-                  onChange={(e) => {
-                    updateField("regionDenunciante", e.target.value);
-                    updateField("comunaDenunciante", ""); // Clear commune when region changes
-                  }}
-                >
-                  <option value="">Seleccionar</option>
-                  {allRegions.map((r) => (
-                    <option key={r.id} value={r.name}>
-                      {r.name}
-                    </option>
-                  ))}
-                </select>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Región *
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    value={form.regionDenunciante}
+                    onChange={(e) => {
+                      updateField("regionDenunciante", e.target.value);
+                      updateField("comunaDenunciante", ""); // Clear commune when region changes
+                    }}
+                  >
+                    <option value="">Seleccionar</option>
+                    {allRegions.map((r) => (
+                      <option key={r.id} value={r.name}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Comuna *
+                  </label>
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    value={form.comunaDenunciante}
+                    onChange={(e) =>
+                      updateField("comunaDenunciante", e.target.value)
+                    }
+                    disabled={!form.regionDenunciante}
+                  >
+                    <option value="">Seleccionar</option>
+                    {communesDenunciante.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
+              <div className="mt-4">
                 <label className="text-sm font-medium text-gray-700">
-                  Comuna *
+                  Dirección domicilio *
                 </label>
-                <select
+                <input
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  value={form.comunaDenunciante}
+                  placeholder="Calle / número"
+                  value={form.direccionDenunciante}
                   onChange={(e) =>
-                    updateField("comunaDenunciante", e.target.value)
+                    updateField("direccionDenunciante", e.target.value)
                   }
-                  disabled={!form.regionDenunciante}
-                >
-                  <option value="">Seleccionar</option>
-                  {communesDenunciante.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">
-                Dirección domicilio *
-              </label>
-              <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                placeholder="Calle / número"
-                value={form.direccionDenunciante}
-                onChange={(e) =>
-                  updateField("direccionDenunciante", e.target.value)
-                }
-              />
-            </div>
+          </section>
 
-            <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+          <section className="space-y-4">
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
+              Reserva de identidad
+            </h2>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex flex-wrap gap-6 text-sm text-gray-700 mb-2">
                 <div className="inline-flex items-center gap-3">
                   <span className="font-medium">¿Reserva de identidad?</span>
@@ -815,78 +946,91 @@ export default function NuevaDenuncia() {
               Denunciado/s
             </h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              {/* Campos básicos siempre visibles */}
+              {/* Campos principales siempre visibles */}
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Nombre Completo *
-                  </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                    placeholder="Nombre y apellido del denunciado"
-                    value={form.nuevoInvolucrado.nombre}
-                    onChange={(e) => {
-                      // Actualizamos directamente la propiedad nombre con todo el texto
-                      setForm((p) => ({
-                        ...p,
-                        nuevoInvolucrado: {
-                          ...p.nuevoInvolucrado,
-                          nombre: e.target.value,
-                        },
-                      }));
-                    }}
-                  />
+                {/* Nombre y Vinculación en la misma fila */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Nombre Completo *
+                    </label>
+                    <input
+                      type="text"
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                      placeholder="Nombre completo del denunciado"
+                      value={form.nuevoInvolucrado.nombre}
+                      onChange={(e) => {
+                        setForm((p) => ({
+                          ...p,
+                          nuevoInvolucrado: {
+                            ...p.nuevoInvolucrado,
+                            nombre: e.target.value,
+                          },
+                        }));
+                      }}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      Vinculación *
+                    </label>
+                    <select
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+                      value={form.nuevoInvolucrado.vinculacion}
+                      onChange={(e) => {
+                        const valor = e.target.value;
+                        setForm((p) => ({
+                          ...p,
+                          nuevoInvolucrado: {
+                            ...p.nuevoInvolucrado,
+                            vinculacion: valor,
+                          },
+                        }));
+                        // Mostrar alerta si selecciona TUTOR_HOSPITAL y es campo clínico
+                        if (form.tipoId === 3 && valor === 'TUTOR_HOSPITAL') {
+                          alert('Importante: Si el denunciado es Personal Colaboración Docente (Tutor Hospital), esta denuncia podría ser derivada a las autoridades correspondientes del establecimiento de salud.');
+                        }
+                      }}
+                      required
+                    >
+                      <option value="">Seleccionar Vinculación</option>
+                      {(form.tipoId === 3 ? VINCULACIONES_CAMPO_CLINICO : VINCULACIONES).map((v) => (
+                        <option key={v} value={v}>
+                          {v === 'DOCENTE_IES' ? 'Docente Institución de Educación Superior' :
+                           v === 'TUTOR_HOSPITAL' ? 'Personal colaborador docente (Tutor Hospital)' :
+                           v}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
+                {/* Descripción del Denunciado - siempre visible, ancho completo */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Vinculación *
-                  </label>
-                  <select
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none"
-                    value={form.nuevoInvolucrado.vinculacion}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        nuevoInvolucrado: {
-                          ...p.nuevoInvolucrado,
-                          vinculacion: e.target.value,
-                        },
-                      }))
-                    }
-                  >
-                    <option value="">Seleccionar Vinculación</option>
-                    {VINCULACIONES.map((v) => (
-                      <option key={v} value={v}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Descripción de los hechos/cargo *
+                    Descripción del denunciado *
                   </label>
                   <textarea
-                    placeholder="Describe los hechos o el cargo del cual se le acusa..."
-                    className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
-                    value={form.nuevoInvolucrado.descripcionFisica}
+                    placeholder="Descripción física, ropa, edad, etc., cualquier información adicional"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
+                    value={form.nuevoInvolucrado.descripcionDenunciado}
                     onChange={(e) =>
                       setForm((p) => ({
                         ...p,
                         nuevoInvolucrado: {
                           ...p.nuevoInvolucrado,
-                          descripcionFisica: e.target.value,
+                          descripcionDenunciado: e.target.value,
                         },
                       }))
                     }
+                    required
                   />
                 </div>
               </div>
 
-              {/* Botón para mostrar/ocultar campos adicionales */}
+              {/* Sección "Información Adicional" - Campos ocultos */}
               <div className="mt-4 pt-4 border-t border-gray-300">
                 <button
                   type="button"
@@ -940,18 +1084,19 @@ export default function NuevaDenuncia() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-sm font-medium text-gray-700">
-                          Segundo Apellido
+                          RUT
                         </label>
                         <input
-                          placeholder="Segundo apellido (opcional)"
+                          type="text"
+                          placeholder="12.345.678-9"
                           className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                          value={form.nuevoInvolucrado.apellido2}
+                          value={form.nuevoInvolucrado.rut || ""}
                           onChange={(e) =>
                             setForm((p) => ({
                               ...p,
                               nuevoInvolucrado: {
                                 ...p.nuevoInvolucrado,
-                                apellido2: e.target.value,
+                                rut: e.target.value,
                               },
                             }))
                           }
@@ -959,42 +1104,24 @@ export default function NuevaDenuncia() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700">
-                          Parentesco
+                          Unidad o Carrera
                         </label>
                         <input
-                          placeholder="Parentesco o relación (opcional)"
+                          type="text"
+                          placeholder="Ej: Enfermería, Medicina, Unidad de Urgencias..."
                           className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                          value={form.nuevoInvolucrado.parentesco}
+                          value={form.nuevoInvolucrado.unidadCarrera || ""}
                           onChange={(e) =>
                             setForm((p) => ({
                               ...p,
                               nuevoInvolucrado: {
                                 ...p.nuevoInvolucrado,
-                                parentesco: e.target.value,
+                                unidadCarrera: e.target.value,
                               },
                             }))
                           }
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">
-                        Antecedentes adicionales
-                      </label>
-                      <textarea
-                        placeholder="Información adicional sobre el denunciado (opcional)"
-                        className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-sm h-20 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
-                        value={form.nuevoInvolucrado.antecedentes}
-                        onChange={(e) =>
-                          setForm((p) => ({
-                            ...p,
-                            nuevoInvolucrado: {
-                              ...p.nuevoInvolucrado,
-                              antecedentes: e.target.value,
-                            },
-                          }))
-                        }
-                      />
                     </div>
                   </div>
                 )}
@@ -1023,27 +1150,39 @@ export default function NuevaDenuncia() {
                       className="p-4 flex flex-col gap-1 text-sm hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-bold text-gray-900">
-                            {inv.nombre} {inv.apellido1}
-                          </span>
-                          <span className="ml-2 inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                            {inv.vinculacion || "Sin vinculación"}
-                          </span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-gray-900">
+                              {inv.nombre}
+                            </span>
+                            {inv.rut && (
+                              <span className="text-xs text-gray-500">
+                                (RUT: {inv.rut})
+                              </span>
+                            )}
+                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                              {inv.vinculacion || "Sin vinculación"}
+                            </span>
+                            {inv.unidadCarrera && (
+                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300/10">
+                                {inv.unidadCarrera}
+                              </span>
+                            )}
+                          </div>
+                          {inv.descripcionDenunciado && (
+                            <p className="text-gray-600 text-xs mt-2 pl-3 border-l-2 border-gray-200">
+                              {inv.descripcionDenunciado}
+                            </p>
+                          )}
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveInvolucrado(i)}
-                          className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50"
+                          className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 ml-2 flex-shrink-0"
                         >
                           Eliminar
                         </button>
                       </div>
-                      {inv.descripcionFisica && (
-                        <p className="text-gray-600 text-xs mt-1 pl-3 border-l-2 border-gray-200">
-                          {inv.descripcionFisica}
-                        </p>
-                      )}
                     </li>
                   ))}
                 </ul>
@@ -1139,71 +1278,190 @@ export default function NuevaDenuncia() {
                 </p>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Sede *
-                  </label>
-                  <select
-                    className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    value={form.sedeHecho}
-                    onChange={(e) => {
-                      const sede = SEDES.find((s) => s.id === e.target.value);
-                      updateField("sedeHecho", e.target.value);
-                      updateField("regionHecho", sede?.region || "");
-                      updateField("lugarHecho", "");
-                    }}
-                  >
-                    <option value="">Seleccionar Sede</option>
-                    {SEDES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Región
-                  </label>
-                  <div className="mt-1 w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-600 font-medium h-[38px] flex items-center">
-                    {form.regionHecho || "Selecciona una sede"}
+              {/* Campos dinámicos según tipo de denuncia */}
+              {form.tipoId === 3 ? (
+                // Campos para denuncias de campo clínico
+                <>
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <label className="text-sm font-medium text-gray-700">
+                      Establecimiento de Salud * <span className="text-xs text-gray-500">(Hospital/CESFAM/Centro de Salud)</span>
+                    </label>
+                    <input
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="Ej: Hospital Regional de Concepción, CESFAM Las Higueras..."
+                      value={form.nombreEstablecimiento}
+                      onChange={(e) => updateField("nombreEstablecimiento", e.target.value)}
+                      required
+                    />
                   </div>
-                </div>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 pt-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Lugar Específico
-                  </label>
-                  <select
-                    className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    value={form.lugarHecho}
-                    onChange={(e) => updateField("lugarHecho", e.target.value)}
-                    disabled={!form.sedeHecho}
-                  >
-                    <option value="">Seleccionar Lugar</option>
-                    {lugaresDisponibles.map((l) => (
-                      <option key={l} value={l}>
-                        {l}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Detalles adicionales
-                  </label>
-                  <input
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    placeholder="Ej: Segundo piso, pasillo norte..."
-                    value={form.detalleHecho}
-                    onChange={(e) =>
-                      updateField("detalleHecho", e.target.value)
-                    }
-                  />
-                </div>
-              </div>
+                  
+                  <div className="grid gap-4 md:grid-cols-2 pt-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Región del Establecimiento *
+                      </label>
+                      <select
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        value={form.regionEstablecimiento}
+                        onChange={(e) => {
+                          updateField("regionEstablecimiento", e.target.value);
+                          updateField("comunaEstablecimiento", ""); // Clear commune when region changes
+                        }}
+                        required
+                      >
+                        <option value="">Seleccionar</option>
+                        {allRegions.map((r) => (
+                          <option key={r.id} value={r.name}>
+                            {r.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Comuna del Establecimiento *
+                      </label>
+                      <select
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        value={form.comunaEstablecimiento}
+                        onChange={(e) =>
+                          updateField("comunaEstablecimiento", e.target.value)
+                        }
+                        disabled={!form.regionEstablecimiento}
+                        required
+                      >
+                        <option value="">Seleccionar</option>
+                        {(() => {
+                          if (!form.regionEstablecimiento) return [];
+                          const region = allRegions.find((r) => r.name === form.regionEstablecimiento);
+                          if (!region) return [];
+                          const allCommunes: any[] = [];
+                          Object.values(region.provinces).forEach((province: any) => {
+                            Object.values(province.communes).forEach((commune: any) => {
+                              allCommunes.push(commune);
+                            });
+                          });
+                          return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
+                        })().map((c) => (
+                          <option key={c.id} value={c.name}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <label className="text-sm font-medium text-gray-700">
+                      Dirección del Establecimiento *
+                    </label>
+                    <input
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      placeholder="Ej: Av. O'Higgins 1234, Concepción..."
+                      value={form.direccionEstablecimiento}
+                      onChange={(e) => updateField("direccionEstablecimiento", e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="grid gap-4 md:grid-cols-2 pt-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Unidad o Servicio * <span className="text-xs text-gray-500">(Donde ocurrió el hecho)</span>
+                      </label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="Ej: Urgencias, Pediatría, Medicina Interna..."
+                        value={form.unidadServicio}
+                        onChange={(e) => updateField("unidadServicio", e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Detalles adicionales
+                      </label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="Ej: Segundo piso, pasillo norte..."
+                        value={form.detalleHecho}
+                        onChange={(e) =>
+                          updateField("detalleHecho", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Campos para denuncias normales (no campo clínico)
+                <>
+                  <div className="border-t border-gray-200 pt-4 mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Sede *
+                      </label>
+                      <select
+                        className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        value={form.sedeHecho}
+                        onChange={(e) => {
+                          const sede = SEDES.find((s) => s.id === e.target.value);
+                          updateField("sedeHecho", e.target.value);
+                          updateField("regionHecho", sede?.region || "");
+                          updateField("lugarHecho", "");
+                        }}
+                      >
+                        <option value="">Seleccionar Sede</option>
+                        {SEDES.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Región
+                      </label>
+                      <div className="mt-1 w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-600 font-medium h-[38px] flex items-center">
+                        {form.regionHecho || "Selecciona una sede"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2 pt-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Lugar Específico
+                      </label>
+                      <select
+                        className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        value={form.lugarHecho}
+                        onChange={(e) => updateField("lugarHecho", e.target.value)}
+                        disabled={!form.sedeHecho}
+                      >
+                        <option value="">Seleccionar Lugar</option>
+                        {lugaresDisponibles.map((l) => (
+                          <option key={l} value={l}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Detalles adicionales
+                      </label>
+                      <input
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        placeholder="Ej: Segundo piso, pasillo norte..."
+                        value={form.detalleHecho}
+                        onChange={(e) =>
+                          updateField("detalleHecho", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
@@ -1357,33 +1615,17 @@ export default function NuevaDenuncia() {
               </div>
             </div>
 
-            {/* SECCIÓN DE EVIDENCIA (VISUAL) */}
+            {/* SECCIÓN DE EVIDENCIA CON MINIO */}
             <div className="pt-4 border-t border-gray-200">
               <label className="text-sm font-medium text-gray-700 block mb-2">
                 Adjuntar Evidencia (Opcional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 transition-colors cursor-pointer">
-                <svg
-                  className="w-10 h-10 text-gray-400 mb-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <p className="text-sm text-gray-600 font-medium">
-                  Haz clic para subir archivos o arrástralos aquí
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Formatos permitidos: PDF, JPG, PNG, DOCX (Máx. 10MB)
-                </p>
-              </div>
+              <FileUploader
+                onFilesChange={setArchivosEvidencia}
+                maxFiles={10}
+                maxSizeMB={200}
+                disabled={enviando}
+              />
             </div>
           </section>
         </div>
@@ -1420,7 +1662,7 @@ export default function NuevaDenuncia() {
                   <ul className="list-disc pl-4 text-gray-700">
                     {form.involucrados.map((inv, idx) => (
                       <li key={idx}>
-                        {inv.nombre} {inv.apellido1} ({inv.vinculacion})
+                        {inv.nombre} ({inv.vinculacion})
                       </li>
                     ))}
                   </ul>
@@ -1438,6 +1680,45 @@ export default function NuevaDenuncia() {
                 <dd className="bg-white p-3 rounded border text-gray-700 whitespace-pre-wrap">
                   {form.relato}
                 </dd>
+              </div>
+
+              <div className="md:col-span-2">
+                <dt className="text-gray-500 text-xs uppercase font-bold mb-1">
+                  Evidencias Adjuntas
+                </dt>
+                {archivosEvidencia.length > 0 ? (
+                  <dd className="bg-white p-3 rounded border">
+                    <ul className="space-y-2">
+                      {archivosEvidencia.map((archivo, idx) => {
+                        const getFileIcon = (mimeType: string): string => {
+                          if (mimeType.startsWith('image/')) return '🖼️';
+                          if (mimeType.startsWith('video/')) return '🎥';
+                          if (mimeType.startsWith('audio/')) return '🎵';
+                          if (mimeType === 'application/pdf') return '📄';
+                          if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
+                          if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
+                          return '📎';
+                        };
+                        const formatFileSize = (bytes: number): string => {
+                          if (bytes === 0) return '0 Bytes';
+                          const k = 1024;
+                          const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                          const i = Math.floor(Math.log(bytes) / Math.log(k));
+                          return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+                        };
+                        return (
+                          <li key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                            <span>{getFileIcon(archivo.mimeType)}</span>
+                            <span className="font-medium">{archivo.fileName}</span>
+                            <span className="text-gray-500">({formatFileSize(archivo.size)})</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </dd>
+                ) : (
+                  <dd className="text-gray-500 italic">No se adjuntaron archivos</dd>
+                )}
               </div>
             </dl>
           </div>

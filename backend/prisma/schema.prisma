@@ -13,17 +13,18 @@ datasource db {
 // ==========================================
 
 model Persona {
-  ID                     Int                     @id @default(autoincrement())
-  Rut                    String?                 @unique @db.VarChar(12)
-  Nombre                 String                  @db.VarChar(100)
-  Correo                 String                  @db.VarChar(100)
-  Telefono               String                  @db.VarChar(20)
-  password               String?                 @db.VarChar(255)
-  genero                 String?                 @db.NVarChar(50)
-  region                 String?                 @db.VarChar(100)
-  comuna                 String?                 @db.VarChar(100)
-  direccion              String?                 @db.VarChar(200)
-  
+  ID        Int     @id @default(autoincrement())
+  Rut       String? @unique @db.VarChar(12)
+  Nombre    String  @db.VarChar(100)
+  Correo    String  @db.VarChar(100)
+  Telefono  String  @db.VarChar(20)
+  password  String? @db.VarChar(255)
+  genero    String? @db.NVarChar(50)
+  region    String? @db.VarChar(100)
+  comuna    String? @db.VarChar(100)
+  direccion String? @db.VarChar(200)
+  Carrera_Cargo String? @db.VarChar(150) // Carrera (si es estudiante) o Cargo (si es funcionario/académico)
+
   // Relaciones
   participantes_caso     Participante_Caso[]
   per_par_den            Per_Par_Den[]
@@ -64,7 +65,7 @@ model Denuncia {
   Relato_Hechos       String    @db.Text
   Ubicacion           String?   @db.VarChar(200)
   observacionDirgegen String?   @db.NVarChar(MAX)
-  
+  Reserva_Identidad   Boolean  @default(false) // Reserva de identidad del denunciante
 
   // Relaciones
   denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
@@ -78,6 +79,8 @@ model Denuncia {
   datos_denunciados     Datos_Denunciado[]
   informe_tecnico       InformeTecnico?
   notificaciones        Notificacion[]
+  archivos              Archivo[]
+  detalle_campo_clinico Detalle_Campo_Clinico?
 
   @@map("Denuncia")
 }
@@ -270,12 +273,18 @@ model Tipo_Hito {
 }
 
 model Archivo {
-  ID_Archivo Int    @id @default(autoincrement())
-  ID_Hitos   Int
-  Archivo    String @db.VarChar(255)
+  ID_Archivo      Int     @id @default(autoincrement())
+  ID_Hitos        Int
+  ID_Denuncia     Int // Relación directa con Denuncia para evitar mezclar archivos entre denuncias
+  Archivo         String  @db.VarChar(255) // Mantener para compatibilidad (deprecated)
+  MinIO_Key       String? @db.VarChar(500) // Clave del objeto en MinIO (UUID-nombre)
+  Nombre_Original String? @db.VarChar(255) // Nombre original del archivo
+  Tipo_Archivo    String? @db.VarChar(100) // MIME type (ej: image/jpeg, application/pdf)
+  Tamaño         BigInt? // Tamaño en bytes
 
   // Relaciones
-  hito Hitos @relation(fields: [ID_Hitos], references: [ID_Hitos], onDelete: Cascade, onUpdate: Cascade)
+  hito     Hitos    @relation(fields: [ID_Hitos], references: [ID_Hitos], onDelete: Cascade, onUpdate: Cascade)
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
 
   @@map("Archivo")
 }
@@ -300,22 +309,41 @@ model Datos_Denunciado {
 }
 
 // ==========================================
+// DETALLE CAMPO CLÍNICO (NCG N°4)
+// ==========================================
+
+model Detalle_Campo_Clinico {
+  ID_Denuncia                Int    @id // Relación 1:1 con Denuncia
+  Nombre_Establecimiento     String @db.VarChar(200) // Nombre del hospital/centro de salud
+  Unidad_Servicio            String @db.VarChar(200) // Ej. "Urgencias", "Pediatría"
+  Tipo_Vinculacion_Denunciado String @db.VarChar(100) // Valores: 'Docente IES', 'Personal Colaboración Docente (Tutor Hospital)', 'Estudiante', 'Administrativo'
+  Region                     String? @db.VarChar(100) // Región del establecimiento
+  Comuna                     String? @db.VarChar(100) // Comuna del establecimiento
+  Direccion_Establecimiento  String? @db.VarChar(200) // Dirección del establecimiento
+
+  // Relaciones
+  denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("Detalle_Campo_Clinico")
+}
+
+// ==========================================
 // NOTIFICACIONES
 // ==========================================
 
 model Notificacion {
   ID_Notificacion Int      @id @default(autoincrement())
-  ID_Usuario      Int      // Usuario destinatario
+  ID_Usuario      Int // Usuario destinatario
   Tipo            String   @db.VarChar(50) // 'NUEVA_DENUNCIA', 'RECORDATORIO', etc.
   Titulo          String   @db.VarChar(200)
   Mensaje         String   @db.Text
   Leida           Boolean  @default(false)
   Fecha_Creacion  DateTime @default(now())
-  ID_Denuncia     Int?     // FK opcional a Denuncia relacionada
+  ID_Denuncia     Int? // FK opcional a Denuncia relacionada
   Enviado_Email   Boolean  @default(false) // Si se envió correo electrónico
 
   // Relaciones
-  usuario  Persona  @relation(fields: [ID_Usuario], references: [ID], onDelete: Cascade, onUpdate: Cascade)
+  usuario  Persona   @relation(fields: [ID_Usuario], references: [ID], onDelete: Cascade, onUpdate: Cascade)
   denuncia Denuncia? @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: SetNull, onUpdate: Cascade)
 
   @@map("Notificacion")

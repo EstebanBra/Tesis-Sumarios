@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
 import { useAuth } from '@/context/AuthContext'
+import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function BandejaAutoridad() {
     const [denuncias, setDenuncias] = useState<DenunciaListado[]>([])
@@ -77,10 +78,10 @@ export default function BandejaAutoridad() {
                                     <div className="text-xs text-gray-500 mt-0.5">
                                         {d.Fecha_Fin ? (
                                             <span>
-                                                {new Date(d.Fecha_Inicio).toLocaleDateString()} - {new Date(d.Fecha_Fin).toLocaleDateString()}
+                                                {formatearFechaCorta(d.Fecha_Inicio)} - {formatearFechaCorta(d.Fecha_Fin)}
                                             </span>
                                         ) : (
-                                            new Date(d.Fecha_Inicio).toLocaleDateString()
+                                            formatearFechaCorta(d.Fecha_Inicio)
                                         )}
                                     </div>
                                 </td>

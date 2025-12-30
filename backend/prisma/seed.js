@@ -51,6 +51,10 @@ export async function runInitialSetup() {
     { id: 210, area: 'Convivencia Estudiantil', nombre: 'Discriminación / Ofensa (General)', descripcion: 'Insultos o discriminación no basada en género (raza, religión, etc).' },
     { id: 299, area: 'Convivencia Estudiantil', nombre: 'Otro motivo (Convivencia)', descripcion: 'Situación de convivencia no clasificada.' },
 
+    // --- CONVIVENCIA EN CAMPOS CLÍNICOS (NCG N°4) ---
+    // Solo un tipo principal, sin subtipos
+    { id: 300, area: 'Campos Clínicos', nombre: 'Convivencia en Campos Clínicos', descripcion: 'Denuncias por hechos de maltrato, acoso sexual, hostigamiento docente o discriminación arbitraria que ocurran en el contexto de actividades formativas en campos clínicos (Hospitales, CESFAM, Centros de Salud).' },
+
   ]
 
   console.log('... Insertando Tipos Detallados')
@@ -79,7 +83,7 @@ export async function runInitialSetup() {
     {
       Rut: '00000000-1',
       Nombre: 'Encargada Dirgegen',
-      Correo: 'Dirgegen@ubb.cl',
+      Correo: 'encargadoubb@gmail.com',
       Telefono: '+56911111111',
       password: passwordHash,
       roles: ['Dirgegen']
@@ -148,7 +152,12 @@ export async function runInitialSetup() {
     // Upsert Persona
     const persona = await prisma.persona.upsert({
       where: { Rut: u.Rut },
-      update: { password: u.password }, // Actualiza pass si ya existe
+      update: { 
+        password: u.password,
+        Correo: u.Correo,
+        Nombre: u.Nombre,
+        Telefono: u.Telefono
+      }, // Actualiza datos si ya existe
       create: {
         Rut: u.Rut,
         Nombre: u.Nombre,

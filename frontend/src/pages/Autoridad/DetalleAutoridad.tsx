@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext'
 import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
 import DerivacionAutoridadModal from './components/DerivacionAutoridadModal'
 import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
+import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -163,10 +164,10 @@ export default function DetalleAutoridad() {
                             <dd className="text-sm font-medium text-gray-900">
                                 {denuncia.Fecha_Fin ? (
                                     <span>
-                                        Del {new Date(denuncia.Fecha_Inicio).toLocaleDateString()} al {new Date(denuncia.Fecha_Fin).toLocaleDateString()}
+                                        Del {formatearFechaCorta(denuncia.Fecha_Inicio)} al {formatearFechaCorta(denuncia.Fecha_Fin)}
                                     </span>
                                 ) : (
-                                    new Date(denuncia.Fecha_Inicio).toLocaleDateString()
+                                    formatearFechaCorta(denuncia.Fecha_Inicio)
                                 )}
                             </dd>
                         </div>

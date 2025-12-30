@@ -9,8 +9,7 @@ import {
 
 import type { DenunciaListado } from '@/services/denuncias.api';
 import SolicitudMedidaModal from './components/SolicitudMedidaModal';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { formatearFechaLarga } from '@/utils/date.utils';
 
 export default function DetalleDenuncia() {
   const { id } = useParams();
@@ -69,11 +68,8 @@ export default function DetalleDenuncia() {
   const relato = denuncia?.Relato_Hechos 
   const ubicacion = denuncia?.Ubicacion 
 
-  const formatearFecha = (f?: string) => {
-    if (!f) return '-';
-    try { return format(new Date(f), "dd 'de' MMMM, yyyy", { locale: es }); }
-    catch (e) { return f; }
-  };
+  // Usar la utilidad de fechas para evitar problemas de zona horaria
+  const formatearFecha = (f?: string) => formatearFechaLarga(f);
 
   // 2. Participantes y Archivos
   const denunciante = denuncia?.participante_denuncia?.find(p => p.Tipo_Participante === 'DENUNCIANTE');

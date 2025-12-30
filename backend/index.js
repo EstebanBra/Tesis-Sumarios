@@ -9,6 +9,7 @@ import routes from "./src/routes/index.routes.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import { runInitialSetup } from "./prisma/seed.js";
 import { initializeSocket } from "./src/socket/socket.js";
+import { initializeBucket } from "./src/services/storage.service.js";
 
 dotenv.config();
 
@@ -63,6 +64,13 @@ app.use((err, req, res, next) => {
 
     // 🚀 Ejecutar seed inicial automáticamente
     await runInitialSetup();
+
+    // 🗄️ Inicializar bucket de MinIO
+    try {
+      await initializeBucket();
+    } catch (minioError) {
+      console.warn("⚠️ Advertencia: No se pudo inicializar MinIO (puede que el servicio no esté disponible):", minioError.message);
+    }
   } catch (e) {
     console.error("❌ Error al conectar o inicializar datos:", e.message);
   }

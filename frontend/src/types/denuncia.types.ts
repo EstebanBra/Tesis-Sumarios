@@ -15,12 +15,10 @@ export type OpcionSubtipo = {
 
 export type Involucrado = {
     nombre: string
-    apellido1: string
-    apellido2: string
-    parentesco: string
     vinculacion: string
-    antecedentes: string
-    descripcionFisica: string
+    descripcionDenunciado: string // Descripción física, ropa, edad, etc.
+    rut?: string // Información adicional (opcional)
+    unidadCarrera?: string // Información adicional (opcional)
 }
 
 export type Testigo = {
@@ -34,8 +32,10 @@ export type FormularioDenuncia = {
     nombre: string
     telefono: string
     correo: string
+    sexo: string
     genero: string
     reservaIdentidad: boolean
+    carreraCargo: string // Carrera (si es estudiante) o Cargo (si es funcionario/académico)
 
     tipoId: number
     subtipoId: number | null
@@ -72,6 +72,14 @@ export type FormularioDenuncia = {
     involucrados: Involucrado[]
     nuevoInvolucrado: Involucrado
     testigos: Testigo[]
+    
+    // Campos específicos para denuncias de campo clínico
+    nombreEstablecimiento: string
+    unidadServicio: string
+    tipoVinculacionDenunciado: string
+    regionEstablecimiento: string
+    comunaEstablecimiento: string
+    direccionEstablecimiento: string
 }
 
 export type FaseRegistro = 'seleccion_tipo' | 'formulario'

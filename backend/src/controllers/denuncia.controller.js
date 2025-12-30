@@ -7,6 +7,7 @@ import {
   deleteDenunciaService,
   changeEstadoService,
 } from "../services/denuncia.service.js";
+import { serializeBigInt } from "../utils/json.utils.js";
 
 function handleValidation(req) {
   const errors = validationResult(req);
@@ -37,7 +38,7 @@ export async function listDenuncias(req, res, next) {
     const { total, rows, pages } = await listDenunciasService(filters, page, pageSize);
     res.json({
       meta: { total, page, pageSize, pages },
-      data: rows, // ✅ devolvemos directamente el resultado Prisma
+      data: serializeBigInt(rows), // Convertir BigInt a Number antes de serializar
     });
   } catch (err) {
     next(err);
@@ -50,7 +51,19 @@ export async function getDenunciaById(req, res, next) {
     handleValidation(req);
     const row = await getDenunciaByIdService(req.params.id);
     if (!row) return res.status(404).json({ message: "Denuncia no encontrada" });
-    res.json(row); // ✅ sin mapDenunciaResponse
+    
+    // Usar la relación directa archivos de la denuncia (filtrada automáticamente por ID_Denuncia)
+    // Esto evita mezclar archivos de otras denuncias del mismo denunciante
+    const archivos = row.archivos || [];
+    
+    // Agregar archivos como campo plano para facilitar el acceso en el frontend
+    const denunciaConArchivos = {
+      ...row,
+      archivos_denuncia: archivos,
+    };
+    
+    // Convertir BigInt a Number antes de serializar
+    res.json(serializeBigInt(denunciaConArchivos));
   } catch (err) {
     next(err);
   }
@@ -77,6 +90,7 @@ export async function createDenuncia(req, res, next) {
       regionDenunciante: req.body.regionDenunciante || null,
       comunaDenunciante: req.body.comunaDenunciante || null,
       direccionDenunciante: req.body.direccionDenunciante || null,
+      carreraCargo: req.body.carreraCargo || null, // Carrera o Cargo del denunciante
       // ---------------------------------------------
 
       ID_TipoDe: Number(req.body.ID_TipoDe),
@@ -85,15 +99,19 @@ export async function createDenuncia(req, res, next) {
       Fecha_Fin: req.body.Fecha_Fin || null, // Fecha fin del rango (opcional, puede ser null)
       Relato_Hechos: String(req.body.Relato_Hechos),
       Ubicacion: req.body.Ubicacion ?? null,
+      reservaIdentidad: req.body.reservaIdentidad ?? false, // Reserva de identidad
       
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : [],
       testigos: Array.isArray(req.body.testigos) ? req.body.testigos : [],
       evidencias: Array.isArray(req.body.evidencias) ? req.body.evidencias : [],
       caracteristicasDenunciado: req.body.caracteristicasDenunciado ?? null,
+      
+      // Datos específicos para denuncias de campo clínico
+      detalleCampoClinico: req.body.detalleCampoClinico || null, // { nombreEstablecimiento, unidadServicio, tipoVinculacionDenunciado }
     };
 
     const created = await createDenunciaService(payload, { historial: true });
-    res.status(201).json(created);
+    res.status(201).json(serializeBigInt(created));
   } catch (err) {
     next(err);
   }
@@ -108,7 +126,8 @@ export async function updateDenuncia(req, res, next) {
       Rut: req.body.Rut ? String(req.body.Rut).trim() : undefined,
       ID_TipoDe: req.body.ID_TipoDe ? Number(req.body.ID_TipoDe) : undefined,
       ID_EstadoDe: req.body.ID_EstadoDe ? Number(req.body.ID_EstadoDe) : undefined,
-      Fecha_Inicio: req.body.Fecha_Inicio ? new Date(req.body.Fecha_Inicio) : undefined,
+      Fecha_Inicio: req.body.Fecha_Inicio, // Se parseará en el servicio para evitar problemas de zona horaria
+      Fecha_Fin: req.body.Fecha_Fin || null, // Fecha fin del rango (opcional)
       Relato_Hechos: req.body.Relato_Hechos ? String(req.body.Relato_Hechos).trim() : undefined,
       Ubicacion: req.body.Ubicacion ?? undefined,
       denunciados: Array.isArray(req.body.denunciados) ? req.body.denunciados : undefined,
@@ -121,7 +140,7 @@ export async function updateDenuncia(req, res, next) {
 
     res.json({
       message: "Denuncia actualizada correctamente",
-      data: updated,
+      data: serializeBigInt(updated),
     });
   } catch (err) {
     next(err);
@@ -149,7 +168,7 @@ export async function changeEstado(req, res, next) {
     const fecha = req.body.fecha ?? null;
 
     const updated = await changeEstadoService(id, nuevoEstadoId, fecha);
-    res.json(updated);
+    res.json(serializeBigInt(updated));
   } catch (err) {
     next(err);
   }

@@ -3,6 +3,7 @@ import {  useNavigate } from 'react-router-dom'
 // 1. IMPORTAR la nueva función y tipos
 import { listarDenuncias, listarMedidasPendientes, type DenunciaListado, type SolicitudMedida } from '@/services/denuncias.api'
 import { useAuth } from '@/context/AuthContext'
+import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function BandejaDirgegen() {
   const [denuncias, setDenuncias] = useState<DenunciaListado[]>([])
@@ -129,10 +130,10 @@ export default function BandejaDirgegen() {
                         <div className="text-xs text-gray-500 mt-0.5">
                             {d.Fecha_Fin ? (
                                 <span>
-                                    {new Date(d.Fecha_Inicio).toLocaleDateString()} - {new Date(d.Fecha_Fin).toLocaleDateString()}
+                                    {formatearFechaCorta(d.Fecha_Inicio)} - {formatearFechaCorta(d.Fecha_Fin)}
                                 </span>
                             ) : (
-                                new Date(d.Fecha_Inicio).toLocaleDateString()
+                                formatearFechaCorta(d.Fecha_Inicio)
                             )}
                         </div>
                     </td>

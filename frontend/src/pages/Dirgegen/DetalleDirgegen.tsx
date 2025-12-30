@@ -5,6 +5,8 @@ import DerivacionModal from "@/pages/Denuncias/components/Derivacion"
 import InformeTecnicoModal from './components/InformeTecnicoModal'
 import IdentificarDenunciadoModal from './components/IdentificarDenunciadoModal'
 import { useAuth } from '@/context/AuthContext'
+import { formatearFechaLarga } from '@/utils/date.utils'
+import EvidenciaViewer from '@/components/EvidenciaViewer'
 
 export default function DetalleDirgegen() {
   const { id } = useParams()
@@ -58,11 +60,10 @@ export default function DetalleDirgegen() {
     return obj[keyCap] || obj[keyLow] || '';
   }
 
+  // Usar la utilidad de fechas para evitar problemas de zona horaria
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No registrada';
-    return new Date(dateString).toLocaleDateString('es-CL', { 
-        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    return formatearFechaLarga(dateString);
   };
 
   if (loading) return (
@@ -97,7 +98,25 @@ export default function DetalleDirgegen() {
     return !nombresDenunciados.has(nombreParticipante);
   });
   
-  const listaEvidencias = denuncia.Evidencias || denuncia.evidencias || denuncia.Archivos || [];
+  // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
+  const archivosRaw = denuncia.archivos_denuncia || 
+    (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) => 
+      pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
+    ) || []) ||
+    denuncia.Evidencias || 
+    denuncia.evidencias || 
+    denuncia.Archivos || 
+    [];
+  
+  // Filtrar duplicados por ID_Archivo
+  const archivosUnicos = new Map();
+  archivosRaw.forEach((arch: any) => {
+    const id = arch.ID_Archivo || arch.id;
+    if (id && !archivosUnicos.has(id)) {
+      archivosUnicos.set(id, arch);
+    }
+  });
+  const listaEvidencias = Array.from(archivosUnicos.values());
   
   // Normalización de Datos Principales
   const idCaso = denuncia.ID_Denuncia || denuncia.id;
@@ -304,44 +323,38 @@ export default function DetalleDirgegen() {
                 </div>
             </div>
 
-            {/* 3. TESTIGOS Y EVIDENCIAS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Testigos */}
-                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">👀 Testigos</h3>
-                    {listaTestigos.length > 0 ? (
-                        <ul className="space-y-3">
-                            {listaTestigos.map((t: any, idx: number) => (
-                                <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
-                                    {/* Lee Nombre_PD (nuevo) o Nombre (viejo) */}
-                                    <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
-                                    <span className="text-xs text-gray-500 block mt-0.5">
-                                      {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-gray-400 italic">No hay testigos registrados.</p>
-                    )}
-                 </div>
+            {/* 3. TESTIGOS */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">👀 Testigos</h3>
+                {listaTestigos.length > 0 ? (
+                    <ul className="space-y-3">
+                        {listaTestigos.map((t: any, idx: number) => (
+                            <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
+                                {/* Lee Nombre_PD (nuevo) o Nombre (viejo) */}
+                                <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
+                                <span className="text-xs text-gray-500 block mt-0.5">
+                                  {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-gray-400 italic">No hay testigos registrados.</p>
+                )}
+            </div>
 
-                 {/* Archivos */}
-                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📎 Archivos</h3>
-                    {listaEvidencias.length > 0 ? (
-                        <div className="flex flex-col gap-2">
-                             {listaEvidencias.map((arch: any, i: number) => (
-                                <a key={i} href={arch.url || arch.Url} target="_blank" rel="noreferrer" className="flex items-center gap-2 p-2 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100 transition border border-blue-100">
-                                    <span>📄</span>
-                                    <span className="truncate">{arch.nombreOriginal || arch.NombreOriginal || `Documento ${i+1}`}</span>
-                                </a>
-                             ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
-                    )}
-                 </div>
+            {/* 4. ARCHIVOS CON PREVISUALIZACIÓN */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📎 Archivos y Evidencias</h3>
+                {listaEvidencias.length > 0 ? (
+                    <div className="space-y-4">
+                         {listaEvidencias.map((arch: any, i: number) => (
+                            <EvidenciaViewer key={arch.ID_Archivo || i} archivo={arch} />
+                         ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
+                )}
             </div>
         </div>
 

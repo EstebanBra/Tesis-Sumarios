@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { listarDenuncias, type DenunciaListado, type ListarDenunciasResponse } from '@/services/denuncias.api'
 import { routes } from '@/services/routes'
+import { formatearFechaCorta } from '@/utils/date.utils'
 
 const PAGE_SIZE = 10
 
@@ -15,11 +16,6 @@ export default function MisDenuncias() {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const dateFormatter = useMemo(
-    () => new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium' }),
-    []
-  )
 
   async function fetchDenuncias(page = 1) {
     try {
@@ -61,14 +57,8 @@ export default function MisDenuncias() {
     }
   }
 
-  function formatFecha(fechaISO: string) {
-    if (!fechaISO) return '—'
-    try {
-      return dateFormatter.format(new Date(fechaISO))
-    } catch {
-      return fechaISO
-    }
-  }
+  // Usar la utilidad de fechas para evitar problemas de zona horaria
+  const formatFecha = (fechaISO: string) => formatearFechaCorta(fechaISO)
 
   return (
     <section className="space-y-5">
