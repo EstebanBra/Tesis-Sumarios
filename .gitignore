@@ -12,3 +12,6 @@ backend/.env.docker
 # Logs y archivos de sistema
 npm-debug.log
 .DS_Store
+scripts-infra/minio.exe
+
+scripts-infra/minio-data/

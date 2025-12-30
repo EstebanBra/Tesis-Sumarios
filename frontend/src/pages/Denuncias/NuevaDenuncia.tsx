@@ -463,7 +463,7 @@ export default function NuevaDenuncia() {
   // --- RENDERS ---
   if (fase === "seleccion_tipo") {
     return (
-      <section className="mx-auto max-w-5xl py-12">
+      <section className="mx-auto max-w-7xl py-12">
         <header className="mb-10 text-center px-4">
           <h1 className="font-condensed text-3xl font-bold tracking-tight text-gray-900">
             ¿Qué tipo de denuncia deseas realizar?
@@ -473,7 +473,7 @@ export default function NuevaDenuncia() {
             a la unidad correspondiente.
           </p>
         </header>
-        <div className="grid gap-8 md:grid-cols-2 px-4">
+        <div className="grid gap-8 grid-cols-1 md:grid-cols-3 px-4">
           {TIPOS_DENUNCIA.map((tipo) => (
             <Cards
               key={tipo.id}

@@ -91,11 +91,11 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     // El denunciante SIEMPRE debe tener RUT (es quien hace la denuncia)
     // Actualizar Carrera_Cargo si viene en el payload (para cualquier tipo de denuncia)
     const updateData = {
-      // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
-      genero: payload.genero,
-      region: payload.regionDenunciante || undefined,
-      comuna: payload.comunaDenunciante || undefined,
-      direccion: payload.direccionDenunciante || undefined
+        // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
+        genero: payload.genero,
+        region: payload.regionDenunciante || undefined,
+        comuna: payload.comunaDenunciante || undefined,
+        direccion: payload.direccionDenunciante || undefined
     };
     
     // Si viene Carrera_Cargo y la persona no lo tenía, actualizarlo
@@ -150,7 +150,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
     // Determinar si es denuncia de campo clínico (verificar si viene detalleCampoClinico en el payload)
     const esCampoClinico = !!payload.detalleCampoClinico;
-    
+
     const denuncia = await tx.denuncia.create({
       data: {
         ID_Denunciante: denunciante.ID,  // Usamos el ID de la persona
