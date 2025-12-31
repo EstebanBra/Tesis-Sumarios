@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {crearDenuncia,type CrearDenunciaInput,} from "@/services/denuncias.api";
 import { routes } from "@/services/routes";
 import { Cards } from "@/components/ui/Cards";
+import InfoTooltip from "@/components/ui/InfoTooltip";
 import {TIPOS_DENUNCIA,SEDES,LUGARES_SEDE,VINCULACIONES,VINCULACIONES_CAMPO_CLINICO,} from "@/data/denuncias.data";
 import type {FormularioDenuncia,Involucrado,FaseRegistro,Testigo,} from "@/types/denuncia.types";
 import FormularioLayout from "./components/FormularioLayout";
@@ -97,6 +98,7 @@ export default function NuevaDenuncia() {
     () => TIPOS_DENUNCIA.find((t) => t.id === form.tipoId) ?? null,
     [form.tipoId]
   );
+
 
   const lugaresDisponibles = useMemo(() => {
     if (!form.sedeHecho) return [];
@@ -766,8 +768,9 @@ export default function NuevaDenuncia() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Nombre completo
+                    <InfoTooltip text="Puedes ingresar tu nombre legal o tu Nombre Social. La Universidad respeta tu identidad de género y nos dirigiremos a ti estrictamente por el nombre que escribas aquí." />
                   </label>
                   <input
                     data-field="nombre"
@@ -782,8 +785,9 @@ export default function NuevaDenuncia() {
               {/* Sexo y Género - igual que en paso 2 */}
               <div className="grid gap-4 md:grid-cols-2 mt-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Sexo
+                    <InfoTooltip text="Corresponde al sexo registral que aparece en tu cédula de identidad. Se solicita únicamente para fines estadísticos obligatorios." />
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -797,8 +801,9 @@ export default function NuevaDenuncia() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Género (Opcional)
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
+                    Identidad de Género (Opcional)
+                    <InfoTooltip text="Selecciona la identidad con la que te auto-percibes. Esto nos ayuda a garantizar un trato digno y el uso correcto de pronombres." />
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -967,8 +972,9 @@ export default function NuevaDenuncia() {
           </section>
 
           <section className="space-y-4">
-            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
+            <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
               Reserva de identidad
+              <InfoTooltip text="Tu identidad será conocida solo por el Fiscal a cargo para la investigación. No se revelará al denunciado en la etapa inicial." />
             </h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="flex flex-wrap gap-6 text-sm text-gray-700 mb-2">
@@ -1034,8 +1040,9 @@ export default function NuevaDenuncia() {
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="grid gap-6 md:grid-cols-2 mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2">
+                  <p className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                     ¿Víctima menor de edad?
+                    <InfoTooltip text="Si la víctima es menor de 18 años, la Universidad tiene la obligación de priorizar medidas de resguardo urgentes." />
                   </p>
                   <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -1114,8 +1121,9 @@ export default function NuevaDenuncia() {
                   )}
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Nombre Completo
+                    <InfoTooltip text="Indica el nombre de la víctima. Si ella utiliza un Nombre Social distinto a su nombre legal, escríbelo aquí. La Universidad prioriza el reconocimiento de la identidad de género para garantizar un trato digno." />
                   </label>
                   <input
                     className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
@@ -1127,8 +1135,9 @@ export default function NuevaDenuncia() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Correo
+                    <InfoTooltip text="Datos exclusivos para que DIRGEGEN contacte a la víctima confidencialmente y le ofrezca apoyo." />
                   </label>
                   <input
                     data-field="victimaCorreo"
@@ -1153,8 +1162,9 @@ export default function NuevaDenuncia() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Teléfono
+                    <InfoTooltip text="Datos exclusivos para que DIRGEGEN contacte a la víctima confidencialmente y le ofrezca apoyo." />
                   </label>
                   <input
                     data-field="victimaTelefono"
@@ -1179,8 +1189,9 @@ export default function NuevaDenuncia() {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Sexo *
+                    <InfoTooltip text="Si no estás seguro(a) de cómo se identifica la víctima, selecciona la opción más cercana. Estos datos podrán ser rectificados luego." />
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -1194,8 +1205,9 @@ export default function NuevaDenuncia() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Género (Opcional)
+                    <InfoTooltip text="Si no estás seguro(a) de cómo se identifica la víctima, selecciona la opción más cercana. Estos datos podrán ser rectificados luego." />
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -1227,8 +1239,9 @@ export default function NuevaDenuncia() {
                 {/* Nombre y Vinculación en la misma fila */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-gray-700 flex items-center">
                       Nombre Completo <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                      <InfoTooltip text="Si no conoces el nombre legal, usa su nombre social o apodo." />
                     </label>
                     <input
                       type="text"
@@ -1283,8 +1296,9 @@ export default function NuevaDenuncia() {
 
                 {/* Descripción del Denunciado - siempre visible, ancho completo */}
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
+                  <label className="text-sm font-medium text-gray-700 flex items-center">
                     Descripción del denunciado <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                    <InfoTooltip text="Al no tener el nombre, detalla características físicas, tatuajes, ropa o acento. Es vital para la identificación." />
                   </label>
                   <textarea
                     placeholder="Descripción física, ropa, edad, etc., cualquier información adicional (opcional)"
@@ -1697,7 +1711,7 @@ export default function NuevaDenuncia() {
                       </label>
                       <input
                         className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                        placeholder="Ej: Segundo piso, pasillo norte..."
+                        placeholder="Ej: Sala 204, 2° piso, pasillo norte frente a la biblioteca..."
                         value={form.detalleHecho}
                         onChange={(e) =>
                           updateField("detalleHecho", e.target.value)
@@ -1711,8 +1725,9 @@ export default function NuevaDenuncia() {
                 <>
                   <div className="border-t border-gray-200 pt-4 mt-4 grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
                         Sede *
+                        <InfoTooltip text="Si fue fuera del campus, selecciona la sede de tu carrera." />
                       </label>
                       <select
                         data-field="sedeHecho"
@@ -1774,12 +1789,13 @@ export default function NuevaDenuncia() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-700">
+                      <label className="text-sm font-medium text-gray-700 flex items-center">
                         Detalles adicionales
+                        <InfoTooltip text="Indica Piso (ej: 2° piso), Número de Sala o referencias (ej: 'frente al casino'). Vital para revisar cámaras." />
                       </label>
                       <input
                         className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                        placeholder="Ej: Segundo piso, pasillo norte..."
+                        placeholder="Ej: Sala 204, 2° piso, pasillo norte frente a la biblioteca..."
                         value={form.detalleHecho}
                         onChange={(e) =>
                           updateField("detalleHecho", e.target.value)
@@ -1796,15 +1812,20 @@ export default function NuevaDenuncia() {
             </h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
+                <label className="text-sm font-medium text-gray-700 block mb-1 flex items-center">
                   Descripción detallada de los hechos *
+                  <InfoTooltip text="Intenta ser cronológico. Detalla acciones, palabras exactas usadas y si había testigos. No te preocupes por términos técnicos." />
                 </label>
                 <textarea
                   data-field="relato"
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20 ${
                     errors.relato ? 'border-red-500' : 'border-gray-300'
                   }`}
-                  placeholder="Describe qué pasó, cómo, cuándo y quiénes estaban presentes..."
+                  placeholder={
+                    form.tipoId === 3
+                      ? "Describe los hechos detalladamente. Menciona: Unidad/Servicio, si ocurrió durante la atención de un paciente, si el denunciado es personal del hospital o de la universidad, y si hubo testigos..."
+                      : "Describe qué pasó, indicando fecha, hora, lugar específico, palabras utilizadas, si hubo contacto físico y quiénes estaban presentes..."
+                  }
                   value={form.relato}
                   onChange={(e) => {
                     updateField("relato", e.target.value);
