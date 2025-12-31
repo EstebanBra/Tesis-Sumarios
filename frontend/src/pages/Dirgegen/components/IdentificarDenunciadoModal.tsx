@@ -21,6 +21,7 @@ export default function IdentificarDenunciadoModal({
     Nombre: '',
     Correo: '',
     Telefono: '',
+    sexo: '',
     genero: '',
     region: '',
     comuna: '',
@@ -47,6 +48,7 @@ export default function IdentificarDenunciadoModal({
         Nombre: form.Nombre.trim() || undefined,
         Correo: form.Correo.trim() || undefined,
         Telefono: form.Telefono.trim() || undefined,
+        sexo: form.sexo || undefined,
         genero: form.genero || undefined,
         region: form.region || undefined,
         comuna: form.comuna || undefined,
@@ -58,6 +60,7 @@ export default function IdentificarDenunciadoModal({
         Nombre: '',
         Correo: '',
         Telefono: '',
+        sexo: '',
         genero: '',
         region: '',
         comuna: '',
@@ -158,6 +161,21 @@ export default function IdentificarDenunciadoModal({
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
+              <select
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                value={form.sexo}
+                onChange={(e) => setForm({ ...form, sexo: e.target.value })}
+                disabled={processing}
+              >
+                <option value="">Seleccionar</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Masculino">Masculino</option>
+                <option value="Desconocido">Desconocido</option>
+              </select>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
               <select
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
@@ -166,11 +184,14 @@ export default function IdentificarDenunciadoModal({
                 disabled={processing}
               >
                 <option value="">Seleccionar</option>
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
+                <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
+                <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
+                <option value="NoBinario">No Binario</option>
+                <option value="Fluido">Fluido</option>
                 <option value="Otro">Otro</option>
-                <option value="Prefiero no decir">Prefiero no decir</option>
+                <option value="NoLoSe">No lo sé</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">Cómo se percibe la persona (puede no saberse)</p>
             </div>
 
             <div>

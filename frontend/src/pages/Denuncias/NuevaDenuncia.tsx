@@ -203,9 +203,8 @@ export default function NuevaDenuncia() {
         victimaNombre: user.nombre,
         victimaCorreo: user.email,
         victimaTelefono: user.telefono || prev.telefono,
-        victimaGenero: user.genero || "",
-        // Se autocompleta con datos del denunciante ya existentes en el form
-        // o directamente del user si se prefiere
+        victimaSexo: prev.sexo,       // <--- Aquí ocurre la magia
+        victimaGenero: prev.genero,   // <--- Aquí ocurre la magia
       }));
     } else {
       setForm((prev) => ({
@@ -783,25 +782,34 @@ export default function NuevaDenuncia() {
                   <label className="text-sm font-medium text-gray-700">
                     Sexo
                   </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    placeholder="Ingrese el sexo"
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                     value={form.sexo || ""}
                     onChange={(e) => updateField("sexo", e.target.value)}
-                  />
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Desconocido">Desconocido</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Género (Opcional)
                   </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    placeholder="Ingrese el género"
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                     value={form.genero || ""}
                     onChange={(e) => updateField("genero", e.target.value)}
-                  />
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
+                    <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
+                    <option value="NoBinario">No Binario</option>
+                    <option value="Fluido">Fluido</option>
+                    <option value="Otro">Otro</option>
+                    <option value="NoLoSe">No lo sé</option>
+                  </select>
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
@@ -1171,29 +1179,38 @@ export default function NuevaDenuncia() {
                   <label className="text-sm font-medium text-gray-700">
                     Sexo *
                   </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
-                    placeholder="Ingrese el sexo"
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white disabled:bg-gray-100"
                     value={form.victimaSexo || ""}
                     onChange={(e) => updateField("victimaSexo", e.target.value)}
                     disabled={form.esVictima === "si"}
-                  />
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Desconocido">Desconocido</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Género (Opcional)
                   </label>
-                  <input
-                    type="text"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
-                    placeholder="Ingrese el género"
+                  <select
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white disabled:bg-gray-100"
                     value={form.victimaGenero || ""}
                     onChange={(e) =>
                       updateField("victimaGenero", e.target.value)
                     }
                     disabled={form.esVictima === "si"}
-                  />
+                  >
+                    <option value="">Seleccionar</option>
+                    <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
+                    <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
+                    <option value="NoBinario">No Binario</option>
+                    <option value="Fluido">Fluido</option>
+                    <option value="Otro">Otro</option>
+                    <option value="NoLoSe">No lo sé</option>
+                  </select>
                 </div>
               </div>
             </div>

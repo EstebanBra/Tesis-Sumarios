@@ -40,6 +40,7 @@ export async function identificarDenunciado(idDatosDenunciado: number, datosPers
   Nombre?: string
   Correo?: string
   Telefono?: string
+  sexo?: string
   genero?: string
   region?: string
   comuna?: string

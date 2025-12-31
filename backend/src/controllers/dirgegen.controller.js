@@ -51,10 +51,11 @@ export async function identificarDenunciado(req, res, next) {
       Nombre, 
       Correo, 
       Telefono, 
+      sexo,
       genero, 
       region, 
       comuna, 
-      direccion 
+      direccion
     } = req.body;
 
     // Validar que el RUT esté presente
@@ -72,6 +73,7 @@ export async function identificarDenunciado(req, res, next) {
       Nombre: Nombre || null,
       Correo: Correo || null,
       Telefono: Telefono || null,
+      sexo: sexo || null,
       genero: genero || null,
       region: region || null,
       comuna: comuna || null,

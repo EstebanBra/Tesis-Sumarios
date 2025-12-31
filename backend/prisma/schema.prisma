@@ -19,6 +19,7 @@ model Persona {
   Correo    String  @db.VarChar(100)
   Telefono  String  @db.VarChar(20)
   password  String? @db.VarChar(255)
+  sexo      String? @db.NVarChar(50)
   genero    String? @db.NVarChar(50)
   region    String? @db.VarChar(100)
   comuna    String? @db.VarChar(100)

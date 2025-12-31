@@ -37,9 +37,24 @@ export async function listDenuncias(req, res, next) {
     };
 
     const { total, rows, pages } = await listDenunciasService(filters, page, pageSize);
+    
+    // Mapear Carrera_Cargo a carreraCargo para consistencia con el frontend
+    const rowsMapped = rows.map(row => {
+      if (row.denunciante && row.denunciante.Carrera_Cargo !== undefined) {
+        return {
+          ...row,
+          denunciante: {
+            ...row.denunciante,
+            carreraCargo: row.denunciante.Carrera_Cargo
+          }
+        };
+      }
+      return row;
+    });
+    
     res.json({
       meta: { total, page, pageSize, pages },
-      data: serializeBigInt(rows), // Convertir BigInt a Number antes de serializar
+      data: serializeBigInt(rowsMapped), // Convertir BigInt a Number antes de serializar
     });
   } catch (err) {
     next(err);
@@ -86,6 +101,11 @@ export async function getDenunciaById(req, res, next) {
       ...row,
       archivos_denuncia: archivosConUrls,
     };
+    
+    // Mapear Carrera_Cargo a carreraCargo para consistencia con el frontend
+    if (denunciaConArchivos.denunciante && denunciaConArchivos.denunciante.Carrera_Cargo !== undefined) {
+      denunciaConArchivos.denunciante.carreraCargo = denunciaConArchivos.denunciante.Carrera_Cargo;
+    }
     
     // Convertir BigInt a Number antes de serializar
     res.json(serializeBigInt(denunciaConArchivos));
@@ -140,7 +160,8 @@ export async function createDenuncia(req, res, next) {
       Rut: String(bodyData.Rut),
       
       // --- NUEVOS CAMPOS PARA ACTUALIZAR PERSONA ---
-      genero: bodyData.genero, 
+      sexo: bodyData.sexo || null,
+      genero: bodyData.genero || null, 
       nombreDenunciante: bodyData.Nombre, // Ojo con el nombre del campo en tu frontend
       correoDenunciante: bodyData.Correo,
       telefonoDenunciante: bodyData.Telefono,

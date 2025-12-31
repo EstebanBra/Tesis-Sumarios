@@ -154,7 +154,9 @@ export default function DetalleDirgegen() {
   const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
   const correoDenunciante = getProp(datosDenuncianteObj, 'Correo', 'correo');
   const telefonoDenunciante = getProp(datosDenuncianteObj, 'Telefono', 'telefono');
+  const sexoDenunciante = getProp(datosDenuncianteObj, 'sexo', 'sexo');
   const generoDenunciante = getProp(datosDenuncianteObj, 'genero', 'genero');
+  const carreraCargoDenunciante = getProp(datosDenuncianteObj, 'carreraCargo', 'Carrera_Cargo') || getProp(datosDenuncianteObj, 'Carrera_Cargo', 'carreraCargo');
   const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
   const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
@@ -221,13 +223,13 @@ export default function DetalleDirgegen() {
     ? telefonoDenunciante
     : (victimaExterna?.persona?.Telefono || null);
   
+  const sexoVictima = esVictima
+    ? sexoDenunciante
+    : (victimaExterna?.persona?.sexo || null);
+  
   const generoVictima = esVictima
     ? generoDenunciante
     : (victimaExterna?.persona?.genero || null);
-  
-  const sexoVictima = esVictima
-    ? null
-    : (victimaExterna?.persona?.sexo || null);
   
 
   // Solicitudes
@@ -391,6 +393,22 @@ export default function DetalleDirgegen() {
                                               </div>
                                             )}
                                             
+                                            {/* Mostrar información de identidad de género si existe */}
+                                            {(inv.persona?.sexo || inv.persona?.genero) && (
+                                              <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+                                                {inv.persona?.sexo && (
+                                                  <p><span className="font-semibold">Sexo:</span> {inv.persona.sexo}</p>
+                                                )}
+                                                {inv.persona?.genero && (
+                                                  <p><span className="font-semibold">Género:</span> {
+                                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                                    inv.persona.genero === 'NoBinario' ? 'No Binario' :
+                                                    inv.persona.genero
+                                                  }</p>
+                                                )}
+                                              </div>
+                                            )}
+                                            
                                             {/* Aquí mostramos la descripción completa concatenada 
                                                 que viene en 'Descripcion' o 'descripcion'
                                             */}
@@ -513,6 +531,10 @@ export default function DetalleDirgegen() {
                                 )}
                             </div>
                             <div className="pt-2 border-t border-gray-100">
+                                <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                                <p className="font-mono text-sm font-medium text-gray-900">{rutDenunciante || 'No especificado'}</p>
+                            </div>
+                            <div className="pt-2 border-t border-gray-100">
                                 <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Contacto</label>
                                 {correoDenunciante && (
                                 <p className="text-gray-700 break-words">{correoDenunciante}</p>
@@ -524,19 +546,34 @@ export default function DetalleDirgegen() {
                                     <p className="text-gray-400 italic text-xs">No disponible</p>
                                 )}
                             </div>
-                            {(generoDenunciante || regionDenunciante || comunaDenunciante || direccionDenunciante) && (
+                            {(sexoDenunciante || generoDenunciante) && (
                             <div className="pt-2 border-t border-gray-100">
-                                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Información Adicional</label>
+                                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo y Género</label>
+                                    {sexoDenunciante && (
+                                        <p className="text-gray-700 text-xs">Sexo: {sexoDenunciante}</p>
+                                    )}
                                     {generoDenunciante && (
                                         <p className="text-gray-700 text-xs">Género: {generoDenunciante}</p>
                                     )}
+                            </div>
+                            )}
+                            {carreraCargoDenunciante && (
+                            <div className="pt-2 border-t border-gray-100">
+                                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Carrera o Cargo</label>
+                                    <p className="text-gray-700 text-xs">{carreraCargoDenunciante}</p>
+                            </div>
+                            )}
+                            {(regionDenunciante || comunaDenunciante || direccionDenunciante) && (
+                            <div className="pt-2 border-t border-gray-100">
+                                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Ubicación</label>
                                     {(regionDenunciante || comunaDenunciante) && (
                                         <p className="text-gray-700 text-xs">
-                                            {regionDenunciante}{comunaDenunciante ? `, ${comunaDenunciante}` : ''}
+                                            <strong>Región:</strong> {regionDenunciante || 'No especificada'}
+                                            {comunaDenunciante && <>, <strong>Comuna:</strong> {comunaDenunciante}</>}
                                         </p>
                                     )}
                                     {direccionDenunciante && (
-                                        <p className="text-gray-700 text-xs">{direccionDenunciante}</p>
+                                        <p className="text-gray-700 text-xs"><strong>Domicilio:</strong> {direccionDenunciante}</p>
                                     )}
                             </div>
                             )}

@@ -132,10 +132,12 @@ export type DenunciaListado = {
     Nombre?: string
     Correo?: string
     Telefono?: string
+    sexo?: string | null
     genero?: string | null
     region?: string | null
     comuna?: string | null
     direccion?: string | null
+    carreraCargo?: string | null // Carrera o Cargo del denunciante
   }
 
   tipo_denuncia?: {
