@@ -124,6 +124,14 @@ export default function EvidenciaViewer({ archivo }: EvidenciaViewerProps) {
               👁️ Previsualizar
             </button>
           )}
+          {showPreview && (
+            <button
+              onClick={() => setShowPreview(false)}
+              className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 transition-colors"
+            >
+              ⬆️ Ocultar
+            </button>
+          )}
           {showPreview && downloadUrl && (
             <a
               href={downloadUrl}

@@ -235,6 +235,30 @@ export async function getFileMetadata(objectKey) {
   }
 }
 
+/**
+ * Sube un archivo directamente a MinIO desde un buffer
+ * @param {Buffer} fileBuffer - Buffer del archivo
+ * @param {string} objectKey - Clave del objeto en MinIO (debe ser único)
+ * @param {string} mimeType - MIME type del archivo
+ * @returns {Promise<void>}
+ */
+export async function uploadFileToMinIO(fileBuffer, objectKey, mimeType) {
+  try {
+    await minioClient.putObject(
+      BUCKET_NAME,
+      objectKey,
+      fileBuffer,
+      fileBuffer.length,
+      {
+        'Content-Type': mimeType,
+      }
+    );
+  } catch (error) {
+    console.error('Error subiendo archivo a MinIO:', error);
+    throw new Error('No se pudo subir el archivo a MinIO');
+  }
+}
+
 // Exportar tipos permitidos para validación en otros módulos
 export { ALLOWED_MIME_TYPES, MAX_FILE_SIZE, BUCKET_NAME };
 

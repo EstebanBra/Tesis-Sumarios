@@ -553,6 +553,7 @@ export default function NuevaDenuncia() {
         genero: form.victimaGenero || undefined,
         sexo: form.victimaSexo || undefined,
       } : undefined,
+      // Los archivos se enviarán por separado usando FormData
       evidencias: [],
       caracteristicasDenunciado: notasAdicionales,
       
@@ -574,7 +575,9 @@ export default function NuevaDenuncia() {
 
     try {
       setEnviando(true);
-      await crearDenuncia(payload);
+      // Extraer archivos de archivosEvidencia y enviarlos junto con el payload
+      const archivosParaEnviar = archivosEvidencia.map(fm => fm.file);
+      await crearDenuncia(payload, archivosParaEnviar.length > 0 ? archivosParaEnviar : undefined);
       nav(routes.denuncias.root);
     } catch (err: any) {
       // Mapear errores del backend al estado errors para mostrarlos en los campos

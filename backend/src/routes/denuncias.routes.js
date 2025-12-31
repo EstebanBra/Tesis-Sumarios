@@ -6,6 +6,7 @@ import {
   updateDenuncia,
   deleteDenuncia,
   changeEstado,
+  subirEvidenciaDenuncia,
 } from "../controllers/denuncia.controller.js";
 
 import {
@@ -19,6 +20,8 @@ import {
 
 // IMPORTANTE: Traer los middlewares de seguridad
 import { verifyToken, hasRole } from "../middlewares/auth.middleware.js";
+import { uploadMultipleFiles } from "../middlewares/upload.middleware.js";
+import { parseFormDataJson } from "../middlewares/parseFormData.middleware.js";
 
 const router = Router();
 
@@ -30,7 +33,16 @@ router.get("/", listDenunciasRules, listDenuncias);
 router.get("/:id", idParamRule, getDenunciaById);
 
 
-router.post("/", createDenunciaRules, createDenuncia);
+// Ruta para crear denuncia con soporte para archivos adjuntos
+// Orden de middlewares:
+// 1. uploadMultipleFiles: procesa archivos y los deja en req.files
+// 2. parseFormDataJson: parsea el JSON del campo 'data' si viene FormData
+// 3. createDenunciaRules: valida los datos parseados
+// 4. createDenuncia: crea la denuncia
+router.post("/", uploadMultipleFiles, parseFormDataJson, createDenunciaRules, createDenuncia);
+
+// Ruta para subir evidencias a una denuncia existente
+router.post("/:id/evidencia", idParamRule, subirEvidenciaDenuncia);
 
 router.put("/:id", updateDenunciaRules, updateDenuncia);
 

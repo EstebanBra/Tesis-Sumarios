@@ -182,8 +182,46 @@ export type ListarDenunciasResponse = {
 
 // --- FUNCIONES ---
 
-export async function crearDenuncia(payload: CrearDenunciaInput) {
-  return http('/denuncias', { method: 'POST', body: payload })
+export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File[]) {
+  // Si hay archivos, usar FormData; si no, JSON normal
+  if (archivos && archivos.length > 0) {
+    const formData = new FormData();
+    
+    // Agregar todos los campos del payload como JSON string
+    // (multer no parsea JSON automáticamente, así que lo enviamos como string)
+    formData.append('data', JSON.stringify(payload));
+    
+    // Agregar archivos
+    archivos.forEach((archivo) => {
+      formData.append('archivos', archivo);
+    });
+    
+    // Usar fetch directamente para FormData (sin Content-Type header para que el navegador lo establezca automáticamente con boundary)
+    const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+    
+    const res = await fetch(`${API_URL}/denuncias`, {
+      method: 'POST',
+      credentials: 'include', // Incluye cookies automáticamente
+      body: formData,
+    });
+    
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+    
+    if (!res.ok) {
+      const mensaje = (data && (data.message || data.error)) || `HTTP ${res.status}`;
+      const detalles = (data && (data.details || data.errors)) || null;
+      const err = new Error(mensaje) as Error & { detalles?: unknown; status?: number };
+      err.detalles = detalles;
+      err.status = res.status;
+      throw err;
+    }
+    
+    return data;
+  } else {
+    // Sin archivos, usar el método normal
+    return http('/denuncias', { method: 'POST', body: payload });
+  }
 }
 
 export async function listarDenuncias(params: ListarDenunciasParams = {}): Promise<ListarDenunciasResponse> {
@@ -220,12 +258,45 @@ export async function gestionarDenuncia(id: number, payload: {
 }
 
 export async function subirEvidenciaDenuncia(idDenuncia: number, archivo: File) {
-  const formData = new FormData();
-  formData.append('archivo', archivo);
-  
+  // Paso 1: Obtener presigned URL para subir
+  const presignedResponse = await http('/storage/presigned-upload', {
+    method: 'POST',
+    body: {
+      fileName: archivo.name,
+      mimeType: archivo.type,
+      size: archivo.size,
+    },
+  });
+
+  // El servicio http devuelve directamente el objeto de respuesta
+  if (!presignedResponse || !presignedResponse.data) {
+    throw new Error('No se pudo obtener la URL de carga');
+  }
+
+  const { uploadUrl, objectKey } = presignedResponse.data;
+
+  // Paso 2: Subir archivo directamente a MinIO usando la presigned URL
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'PUT',
+    body: archivo,
+    headers: {
+      'Content-Type': archivo.type,
+    },
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error('Error al subir archivo a MinIO');
+  }
+
+  // Paso 3: Registrar metadatos en la base de datos
   return http(`/denuncias/${idDenuncia}/evidencia`, {
     method: 'POST',
-    body: formData, 
+    body: {
+      objectKey: objectKey,
+      nombreOriginal: archivo.name,
+      tipoArchivo: archivo.type,
+      tamaño: archivo.size,
+    },
   });
 }
 

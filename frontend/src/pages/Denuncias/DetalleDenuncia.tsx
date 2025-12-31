@@ -209,12 +209,41 @@ export default function DetalleDenuncia() {
            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <h3 className="font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">📂 Evidencias</h3>
               <div className="space-y-3 mb-6">
-                 {archivos.length > 0 ? archivos.map((arch: any, idx: number) => (
-                    <a key={idx} href={arch.Ruta_Archivo || arch.archivo} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded transition-colors group">
-                       <span className="text-xl">📄</span>
-                       <span className="text-sm text-blue-600 font-medium group-hover:underline truncate">{arch.Nombre_Archivo || `Archivo ${idx + 1}`}</span>
-                    </a>
-                 )) : <p className="text-sm text-gray-400 italic">No hay archivos adjuntos.</p>}
+                 {archivos.length > 0 ? archivos.map((arch: any, idx: number) => {
+                    // Usar downloadUrl (presigned) o Ruta_Archivo (legacy)
+                    const downloadUrl = arch.downloadUrl || arch.Ruta_Archivo;
+                    const nombreArchivo = arch.Nombre_Original || arch.Nombre_Archivo || `Archivo ${idx + 1}`;
+                    const esImagen = arch.Tipo_Archivo?.startsWith('image/') || arch.tipoArchivo?.startsWith('image/');
+                    
+                    return (
+                      <div key={idx} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded transition-colors group border border-gray-100">
+                        {esImagen && downloadUrl ? (
+                          <a href={downloadUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 flex-1">
+                            <div className="relative w-16 h-16 flex-shrink-0">
+                              <img 
+                                src={downloadUrl} 
+                                alt={nombreArchivo}
+                                className="w-full h-full object-cover rounded border border-gray-200"
+                                onError={(e) => {
+                                  // Si falla la carga de la imagen, ocultar y mostrar icono
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = '<span class="text-2xl flex items-center justify-center w-full h-full">📄</span>';
+                                  }
+                                }}
+                              />
+                            </div>
+                            <span className="text-sm text-blue-600 font-medium group-hover:underline truncate flex-1">{nombreArchivo}</span>
+                          </a>
+                        ) : (
+                          <a href={downloadUrl || '#'} target="_blank" rel="noreferrer" className="flex items-center gap-3 flex-1">
+                            <span className="text-2xl flex-shrink-0">📄</span>
+                            <span className="text-sm text-blue-600 font-medium group-hover:underline truncate flex-1">{nombreArchivo}</span>
+                          </a>
+                        )}
+                      </div>
+                    );
+                 }) : <p className="text-sm text-gray-400 italic">No hay archivos adjuntos.</p>}
               </div>
               <div className="border-t border-gray-100 pt-4">
                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Subir nueva evidencia</label>
