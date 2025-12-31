@@ -23,6 +23,7 @@ import FormularioLayout from "./components/FormularioLayout";
 import { useAuth } from "@/context/AuthContext";
 import { clRegions } from "@clregions/data";
 import FileUploader, { type FileMetadata } from "@/components/FileUploader";
+import { validarRut, validarEmail, validarTelefono } from "@/utils/validation.utils";
 
 const initialInvolucrado: Involucrado = {
   nombre: "",
@@ -101,6 +102,7 @@ export default function NuevaDenuncia() {
   const [detalles, setDetalles] = useState<
     { field: string; msg: string }[] | null
   >(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [
     mostrarCamposAdicionalesDenunciado,
     setMostrarCamposAdicionalesDenunciado,
@@ -234,12 +236,11 @@ export default function NuevaDenuncia() {
   }
 
   function handleAddInvolucrado() {
-    if (
-      !form.nuevoInvolucrado.nombre.trim() ||
-      !form.nuevoInvolucrado.vinculacion.trim() ||
-      !form.nuevoInvolucrado.descripcionDenunciado.trim()
-    )
+    // Solo requerir nombre para agregar un involucrado (la sección es opcional)
+    // Si el usuario quiere agregar uno, al menos debe tener nombre
+    if (!form.nuevoInvolucrado.nombre.trim()) {
       return;
+    }
     setForm((prev) => ({
       ...prev,
       involucrados: [...prev.involucrados, prev.nuevoInvolucrado],
@@ -274,7 +275,7 @@ export default function NuevaDenuncia() {
 
   function puedeAvanzar() {
     if (step === 1)
-      return !!form.rut.trim() && !!form.nombre.trim() && !!form.sexo;
+      return true; // Todos los campos del denunciante son opcionales ahora
     if (step === 2) {
       // Si es denuncia de campo clínico, validar campos específicos
       if (form.tipoId === 3) {
@@ -302,18 +303,142 @@ export default function NuevaDenuncia() {
     if (step > 1) setStep((prev) => prev - 1);
   }
 
+  /**
+   * Valida el formulario completo antes de enviar
+   * Retorna un objeto con errores por campo
+   */
+  function validateForm(): Record<string, string> {
+    const newErrors: Record<string, string> = {};
+    const esCampoClinico = form.tipoId === 3;
+
+    // Validar campos obligatorios básicos
+    if (!form.relato.trim()) {
+      newErrors.relato = "El relato de los hechos es obligatorio";
+    }
+    if (!form.subtipoId) {
+      newErrors.tipoDenuncia = "Debe seleccionar un tipo de denuncia";
+    }
+
+    // Validaciones del denunciante (SOLO si el usuario ha ingresado algo)
+    // Si hay algún campo lleno, validamos todos los que estén llenos
+    const tieneDatosDenunciante = 
+      form.rut.trim() || 
+      form.nombre.trim() || 
+      form.correo.trim() || 
+      form.telefono.trim();
+
+    if (tieneDatosDenunciante) {
+      // Si ingresó RUT, validarlo
+      if (form.rut.trim() && !validarRut(form.rut)) {
+        newErrors.rut = "RUT inválido";
+      }
+      // Si ingresó correo, validarlo
+      if (form.correo.trim() && !validarEmail(form.correo)) {
+        newErrors.correo = "Correo electrónico inválido";
+      }
+      // Si ingresó teléfono, validarlo
+      if (form.telefono.trim() && !validarTelefono(form.telefono)) {
+        newErrors.telefono = "Teléfono inválido (debe tener 8-9 dígitos)";
+      }
+    }
+
+    // Validaciones de víctima (denunciado) - SIEMPRE OBLIGATORIA
+    if (form.esVictima === "no") {
+      // Si NO es el denunciante, la víctima externa es obligatoria
+      // RUT de víctima es obligatorio si no es el denunciante
+      if (!form.victimaRut.trim()) {
+        newErrors.victimaRut = "El RUT de la víctima es obligatorio";
+      } else if (!validarRut(form.victimaRut)) {
+        newErrors.victimaRut = "RUT de víctima inválido";
+      }
+      // Si ingresó correo de víctima, validarlo
+      if (form.victimaCorreo.trim() && !validarEmail(form.victimaCorreo)) {
+        newErrors.victimaCorreo = "Correo electrónico de víctima inválido";
+      }
+      // Si ingresó teléfono de víctima, validarlo
+      if (form.victimaTelefono.trim() && !validarTelefono(form.victimaTelefono)) {
+        newErrors.victimaTelefono = "Teléfono de víctima inválido (debe tener 8-9 dígitos)";
+      }
+    } else {
+      // Si el denunciante ES la víctima, validar que tenga datos básicos del denunciante
+      // El denunciante ya tiene sus datos, pero debemos asegurarnos de que estén presentes
+      // Si está autenticado, los datos se autocompletan, pero validamos por si acaso
+      // (No hacemos esto estricto ya que el denunciante es opcional ahora)
+    }
+
+    // Validar RUTs de denunciados (si tienen RUT)
+    form.involucrados.forEach((inv, index) => {
+      if (inv.rut && inv.rut.trim() && !validarRut(inv.rut)) {
+        newErrors[`involucrado_${index}_rut`] = "RUT del denunciado inválido";
+      }
+    });
+
+    // Validar RUTs de testigos (si tienen RUT)
+    form.testigos.forEach((test, index) => {
+      if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
+        newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
+      }
+      // Validar contacto de testigo (puede ser email o teléfono)
+      if (test.contacto && test.contacto.trim()) {
+        const esEmail = test.contacto.includes('@');
+        if (esEmail && !validarEmail(test.contacto)) {
+          newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
+        } else if (!esEmail && !validarTelefono(test.contacto)) {
+          newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+        }
+      }
+    });
+
+    // Validaciones específicas de campo clínico
+    if (esCampoClinico) {
+      if (!form.nombreEstablecimiento.trim()) {
+        newErrors.nombreEstablecimiento = "El nombre del establecimiento es obligatorio";
+      }
+      if (!form.regionEstablecimiento.trim()) {
+        newErrors.regionEstablecimiento = "La región del establecimiento es obligatoria";
+      }
+      if (!form.comunaEstablecimiento.trim()) {
+        newErrors.comunaEstablecimiento = "La comuna del establecimiento es obligatoria";
+      }
+      if (!form.direccionEstablecimiento.trim()) {
+        newErrors.direccionEstablecimiento = "La dirección del establecimiento es obligatoria";
+      }
+      if (!form.unidadServicio.trim()) {
+        newErrors.unidadServicio = "La unidad de servicio es obligatoria";
+      }
+      // Los involucrados (Denunciado/s) son OPCIONALES, incluso para campo clínico
+      // Solo validamos RUT si se ingresa, pero no es obligatorio agregar denunciados
+    } else {
+      // Para denuncias normales, validar sede
+      if (!form.sedeHecho) {
+        newErrors.sedeHecho = "La sede del hecho es obligatoria";
+      }
+    }
+
+    // Validar que para tipo 3 (Campos Clínicos), el subtipoId sea 300
+    if (form.tipoId === 3 && form.subtipoId !== 300) {
+      newErrors.tipoDenuncia = "Error: El tipo de denuncia de Campos Clínicos no tiene subtipos";
+    }
+
+    return newErrors;
+  }
+
   async function enviarDenuncia() {
     setError(null);
     setDetalles(null);
+    setErrors({});
 
-    if (!form.rut.trim() || !form.relato.trim() || !form.subtipoId) {
-      setError("Faltan campos obligatorios.");
-      return;
-    }
-    
-    // Para tipo 3 (Campos Clínicos), el subtipoId debe ser 300 (el tipo principal, no hay subtipos)
-    if (form.tipoId === 3 && form.subtipoId !== 300) {
-      setError("Error: El tipo de denuncia de Campos Clínicos no tiene subtipos.");
+    // Validar formulario completo
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setError("Por favor corrija los errores antes de continuar");
+      // Scroll al primer error
+      const firstErrorField = Object.keys(validationErrors)[0];
+      const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
 
@@ -361,27 +486,17 @@ export default function NuevaDenuncia() {
 
     // Validar campos específicos de campo clínico
     if (esCampoClinico) {
-      if (!form.nombreEstablecimiento.trim() || 
-          !form.regionEstablecimiento.trim() || 
-          !form.comunaEstablecimiento.trim() || 
-          !form.direccionEstablecimiento.trim() || 
-          !form.unidadServicio.trim()) {
-        setError("Para denuncias de campo clínico, los campos de establecimiento, región, comuna, dirección y unidad de servicio son obligatorios.");
-        return;
-      }
-      // Validar que haya al menos un denunciado con vinculación
-      if (form.involucrados.length === 0 || !form.involucrados.some(i => i.vinculacion.trim())) {
-        setError("Para denuncias de campo clínico, debes agregar al menos un denunciado con su vinculación.");
-        return;
-      }
+      // Las validaciones ya se hicieron en validateForm(), solo construimos el payload
     }
 
     const payload: CrearDenunciaInput = {
-      Rut: form.rut.trim(),
-      Nombre: form.nombre.trim(),
-      Correo: form.correo.trim(),
-      Telefono: form.telefono.trim(),
-      genero: form.genero,
+      // Campos del denunciante (todos opcionales ahora - se envían null si están vacíos)
+      Rut: form.rut?.trim() || null,
+      Nombre: form.nombre?.trim() || null,
+      Correo: form.correo?.trim() || null,
+      Telefono: form.telefono?.trim() || null,
+      genero: form.genero?.trim() || null, // String directo, opcional
+      sexo: form.sexo?.trim() || null, // String directo, opcional
       regionDenunciante: form.regionDenunciante || null,
       comunaDenunciante: form.comunaDenunciante || null,
       direccionDenunciante: form.direccionDenunciante || null,
@@ -444,9 +559,66 @@ export default function NuevaDenuncia() {
       await crearDenuncia(payload);
       nav(routes.denuncias.root);
     } catch (err: any) {
-      setError(err?.message ?? "Error al crear la denuncia");
+      // Mapear errores del backend al estado errors para mostrarlos en los campos
+      const backendErrors: Record<string, string> = {};
+      
+      // Si hay detalles de error del backend, mapearlos a los campos
       if (err?.detalles && Array.isArray(err.detalles)) {
         setDetalles(err.detalles as { field: string; msg: string }[]);
+        
+        // Mapear errores a campos individuales
+        err.detalles.forEach((detalle: { field: string; msg: string }) => {
+          // Normalizar el nombre del campo para que coincida con los data-field
+          const fieldName = detalle.field?.toLowerCase() || '';
+          
+          // Mapear nombres de campos del backend a nombres de campos del frontend
+          const fieldMapping: Record<string, string> = {
+            'rut': 'rut',
+            'nombre': 'nombre',
+            'correo': 'correo',
+            'telefono': 'telefono',
+            'genero': 'genero',
+            'sexo': 'sexo',
+            'victimarut': 'victimaRut',
+            'victima_rut': 'victimaRut',
+            'victimacorreo': 'victimaCorreo',
+            'victima_correo': 'victimaCorreo',
+            'victimatelefono': 'victimaTelefono',
+            'victima_telefono': 'victimaTelefono',
+            'relato': 'relato',
+            'relato_hechos': 'relato',
+            'sede': 'sedeHecho',
+            'sede_hecho': 'sedeHecho',
+            'subtipo': 'tipoDenuncia',
+            'tipo': 'tipoDenuncia',
+            'tipodenuncia': 'tipoDenuncia',
+          };
+          
+          const mappedField = fieldMapping[fieldName] || fieldName;
+          backendErrors[mappedField] = detalle.msg;
+        });
+      }
+      
+      // Si hay errores mapeados, mostrarlos en los campos
+      if (Object.keys(backendErrors).length > 0) {
+        setErrors(backendErrors);
+        // Scroll al primer error
+        const firstErrorField = Object.keys(backendErrors)[0];
+        const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+        if (element) {
+          setTimeout(() => {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+      }
+      
+      // Establecer mensaje de error general
+      const errorMessage = err?.message ?? "Error al crear la denuncia";
+      setError(errorMessage);
+      
+      // Si no hay mensaje específico pero hay detalles, crear mensaje más descriptivo
+      if (!err?.message && err?.detalles && Array.isArray(err.detalles) && err.detalles.length > 0) {
+        setError(`Se encontraron ${err.detalles.length} error(es) en el formulario. Por favor revise los campos marcados.`);
       }
     } finally {
       setEnviando(false);
@@ -532,32 +704,47 @@ export default function NuevaDenuncia() {
 
           <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
-              Datos del denunciante
+              Datos del denunciante <span className="text-sm font-normal text-gray-500">(Opcional)</span>
             </h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    RUT *
+                    RUT
                   </label>
                   <input
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    data-field="rut"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                      errors.rut ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="12.345.678-9"
                     value={form.rut}
-                    onChange={(e) => updateField("rut", e.target.value)}
-                    required
+                    onChange={(e) => {
+                      updateField("rut", e.target.value);
+                      // Limpiar error al escribir
+                      if (errors.rut) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.rut;
+                          return newErrors;
+                        });
+                      }
+                    }}
                   />
+                  {errors.rut && (
+                    <p className="mt-1 text-xs text-red-500">{errors.rut}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Nombre completo *
+                    Nombre completo
                   </label>
                   <input
+                    data-field="nombre"
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     placeholder="Tu nombre"
                     value={form.nombre}
                     onChange={(e) => updateField("nombre", e.target.value)}
-                    required
                   />
                 </div>
               </div>
@@ -566,40 +753,27 @@ export default function NuevaDenuncia() {
               <div className="grid gap-4 md:grid-cols-2 mt-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Sexo *
+                    Sexo
                   </label>
-                  <select
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="Ingrese el sexo"
                     value={form.sexo || ""}
                     onChange={(e) => updateField("sexo", e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Género (Opcional)
                   </label>
-                  <select
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  <input
+                    type="text"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="Ingrese el género"
                     value={form.genero || ""}
                     onChange={(e) => updateField("genero", e.target.value)}
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Transgenero Masculino">
-                      Transgenero Masculino
-                    </option>
-                    <option value="Transgenero Femenino">
-                      Transgenero Femenino
-                    </option>
-                    <option value="No Binario">No Binario</option>
-                    <option value="Otro">Otro / Prefiero no decir</option>
-                  </select>
+                  />
                 </div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
@@ -636,23 +810,55 @@ export default function NuevaDenuncia() {
                     Teléfono
                   </label>
                   <input
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    data-field="telefono"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                      errors.telefono ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="+56 9 ..."
                     value={form.telefono}
-                    onChange={(e) => updateField("telefono", e.target.value)}
+                    onChange={(e) => {
+                      updateField("telefono", e.target.value);
+                      // Limpiar error al escribir
+                      if (errors.telefono) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.telefono;
+                          return newErrors;
+                        });
+                      }
+                    }}
                   />
+                  {errors.telefono && (
+                    <p className="mt-1 text-xs text-red-500">{errors.telefono}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Correo
                   </label>
                   <input
+                    data-field="correo"
                     type="email"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                      errors.correo ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="correo@ubb.cl"
                     value={form.correo}
-                    onChange={(e) => updateField("correo", e.target.value)}
+                    onChange={(e) => {
+                      updateField("correo", e.target.value);
+                      // Limpiar error al escribir
+                      if (errors.correo) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.correo;
+                          return newErrors;
+                        });
+                      }
+                    }}
                   />
+                  {errors.correo && (
+                    <p className="mt-1 text-xs text-red-500">{errors.correo}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -666,7 +872,7 @@ export default function NuevaDenuncia() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Región *
+                    Región
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -686,7 +892,7 @@ export default function NuevaDenuncia() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Comuna *
+                    Comuna
                   </label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -707,7 +913,7 @@ export default function NuevaDenuncia() {
               </div>
               <div className="mt-4">
                 <label className="text-sm font-medium text-gray-700">
-                  Dirección domicilio *
+                  Dirección domicilio
                 </label>
                 <input
                   className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -844,14 +1050,29 @@ export default function NuevaDenuncia() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    RUT
+                    RUT {form.esVictima === "no" && "*"}
                   </label>
                   <input
-                    className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
+                    data-field="victimaRut"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                      errors.victimaRut ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     value={form.victimaRut}
-                    onChange={(e) => updateField("victimaRut", e.target.value)}
+                    onChange={(e) => {
+                      updateField("victimaRut", e.target.value);
+                      if (errors.victimaRut) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.victimaRut;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     disabled={form.esVictima === "si"}
                   />
+                  {errors.victimaRut && form.esVictima === "no" && (
+                    <p className="mt-1 text-xs text-red-500">{errors.victimaRut}</p>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-sm font-medium text-gray-700">
@@ -871,64 +1092,80 @@ export default function NuevaDenuncia() {
                     Correo
                   </label>
                   <input
-                    className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
+                    data-field="victimaCorreo"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                      errors.victimaCorreo ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     value={form.victimaCorreo}
-                    onChange={(e) =>
-                      updateField("victimaCorreo", e.target.value)
-                    }
+                    onChange={(e) => {
+                      updateField("victimaCorreo", e.target.value);
+                      if (errors.victimaCorreo) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.victimaCorreo;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     disabled={form.esVictima === "si"}
                   />
+                  {errors.victimaCorreo && (
+                    <p className="mt-1 text-xs text-red-500">{errors.victimaCorreo}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Teléfono
                   </label>
                   <input
-                    className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
+                    data-field="victimaTelefono"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                      errors.victimaTelefono ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     value={form.victimaTelefono}
-                    onChange={(e) =>
-                      updateField("victimaTelefono", e.target.value)
-                    }
+                    onChange={(e) => {
+                      updateField("victimaTelefono", e.target.value);
+                      if (errors.victimaTelefono) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.victimaTelefono;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     disabled={form.esVictima === "si"}
                   />
+                  {errors.victimaTelefono && (
+                    <p className="mt-1 text-xs text-red-500">{errors.victimaTelefono}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Sexo *
                   </label>
-                  <select
+                  <input
+                    type="text"
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    placeholder="Ingrese el sexo"
                     value={form.victimaSexo || ""}
                     onChange={(e) => updateField("victimaSexo", e.target.value)}
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                  </select>
+                    disabled={form.esVictima === "si"}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Género (Opcional)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                    placeholder="Ingrese el género"
                     value={form.victimaGenero || ""}
                     onChange={(e) =>
                       updateField("victimaGenero", e.target.value)
                     }
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="Masculino">Masculino</option>
-                    <option value="Femenino">Femenino</option>
-                    <option value="Transgenero Masculino">
-                      Transgenero Masculino
-                    </option>
-                    <option value="Transgenero Femenino">
-                      Transgenero Femenino
-                    </option>
-                    <option value="No Binario">No Binario</option>
-                    <option value="Otro">Otro / Prefiero no decir</option>
-                  </select>
+                    disabled={form.esVictima === "si"}
+                  />
                 </div>
               </div>
             </div>
@@ -936,7 +1173,7 @@ export default function NuevaDenuncia() {
 
           <section className="space-y-4">
             <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
-              Denunciado/s
+              Denunciado/s <span className="text-sm font-normal text-gray-500">(Opcional)</span>
             </h2>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               {/* Campos principales siempre visibles */}
@@ -945,7 +1182,7 @@ export default function NuevaDenuncia() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      Nombre Completo *
+                      Nombre Completo
                     </label>
                     <input
                       type="text"
@@ -961,13 +1198,12 @@ export default function NuevaDenuncia() {
                           },
                         }));
                       }}
-                      required
                     />
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      Vinculación *
+                      Vinculación
                     </label>
                     <select
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -986,7 +1222,6 @@ export default function NuevaDenuncia() {
                           alert('Importante: Si el denunciado es Personal Colaboración Docente (Tutor Hospital), esta denuncia podría ser derivada a las autoridades correspondientes del establecimiento de salud.');
                         }
                       }}
-                      required
                     >
                       <option value="">Seleccionar Vinculación</option>
                       {(form.tipoId === 3 ? VINCULACIONES_CAMPO_CLINICO : VINCULACIONES).map((v) => (
@@ -1003,7 +1238,7 @@ export default function NuevaDenuncia() {
                 {/* Descripción del Denunciado - siempre visible, ancho completo */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Descripción del denunciado *
+                    Descripción del denunciado
                   </label>
                   <textarea
                     placeholder="Descripción física, ropa, edad, etc., cualquier información adicional"
@@ -1018,7 +1253,6 @@ export default function NuevaDenuncia() {
                         },
                       }))
                     }
-                    required
                   />
                 </div>
               </div>
@@ -1375,13 +1609,23 @@ export default function NuevaDenuncia() {
                         Sede *
                       </label>
                       <select
-                        className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        data-field="sedeHecho"
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                          errors.sedeHecho ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         value={form.sedeHecho}
                         onChange={(e) => {
                           const sede = SEDES.find((s) => s.id === e.target.value);
                           updateField("sedeHecho", e.target.value);
                           updateField("regionHecho", sede?.region || "");
                           updateField("lugarHecho", "");
+                          if (errors.sedeHecho) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.sedeHecho;
+                              return newErrors;
+                            });
+                          }
                         }}
                       >
                         <option value="">Seleccionar Sede</option>
@@ -1391,6 +1635,9 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
+                      {errors.sedeHecho && (
+                        <p className="mt-1 text-xs text-red-500">{errors.sedeHecho}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-700">
@@ -1447,12 +1694,26 @@ export default function NuevaDenuncia() {
                   Descripción detallada de los hechos *
                 </label>
                 <textarea
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20"
+                  data-field="relato"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20 ${
+                    errors.relato ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Describe qué pasó, cómo, cuándo y quiénes estaban presentes..."
                   value={form.relato}
-                  onChange={(e) => updateField("relato", e.target.value)}
-                  required
+                  onChange={(e) => {
+                    updateField("relato", e.target.value);
+                    if (errors.relato) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.relato;
+                        return newErrors;
+                      });
+                    }
+                  }}
                 />
+                {errors.relato && (
+                  <p className="mt-1 text-xs text-red-500">{errors.relato}</p>
+                )}
               </div>
 
               {/* Sección de Testigos */}

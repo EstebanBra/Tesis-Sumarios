@@ -459,6 +459,7 @@ export default function DetalleAutoridad() {
                             </dd>
                         </div>
                     </div>
+                </div>
 
                 {/* COLUMNA DERECHA (4) */}
                 <div className="lg:col-span-4 space-y-6">

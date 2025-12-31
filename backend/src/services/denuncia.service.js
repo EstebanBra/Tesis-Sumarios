@@ -321,7 +321,8 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       },
     });
 
-      // c) Guardar Archivos con metadatos de MinIO
+    // Guardar Archivos con metadatos de MinIO (si existen evidencias)
+    if (payload.evidencias && Array.isArray(payload.evidencias) && payload.evidencias.length > 0) {
       const archivos = payload.evidencias
         .filter(e => e?.nombreArchivo) // Validar que tenga nombreArchivo (MinIO key)
         .map(e => ({
@@ -334,7 +335,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           Tamaño: e.tamaño ? BigInt(e.tamaño) : null,
         }));
 
-      if (archivos.length) {
+      if (archivos.length > 0) {
         await tx.archivo.createMany({ data: archivos });
       }
     }

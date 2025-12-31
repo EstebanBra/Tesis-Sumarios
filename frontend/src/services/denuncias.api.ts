@@ -38,11 +38,12 @@ export type EvidenciaInput = {
 }
 
 export type CrearDenunciaInput = {
-  Rut: string
-  genero?: string
-  Nombre?: string
-  Correo?: string
-  Telefono?: string
+  Rut?: string | null // Opcional para denuncias anónimas
+  genero?: string | null // String directo, opcional
+  sexo?: string | null // String directo, opcional
+  Nombre?: string | null
+  Correo?: string | null
+  Telefono?: string | null
   regionDenunciante?: string | null
   comunaDenunciante?: string | null
   direccionDenunciante?: string | null
