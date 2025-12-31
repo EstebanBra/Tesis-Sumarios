@@ -22,13 +22,13 @@ export const TIPOS_DENUNCIA: OpcionTipo[] = [
     {
         id: 1,
         nombre: 'Acoso / Violencia / Discriminación',
-        descripcion: 'Denuncias relacionadas con acoso sexual, laboral, violencia de género o discriminación arbitraria (Dirgegen).',
+        descripcion: 'Canal formal para denuncias de acoso sexual, acoso laboral, violencia de género y discriminación arbitraria por razones de sexo, orientación sexual o identidad de género. Aplicable a toda la comunidad universitaria y terceros externos vinculados con la institución. Su objetivo es garantizar espacios seguros mediante un acompañamiento multidisciplinario psicosociojurídico y la aplicación de medidas de resguardo con perspectiva de género',
         icono: <IconoViolencia />
     },
     {
         id: 2,
         nombre: 'Convivencia Estudiantil',
-        descripcion: 'Denuncias por faltas al Reglamento de Convivencia tales como agresiones entre pares, conflictos cotidianos o daños.',
+        descripcion: 'Este canal recibe denuncias por infracciones a los deberes estudiantiles contempladas en el Reglamento de Convivencia Estudiantil, aplicable a estudiantes de pre y posgrado. Incluye transgresiones en el área de convivencia (agresiones físicas o psicológicas, amenazas, consumo de sustancias) y en el área académica (plagio de certámenes o informes, suplantación y adulteración de documentos). Su fin es promover una convivencia democrática y pacífica, asegurando el debido proceso a través de investigaciones, mediación y medidas correctivas',
         icono: <IconoConvivencia />
     },
     {
