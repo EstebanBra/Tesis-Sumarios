@@ -144,14 +144,18 @@ export default function NuevaDenuncia() {
           comunaDenunciante: user.comuna || prev.comunaDenunciante,
           direccionDenunciante: user.direccion || prev.direccionDenunciante,
           carreraCargo: (user as any).carreraCargo || prev.carreraCargo, // Pre-llenar si el usuario ya lo tiene
+          // Si es víctima, precargar todos los datos del usuario
           victimaRut: isVictima ? user.rut : prev.victimaRut,
           victimaNombre: isVictima ? user.nombre : prev.victimaNombre,
           victimaCorreo: isVictima ? user.email : prev.victimaCorreo,
           victimaTelefono: isVictima
             ? user.telefono || prev.telefono
             : prev.victimaTelefono,
+          victimaSexo: isVictima
+            ? (user as any).sexo || prev.victimaSexo || prev.sexo
+            : prev.victimaSexo,
           victimaGenero: isVictima
-            ? user.genero || prev.victimaGenero
+            ? user.genero || prev.victimaGenero || prev.genero
             : prev.victimaGenero,
         };
       });
@@ -203,8 +207,9 @@ export default function NuevaDenuncia() {
         victimaNombre: user.nombre,
         victimaCorreo: user.email,
         victimaTelefono: user.telefono || prev.telefono,
-        victimaSexo: prev.sexo,       // <--- Aquí ocurre la magia
-        victimaGenero: prev.genero,   // <--- Aquí ocurre la magia
+        // Precargar sexo y género del usuario, o del formulario si no están en el usuario
+        victimaSexo: (user as any).sexo || prev.sexo || prev.victimaSexo || "",
+        victimaGenero: user.genero || prev.genero || prev.victimaGenero || "",
       }));
     } else {
       setForm((prev) => ({
@@ -221,11 +226,8 @@ export default function NuevaDenuncia() {
   }
 
   function handleAddInvolucrado() {
-    // Solo requerir nombre para agregar un involucrado (la sección es opcional)
-    // Si el usuario quiere agregar uno, al menos debe tener nombre
-    if (!form.nuevoInvolucrado.nombre.trim()) {
-      return;
-    }
+    // Todos los campos del denunciado son opcionales
+    // El usuario puede agregar un denunciado con cualquier información disponible
     setForm((prev) => ({
       ...prev,
       involucrados: [...prev.involucrados, prev.nuevoInvolucrado],
@@ -526,15 +528,16 @@ export default function NuevaDenuncia() {
       Ubicacion: ubicacionCompleta,
 
       // Mapear involucrados (denunciados) con la nueva estructura
+      // Todos los campos son opcionales - el denunciante puede no conocer toda la información
       denunciados: form.involucrados.map((i) => ({
-        nombre: i.nombre.trim() || "Sin nombre",
+        nombre: i.nombre?.trim() || "Sin nombre",
         rut: i.rut?.trim() || undefined,
         // Concatenar descripción del denunciado y unidad/carrera si existe
         descripcion: [
-          i.descripcionDenunciado || "Sin descripción",
-          i.unidadCarrera ? `Unidad/Carrera: ${i.unidadCarrera}` : null,
-          i.vinculacion ? `Vinculación: ${i.vinculacion}` : null
-        ].filter(Boolean).join(". "),
+          i.descripcionDenunciado?.trim() || null,
+          i.unidadCarrera?.trim() ? `Unidad/Carrera: ${i.unidadCarrera.trim()}` : null,
+          i.vinculacion?.trim() ? `Vinculación: ${i.vinculacion.trim()}` : null
+        ].filter(Boolean).join(". ") || "Sin información adicional",
       })),
 
       testigos: form.testigos.map((t) => ({
@@ -1180,10 +1183,9 @@ export default function NuevaDenuncia() {
                     Sexo *
                   </label>
                   <select
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white disabled:bg-gray-100"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                     value={form.victimaSexo || ""}
                     onChange={(e) => updateField("victimaSexo", e.target.value)}
-                    disabled={form.esVictima === "si"}
                   >
                     <option value="">Seleccionar</option>
                     <option value="Femenino">Femenino</option>
@@ -1196,12 +1198,11 @@ export default function NuevaDenuncia() {
                     Género (Opcional)
                   </label>
                   <select
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white disabled:bg-gray-100"
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
                     value={form.victimaGenero || ""}
                     onChange={(e) =>
                       updateField("victimaGenero", e.target.value)
                     }
-                    disabled={form.esVictima === "si"}
                   >
                     <option value="">Seleccionar</option>
                     <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
@@ -1227,12 +1228,12 @@ export default function NuevaDenuncia() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      Nombre Completo
+                      Nombre Completo <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                     </label>
                     <input
                       type="text"
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                      placeholder="Nombre completo del denunciado"
+                      placeholder="Nombre completo del denunciado (opcional)"
                       value={form.nuevoInvolucrado.nombre}
                       onChange={(e) => {
                         setForm((p) => ({
@@ -1248,7 +1249,7 @@ export default function NuevaDenuncia() {
 
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      Vinculación
+                      Vinculación <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                     </label>
                     <select
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
@@ -1283,10 +1284,10 @@ export default function NuevaDenuncia() {
                 {/* Descripción del Denunciado - siempre visible, ancho completo */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Descripción del denunciado
+                    Descripción del denunciado <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                   </label>
                   <textarea
-                    placeholder="Descripción física, ropa, edad, etc., cualquier información adicional"
+                    placeholder="Descripción física, ropa, edad, etc., cualquier información adicional (opcional)"
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
                     value={form.nuevoInvolucrado.descripcionDenunciado}
                     onChange={(e) =>
@@ -1356,11 +1357,11 @@ export default function NuevaDenuncia() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <label className="text-sm font-medium text-gray-700">
-                          RUT
+                          RUT <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="12.345.678-9"
+                          placeholder="12.345.678-9 (opcional)"
                           className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                           value={form.nuevoInvolucrado.rut || ""}
                           onChange={(e) =>
@@ -1376,11 +1377,11 @@ export default function NuevaDenuncia() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700">
-                          Unidad o Carrera
+                          Unidad o Carrera <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="Ej: Enfermería, Medicina, Unidad de Urgencias..."
+                          placeholder="Ej: Enfermería, Medicina, Unidad de Urgencias... (opcional)"
                           className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                           value={form.nuevoInvolucrado.unidadCarrera || ""}
                           onChange={(e) =>
@@ -1408,58 +1409,47 @@ export default function NuevaDenuncia() {
                   <span>+</span> Confirmar Denunciado
                 </button>
               </div>
-            </div>
 
-            {form.involucrados.length > 0 && (
-              <div className="mt-4 border rounded-md overflow-hidden">
-                <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b">
-                  Personas agregadas ({form.involucrados.length})
-                </div>
-                <ul className="divide-y bg-white">
+              {/* Lista de denunciados agregados */}
+              {form.involucrados.length > 0 && (
+                <div className="mt-3 space-y-2">
                   {form.involucrados.map((inv, i) => (
-                    <li
+                    <div
                       key={i}
-                      className="p-4 flex flex-col gap-1 text-sm hover:bg-gray-50 transition-colors"
+                      className="flex items-center justify-between bg-white border border-gray-200 rounded-md p-3"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-bold text-gray-900">
-                              {inv.nombre}
-                            </span>
-                            {inv.rut && (
-                              <span className="text-xs text-gray-500">
-                                (RUT: {inv.rut})
-                              </span>
-                            )}
-                            <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                              {inv.vinculacion || "Sin vinculación"}
-                            </span>
-                            {inv.unidadCarrera && (
-                              <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300/10">
-                                {inv.unidadCarrera}
-                              </span>
-                            )}
-                          </div>
-                          {inv.descripcionDenunciado && (
-                            <p className="text-gray-600 text-xs mt-2 pl-3 border-l-2 border-gray-200">
-                              {inv.descripcionDenunciado}
-                            </p>
-                          )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {inv.nombre || "Sin nombre"}
+                        </p>
+                        <div className="flex gap-4 mt-1 text-xs text-gray-500">
+                          {inv.rut && <span>RUT: {inv.rut}</span>}
+                          {inv.vinculacion && <span>Vinculación: {inv.vinculacion}</span>}
+                          {inv.unidadCarrera && <span>Unidad/Carrera: {inv.unidadCarrera}</span>}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInvolucrado(i)}
-                          className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 ml-2 flex-shrink-0"
-                        >
-                          Eliminar
-                        </button>
+                        {inv.descripcionDenunciado && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            {inv.descripcionDenunciado}
+                          </p>
+                        )}
                       </div>
-                    </li>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveInvolucrado(i)}
+                        className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
                   ))}
-                </ul>
-              </div>
-            )}
+                </div>
+              )}
+              {form.involucrados.length === 0 && (
+                <p className="text-sm text-gray-500 italic mt-3">
+                  No se han agregado denunciados aún
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="space-y-4">
