@@ -1,24 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  crearDenuncia,
-  type CrearDenunciaInput,
-} from "@/services/denuncias.api";
+import {crearDenuncia,type CrearDenunciaInput,} from "@/services/denuncias.api";
 import { routes } from "@/services/routes";
 import { Cards } from "@/components/ui/Cards";
-import {
-  TIPOS_DENUNCIA,
-  SEDES,
-  LUGARES_SEDE,
-  VINCULACIONES,
-  VINCULACIONES_CAMPO_CLINICO,
-} from "@/data/denuncias.data";
-import type {
-  FormularioDenuncia,
-  Involucrado,
-  FaseRegistro,
-  Testigo,
-} from "@/types/denuncia.types";
+import {TIPOS_DENUNCIA,SEDES,LUGARES_SEDE,VINCULACIONES,VINCULACIONES_CAMPO_CLINICO,} from "@/data/denuncias.data";
+import type {FormularioDenuncia,Involucrado,FaseRegistro,Testigo,} from "@/types/denuncia.types";
 import FormularioLayout from "./components/FormularioLayout";
 import { useAuth } from "@/context/AuthContext";
 import { clRegions } from "@clregions/data";
@@ -99,22 +85,12 @@ export default function NuevaDenuncia() {
   const [step, setStep] = useState(1);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [detalles, setDetalles] = useState<
-    { field: string; msg: string }[] | null
-  >(null);
+  const [detalles, setDetalles] = useState< { field: string; msg: string }[] | null > (null);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [
-    mostrarCamposAdicionalesDenunciado,
-    setMostrarCamposAdicionalesDenunciado,
-  ] = useState(false);
+  const [mostrarCamposAdicionalesDenunciado,setMostrarCamposAdicionalesDenunciado,] = useState(false);
   const [mostrarFormTestigo, setMostrarFormTestigo] = useState(false);
-  const [nuevoTestigo, setNuevoTestigo] = useState<Testigo>({
-    nombreCompleto: "",
-    rut: "",
-    contacto: "",
-  });
+  const [nuevoTestigo, setNuevoTestigo] = useState<Testigo>({nombreCompleto: "",rut: "",contacto: "",});
   const [archivosEvidencia, setArchivosEvidencia] = useState<FileMetadata[]>([]);
-
   const stepTitle = useMemo(() => steps[step - 1]?.label ?? "", [step]);
 
   const tipoSeleccionado = useMemo(
@@ -186,7 +162,17 @@ export default function NuevaDenuncia() {
     // Asignar tipo de denuncia por defecto basado en el tipo seleccionado
     // ID 100 = "Género y Equidad" para tipo 1 (Género)
     // ID 200 = "Convivencia Estudiantil" para tipo 2 (Convivencia)
-    const tipoPorDefecto = id === 1 ? 100 : 200;
+    // ID 300 = "Campos Clínicos" para tipo 3 (Campos Clínicos)
+    let tipoPorDefecto: number;
+    if (id === 1) {
+      tipoPorDefecto = 100;
+    } else if (id === 2) {
+      tipoPorDefecto = 200;
+    } else if (id === 3) {
+      tipoPorDefecto = 300;
+    } else {
+      tipoPorDefecto = 100; // Fallback por defecto
+    }
     setForm((prev) => ({ ...prev, tipoId: id, subtipoId: tipoPorDefecto }));
     setFase("formulario");
     window.scrollTo(0, 0);
@@ -315,6 +301,11 @@ export default function NuevaDenuncia() {
     if (!form.relato.trim()) {
       newErrors.relato = "El relato de los hechos es obligatorio";
     }
+    
+    // Validar campos obligatorios básicos
+    if (!form.relato.trim()) {
+      newErrors.relato = "El relato de los hechos es obligatorio";
+    }
     if (!form.subtipoId) {
       newErrors.tipoDenuncia = "Debe seleccionar un tipo de denuncia";
     }
@@ -415,10 +406,6 @@ export default function NuevaDenuncia() {
       }
     }
 
-    // Validar que para tipo 3 (Campos Clínicos), el subtipoId sea 300
-    if (form.tipoId === 3 && form.subtipoId !== 300) {
-      newErrors.tipoDenuncia = "Error: El tipo de denuncia de Campos Clínicos no tiene subtipos";
-    }
 
     return newErrors;
   }
@@ -432,13 +419,41 @@ export default function NuevaDenuncia() {
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      setError("Por favor corrija los errores antes de continuar");
+      // Crear un mensaje más descriptivo con la cantidad de errores
+      const errorCount = Object.keys(validationErrors).length;
+      const errorFields = Object.keys(validationErrors).map(field => {
+        // Mapear nombres de campos técnicos a nombres legibles
+        const fieldNames: Record<string, string> = {
+          'relato': 'Relato de los hechos',
+          'tipoDenuncia': 'Tipo de denuncia',
+          'rut': 'RUT del denunciante',
+          'correo': 'Correo del denunciante',
+          'telefono': 'Teléfono del denunciante',
+          'victimaRut': 'RUT de la víctima',
+          'victimaCorreo': 'Correo de la víctima',
+          'victimaTelefono': 'Teléfono de la víctima',
+          'nombreEstablecimiento': 'Nombre del establecimiento',
+          'unidadServicio': 'Unidad de servicio',
+          'regionEstablecimiento': 'Región del establecimiento',
+          'comunaEstablecimiento': 'Comuna del establecimiento',
+          'direccionEstablecimiento': 'Dirección del establecimiento',
+          'sedeHecho': 'Sede del hecho',
+        };
+        return fieldNames[field] || field;
+      });
+      setError(`Se encontraron ${errorCount} error(es) en el formulario. Por favor revise los campos marcados en rojo: ${errorFields.join(', ')}.`);
       // Scroll al primer error
       const firstErrorField = Object.keys(validationErrors)[0];
-      const element = document.querySelector(`[data-field="${firstErrorField}"]`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      setTimeout(() => {
+        const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Intentar hacer focus si es un input o select
+          if (element instanceof HTMLElement && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
+            (element as HTMLElement).focus();
+          }
+        }
+      }, 100);
       return;
     }
 
@@ -545,8 +560,11 @@ export default function NuevaDenuncia() {
       detalleCampoClinico: esCampoClinico ? {
         nombreEstablecimiento: form.nombreEstablecimiento.trim(),
         unidadServicio: form.unidadServicio.trim(),
+        // Priorizar la vinculación del primer involucrado, o del nuevo involucrado si está siendo agregado
         tipoVinculacionDenunciado: form.involucrados.length > 0 && form.involucrados[0].vinculacion 
           ? form.involucrados[0].vinculacion.trim() 
+          : (form.nuevoInvolucrado.vinculacion && form.nuevoInvolucrado.vinculacion.trim())
+          ? form.nuevoInvolucrado.vinculacion.trim()
           : "",
         region: form.regionEstablecimiento.trim(),
         comuna: form.comunaEstablecimiento.trim(),
@@ -589,9 +607,9 @@ export default function NuevaDenuncia() {
             'relato_hechos': 'relato',
             'sede': 'sedeHecho',
             'sede_hecho': 'sedeHecho',
-            'subtipo': 'tipoDenuncia',
             'tipo': 'tipoDenuncia',
             'tipodenuncia': 'tipoDenuncia',
+            'id_tipode': 'tipoDenuncia',
           };
           
           const mappedField = fieldMapping[fieldName] || fieldName;
@@ -604,12 +622,16 @@ export default function NuevaDenuncia() {
         setErrors(backendErrors);
         // Scroll al primer error
         const firstErrorField = Object.keys(backendErrors)[0];
-        const element = document.querySelector(`[data-field="${firstErrorField}"]`);
-        if (element) {
-          setTimeout(() => {
+        setTimeout(() => {
+          const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+          if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 100);
-        }
+            // Intentar hacer focus si es un input o select
+            if (element instanceof HTMLElement && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
+              (element as HTMLElement).focus();
+            }
+          }
+        }, 100);
       }
       
       // Establecer mensaje de error general
@@ -691,13 +713,16 @@ export default function NuevaDenuncia() {
               </button>
             </div>
               <div className="grid md:grid-cols-1 gap-6">
-              <div>
+              <div data-field="tipoDenuncia">
                 <label className="text-[10px] uppercase tracking-wide text-gray-500 font-bold block mb-1">
                   Tipo de Denuncia
                 </label>
-                <p className="text-sm font-semibold">
-                  {tipoSeleccionado?.nombre}
+                <p className={`text-sm font-semibold ${errors.tipoDenuncia ? 'text-red-500' : ''}`}>
+                  {tipoSeleccionado?.nombre || 'No seleccionado'}
                 </p>
+                {errors.tipoDenuncia && (
+                  <p className="mt-1 text-xs text-red-500">{errors.tipoDenuncia}</p>
+                )}
               </div>
             </div>
           </div>
@@ -1495,12 +1520,27 @@ export default function NuevaDenuncia() {
                       Establecimiento de Salud * <span className="text-xs text-gray-500">(Hospital/CESFAM/Centro de Salud)</span>
                     </label>
                     <input
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      data-field="nombreEstablecimiento"
+                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                        errors.nombreEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Hospital Regional de Concepción, CESFAM Las Higueras..."
                       value={form.nombreEstablecimiento}
-                      onChange={(e) => updateField("nombreEstablecimiento", e.target.value)}
+                      onChange={(e) => {
+                        updateField("nombreEstablecimiento", e.target.value);
+                        if (errors.nombreEstablecimiento) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.nombreEstablecimiento;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       required
                     />
+                    {errors.nombreEstablecimiento && (
+                      <p className="mt-1 text-xs text-red-500">{errors.nombreEstablecimiento}</p>
+                    )}
                   </div>
                   
                   <div className="grid gap-4 md:grid-cols-2 pt-4">
@@ -1509,11 +1549,21 @@ export default function NuevaDenuncia() {
                         Región del Establecimiento *
                       </label>
                       <select
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        data-field="regionEstablecimiento"
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                          errors.regionEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         value={form.regionEstablecimiento}
                         onChange={(e) => {
                           updateField("regionEstablecimiento", e.target.value);
                           updateField("comunaEstablecimiento", ""); // Clear commune when region changes
+                          if (errors.regionEstablecimiento) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.regionEstablecimiento;
+                              return newErrors;
+                            });
+                          }
                         }}
                         required
                       >
@@ -1524,17 +1574,30 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
+                      {errors.regionEstablecimiento && (
+                        <p className="mt-1 text-xs text-red-500">{errors.regionEstablecimiento}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-700">
                         Comuna del Establecimiento *
                       </label>
                       <select
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        data-field="comunaEstablecimiento"
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                          errors.comunaEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         value={form.comunaEstablecimiento}
-                        onChange={(e) =>
-                          updateField("comunaEstablecimiento", e.target.value)
-                        }
+                        onChange={(e) => {
+                          updateField("comunaEstablecimiento", e.target.value);
+                          if (errors.comunaEstablecimiento) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.comunaEstablecimiento;
+                              return newErrors;
+                            });
+                          }
+                        }}
                         disabled={!form.regionEstablecimiento}
                         required
                       >
@@ -1556,6 +1619,9 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
+                      {errors.comunaEstablecimiento && (
+                        <p className="mt-1 text-xs text-red-500">{errors.comunaEstablecimiento}</p>
+                      )}
                     </div>
                   </div>
                   
@@ -1564,12 +1630,27 @@ export default function NuevaDenuncia() {
                       Dirección del Establecimiento *
                     </label>
                     <input
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      data-field="direccionEstablecimiento"
+                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                        errors.direccionEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="Ej: Av. O'Higgins 1234, Concepción..."
                       value={form.direccionEstablecimiento}
-                      onChange={(e) => updateField("direccionEstablecimiento", e.target.value)}
+                      onChange={(e) => {
+                        updateField("direccionEstablecimiento", e.target.value);
+                        if (errors.direccionEstablecimiento) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.direccionEstablecimiento;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       required
                     />
+                    {errors.direccionEstablecimiento && (
+                      <p className="mt-1 text-xs text-red-500">{errors.direccionEstablecimiento}</p>
+                    )}
                   </div>
                   
                   <div className="grid gap-4 md:grid-cols-2 pt-4">
@@ -1578,12 +1659,27 @@ export default function NuevaDenuncia() {
                         Unidad o Servicio * <span className="text-xs text-gray-500">(Donde ocurrió el hecho)</span>
                       </label>
                       <input
-                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        data-field="unidadServicio"
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                          errors.unidadServicio ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="Ej: Urgencias, Pediatría, Medicina Interna..."
                         value={form.unidadServicio}
-                        onChange={(e) => updateField("unidadServicio", e.target.value)}
+                        onChange={(e) => {
+                          updateField("unidadServicio", e.target.value);
+                          if (errors.unidadServicio) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.unidadServicio;
+                              return newErrors;
+                            });
+                          }
+                        }}
                         required
                       />
+                      {errors.unidadServicio && (
+                        <p className="mt-1 text-xs text-red-500">{errors.unidadServicio}</p>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-700">

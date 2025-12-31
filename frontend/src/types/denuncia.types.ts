@@ -37,8 +37,8 @@ export type FormularioDenuncia = {
     reservaIdentidad: boolean
     carreraCargo: string // Carrera (si es estudiante) o Cargo (si es funcionario/académico)
 
-    tipoId: number
-    subtipoId: number | null
+    tipoId: number // Índice del tipo seleccionado (1, 2, 3)
+    subtipoId: number | null // ID_TipoDe en BD (100, 200, 300)
 
     regionDenunciante: string
     comunaDenunciante: string

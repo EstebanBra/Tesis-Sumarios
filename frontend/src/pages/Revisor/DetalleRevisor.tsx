@@ -538,6 +538,72 @@ export default function DetalleRevisor() {
               )}
             </div>
           </div>
+
+          {/* CARD: INFORMACIÓN DE CAMPO CLÍNICO (Condicional) */}
+          {denuncia.detalle_campo_clinico && (
+            <div className="bg-white rounded-xl shadow-sm border border-purple-200 overflow-hidden">
+              <div className="bg-purple-50 px-5 py-3 border-b border-purple-200 flex justify-between items-center">
+                <h3 className="font-bold text-purple-800 text-sm">🏥 Información de Campo Clínico</h3>
+              </div>
+              <div className="p-5 text-sm space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                      Establecimiento de Salud
+                    </label>
+                    <p className="font-medium text-gray-900">
+                      {denuncia.detalle_campo_clinico.Nombre_Establecimiento || 'No informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                      Unidad de Servicio
+                    </label>
+                    <p className="font-medium text-gray-900">
+                      {denuncia.detalle_campo_clinico.Unidad_Servicio || 'No informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                      Tipo de Vinculación del Denunciado
+                    </label>
+                    <p className="text-gray-700">
+                      {denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado 
+                        ? denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado === 'DOCENTE_IES'
+                          ? 'Docente Institución de Educación Superior'
+                          : denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado === 'TUTOR_HOSPITAL'
+                          ? 'Personal colaborador docente (Tutor Hospital)'
+                          : denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado
+                        : 'No informado'}
+                    </p>
+                  </div>
+                  {(denuncia.detalle_campo_clinico.Region || denuncia.detalle_campo_clinico.Comuna) && (
+                    <div>
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                        Ubicación del Establecimiento
+                      </label>
+                      <p className="text-gray-700">
+                        {[
+                          denuncia.detalle_campo_clinico.Region,
+                          denuncia.detalle_campo_clinico.Comuna
+                        ].filter(Boolean).join(', ') || 'No informado'}
+                      </p>
+                    </div>
+                  )}
+                  {denuncia.detalle_campo_clinico.Direccion_Establecimiento && (
+                    <div className="md:col-span-2">
+                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
+                        Dirección del Establecimiento
+                      </label>
+                      <p className="text-gray-700">
+                        {denuncia.detalle_campo_clinico.Direccion_Establecimiento}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Ubicación */}
           {denuncia.Ubicacion && (
