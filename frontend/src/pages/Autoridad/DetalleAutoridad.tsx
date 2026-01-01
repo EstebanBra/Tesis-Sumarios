@@ -7,7 +7,6 @@ import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
 import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
-import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -444,21 +443,25 @@ export default function DetalleAutoridad() {
                                 <p className="text-sm text-gray-400 italic">No hay testigos registrados.</p>
                             )}
                         </div>
-                        <div>
-                            <dt className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1">
-                                Fecha Hecho
-                            </dt>
-                            <dd className="text-sm font-medium text-gray-900">
-                                {denuncia.Fecha_Fin ? (
-                                    <span>
-                                        Del {formatearFechaCorta(denuncia.Fecha_Inicio)} al {formatearFechaCorta(denuncia.Fecha_Fin)}
-                                    </span>
-                                ) : (
-                                    formatearFechaCorta(denuncia.Fecha_Inicio)
-                                )}
-                            </dd>
+
+                        {/* Evidencias */}
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">📎 Evidencias</h3>
+                            {listaEvidencias.length > 0 ? (
+                                <ul className="space-y-2">
+                                    {listaEvidencias.map((ev: any, idx: number) => (
+                                        <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
+                                            <span className="text-blue-500">📄</span>
+                                            {ev.Nombre || ev.nombre || `Evidencia ${idx + 1}`}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-gray-400 italic">No hay evidencias adjuntas.</p>
+                            )}
                         </div>
                     </div>
+                </div>
 
                 {/* COLUMNA DERECHA (4) */}
                 <div className="lg:col-span-4 space-y-6">
@@ -623,7 +626,7 @@ export default function DetalleAutoridad() {
                         </div>
                     )}
                 </div>
-                </div>
+            </div>
 
             {/* --- FOOTER --- */}
             <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-end items-center gap-4 rounded-b-xl mt-6">

@@ -1,0 +1,171 @@
+# Docker Compose para entorno de produccion
+# Para mantenciones priorizar actualizacion de imagenes base, siempre usar una version, no latest
+# TODO: De momento las variables sensibles se pasan por .env, pero lo ideal seria usar docker secrets, hay que ver que podemos
+# TODO: hacer en el entorno de produccion que nos toque usar.
+
+services:
+  # Servicio de almacenamiento de objetos S3 compatible con MinIO
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: app-minio
+    restart: unless-stopped
+    expose:
+      - "9000"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_BROWSER=off
+    volumes:
+      - minio_data:/data
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Servicio para inicializar MinIO y crear el bucket privado para guardar archivos
+  # TODO: Configurar un usuario no root para este servicio es lo ideal.
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    container_name: app-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_ALIAS: localminio
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      BUCKET_NAME: ${MINIO_BUCKET_NAME}
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Esperando a que MinIO responda...' &&
+      until (mc alias set $$MINIO_ALIAS http://$$MINIO_HOST:$$MINIO_PORT $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD); do
+        echo '...esperando al servidor MinIO...'
+        sleep 5
+      done &&
+      echo 'MinIO detectado.' &&
+      echo 'Creando bucket $$BUCKET_NAME si no existe...' &&
+      mc mb --ignore-existing $$MINIO_ALIAS/$$BUCKET_NAME &&
+      echo 'Configurando bucket como PRIVADO (access: none)...' &&
+      mc anonymous set none $$MINIO_ALIAS/$$BUCKET_NAME &&
+      echo 'Configuración de MinIO completada exitosamente.'"
+    networks:
+      - app-network
+
+  # Servicio para ejecutar migraciones de base de datos antes de iniciar el backend
+  # Usa el primer stage del Dockerfile del backend para tener todas las dependencias de desarrollo
+  # necesarias para ejecutar las migraciones de Prisma.
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: app-migrator
+    restart: "no"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    command: npx prisma migrate deploy
+    networks:
+      - app-network
+
+  # Servicio del backend de la aplicación
+  # En el que debemos tener mas cuidado, ya que maneja los datos sensibles y tiene las claves de acceso a MinIO, base de datos, etc.
+  # Para mayor seguridad, el contenedor se ejecuta en modo de solo lectura y con un usuario no root.
+  # Además, se limitan las capacidades del contenedor para reducir la superficie de ataque.
+  # Aun asi podria ser vulenerable si hay fallos en las dependencias o en el propio codigo de la aplicacion.
+  # Por eso es importante mantener las dependencias al minimo y actualizadas, y revisar el codigo regularmente.
+  # Nunca se exponen puertos directamente al exterior, solo se comunica con el frontend y otros servicios internos.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-backend
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
+      - MINIO_PORT=${MINIO_PORT:-9000}
+      - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+    networks:
+      - app-network
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    user: "node"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+  # Servicio del frontend de la aplicación
+  # Similar al backend, se ejecuta en modo de solo lectura y con un usuario no root.
+  # Se limitan las capacidades del contenedor para mayor seguridad.
+  # Es el unico que expone un puerto (80) para que los usuarios puedan acceder a la aplicacion web.
+  # TODO: Habilitar HTTPS con un proxy inverso como Traefik o Nginx con el certificado SSL adecuado.
+  # Al igual que backend puede ser vulnerable si hay fallos en las dependencias o en el propio codigo.
+  # Pero eso no es tan critico como en backend, ya que no maneja datos sensibles ni claves de acceso.
+  # Se comunica por proxy con el backend para obtener los datos necesarios.
+  # En la practica solo se expone un puerto al exterior, lo que reduce mucho la superficie de ataque.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: app-frontend
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=256m
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+
+# Se utiliza una red de tipo bridge para la comunicacion entre los servicios
+# TODO: Lo ideal en esta arquitectura seria usar una base de datos gestionada aqui adentro, asi podriamos tener distintas
+# TODO: redes con internal true para evitar que se conecten a internet directamente.
+# TODO: Pero no se si nos veremos obligados a usar una base de datos externa msqlserver.
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  minio_data:

@@ -61,8 +61,8 @@ export default function DetalleDenuncia() {
   // --- LÓGICA DE VISUALIZACIÓN ---
 
   // 1. Fechas y Textos (Con respaldos por si cambia el nombre en BD)
-  const fechaIngreso = denuncia?.Fecha_Ingreso || denuncia?.fechaCreacion // Fecha de ingreso al sistema
-  const fechaHechos = denuncia?.Fecha_Inicio || denuncia?.fechaHechos // Fecha de los hechos
+  const fechaIngreso = denuncia?.Fecha_Ingreso || (denuncia as any)?.fechaCreacion // Fecha de ingreso al sistema
+  const fechaHechos = denuncia?.Fecha_Inicio || (denuncia as any)?.fechaHechos // Fecha de los hechos
   const fechaFinRaw = denuncia?.Fecha_Fin // Fecha fin del rango (opcional)
   const esRangoFechas = !!fechaFinRaw // Si hay Fecha_Fin, es un rango
   const relato = denuncia?.Relato_Hechos 

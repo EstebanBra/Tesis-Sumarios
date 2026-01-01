@@ -4,12 +4,10 @@ import { getDenunciaById } from '@/services/denuncias.api'
 import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunciadoModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
-import { useAuth } from '@/context/AuthContext'
 
 export default function DetalleRevisor() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
   
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)

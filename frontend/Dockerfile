@@ -1,29 +1,39 @@
+FROM node:24-alpine3.23 AS builder
 
+WORKDIR /app
 
-# --- ETAPA BASE (Común para Dev y Prod) ---
-FROM node:22-alpine AS base
-WORKDIR /app/frontend
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package*.json ./
+
+RUN npm ci && npm cache clean --force
+
 COPY . .
 
-# --- ETAPA DE DESARROLLO (Dev) ---
-# Esta etapa se detiene aquí y solo ejecuta el servidor de desarrollo
-FROM base AS dev
-# Exponemos el puerto de Vite
-EXPOSE 5173
-# Ejecutamos el servidor en modo host para que Docker lo vea
-CMD ["npm", "run", "dev", "--", "--host"]
-
-# --- ETAPA DE CONSTRUCCIÓN (Build) ---
-# Esta etapa solo corre si vamos a producción
-FROM base AS build
 RUN npm run build
 
-# --- ETAPA DE PRODUCCIÓN (Nginx) ---
-FROM nginx:stable-alpine AS prod
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/frontend/dist /usr/share/nginx/html
-EXPOSE 80
+FROM nginx:1.27-alpine AS production
+
+RUN apk add --no-cache dumb-init
+
+COPY nginx.conf /etc/nginx/nginx.conf
+
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
+
+RUN mkdir -p /var/cache/nginx /var/log/nginx /var/run && \
+    chown -R nginx:nginx /var/cache/nginx /var/log/nginx /var/run && \
+    chmod -R 755 /var/cache/nginx /var/log/nginx /var/run
+
+RUN rm -rf /etc/nginx/conf.d/default.conf
+
+RUN ln -sf /dev/stdout /tmp/access.log && \
+    ln -sf /dev/stderr /tmp/error.log
+
+USER nginx
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dumb-init", "--"]
+
 CMD ["nginx", "-g", "daemon off;"]

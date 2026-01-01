@@ -142,7 +142,7 @@ export default function EvidenciaViewer({ archivo }: EvidenciaViewerProps) {
               target="_blank"
               rel="noreferrer"
               onClick={async (e) => {
-                if (!downloadUrl) {
+                if (!downloadUrl && objectKey) {
                   e.preventDefault();
                   try {
                     setLoading(true);
