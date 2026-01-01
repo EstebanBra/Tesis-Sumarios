@@ -592,79 +592,243 @@ export default function DetalleRevisor() {
             </div>
           </div>
 
-          {/* CARD: INFORMACIÓN DE CAMPO CLÍNICO (Condicional) */}
-          {denuncia.detalle_campo_clinico && (
-            <div className="bg-white rounded-xl shadow-sm border border-purple-200 overflow-hidden">
-              <div className="bg-purple-50 px-5 py-3 border-b border-purple-200 flex justify-between items-center">
-                <h3 className="font-bold text-purple-800 text-sm">🏥 Información de Campo Clínico</h3>
-              </div>
-              <div className="p-5 text-sm space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                      Establecimiento de Salud
-                    </label>
-                    <p className="font-medium text-gray-900">
-                      {denuncia.detalle_campo_clinico.Nombre_Establecimiento || 'No informado'}
-                    </p>
+          {/* UBICACIÓN - VISUALIZACIÓN DINÁMICA */}
+          {(() => {
+            const ubicacion = denuncia?.Ubicacion || denuncia?.ubicacion;
+            // Determinar si es denuncia de Campo Clínico
+            const tipoId = denuncia?.ID_TipoDe || denuncia?.tipo_denuncia?.ID_TipoDe;
+            const tipoNombre = denuncia?.tipo_denuncia?.Nombre || '';
+            const detalleCampoClinico = denuncia?.detalle_campo_clinico || denuncia?.detalleCampoClinico;
+            
+            // Es campo clínico si: tipoId === 3, o existe detalle_campo_clinico, o el nombre incluye "Campos Clínicos"
+            const esCampoClinico = tipoId === 3 || 
+                                   !!detalleCampoClinico || 
+                                   tipoNombre.toLowerCase().includes('campos clínicos') ||
+                                   tipoNombre.toLowerCase().includes('campo clínico');
+            
+            // Si no hay ubicación para mostrar, no renderizar nada
+            if (!ubicacion && !detalleCampoClinico) {
+              return null;
+            }
+
+            if (esCampoClinico) {
+              // CASO A: Denuncia de Campo Clínico
+              // Intentar usar campos desagregados primero, luego parsear string si no están disponibles
+              let nombreEstablecimiento = detalleCampoClinico?.Nombre_Establecimiento || null;
+              let direccionEstablecimiento = detalleCampoClinico?.Direccion_Establecimiento || null;
+              let regionEstablecimiento = detalleCampoClinico?.Region || null;
+              let comunaEstablecimiento = detalleCampoClinico?.Comuna || null;
+              let unidadServicio = detalleCampoClinico?.Unidad_Servicio || null;
+              let detalleAdicional = null;
+
+              // Si no hay campos desagregados pero sí hay string de ubicación, intentar parsearlo
+              if (!detalleCampoClinico && ubicacion) {
+                const partes = ubicacion.split(' - ').map((p: string) => p.trim()).filter(Boolean);
+                if (partes.length > 0) {
+                  nombreEstablecimiento = partes[0] || null;
+                  
+                  for (let i = 1; i < partes.length; i++) {
+                    const parte = partes[i];
+                    const parteLower = parte.toLowerCase();
+                    
+                    if ((parteLower.includes('región') || parteLower.includes('region')) && !regionEstablecimiento) {
+                      regionEstablecimiento = parte;
+                    }
+                    else if ((parteLower.includes('urgencias') ||
+                              parteLower.includes('pediatría') ||
+                              parteLower.includes('pediatria') ||
+                              parteLower.includes('maternidad') ||
+                              parteLower.includes('cirugía') ||
+                              parteLower.includes('cirugia') ||
+                              parteLower.includes('oncología') ||
+                              parteLower.includes('oncologia') ||
+                              parteLower.includes('servicio') ||
+                              parteLower.includes('unidad')) && !unidadServicio) {
+                      unidadServicio = parte;
+                    }
+                    else if (!comunaEstablecimiento && parte.length < 40 && parte.length > 2 &&
+                             !parteLower.includes('región') && !parteLower.includes('region') &&
+                             i < partes.length - 2) {
+                      comunaEstablecimiento = parte;
+                    }
+                    else if (!direccionEstablecimiento && i === partes.length - 2) {
+                      direccionEstablecimiento = parte;
+                    }
+                    else if (!detalleAdicional && i === partes.length - 1) {
+                      detalleAdicional = parte;
+                    }
+                  }
+                  
+                  if (!comunaEstablecimiento && partes.length > 2) {
+                    for (let i = 1; i < partes.length - 1; i++) {
+                      const parte = partes[i];
+                      if (parte.toLowerCase() !== regionEstablecimiento?.toLowerCase() &&
+                          parte.toLowerCase() !== unidadServicio?.toLowerCase() &&
+                          parte.length < 40 && parte.length > 2) {
+                        comunaEstablecimiento = parte;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+
+              return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📍 Ubicación - Campo Clínico</h3>
+                  <div className="space-y-3">
+                    {nombreEstablecimiento && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">🏥 Establecimiento:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{nombreEstablecimiento}</p>
+                      </div>
+                    )}
+                    {direccionEstablecimiento && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">📍 Dirección:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{direccionEstablecimiento}</p>
+                      </div>
+                    )}
+                    {(regionEstablecimiento || comunaEstablecimiento) && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">🗺️ Comuna/Región:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">
+                          {[comunaEstablecimiento, regionEstablecimiento].filter(Boolean).join(', ')}
+                        </p>
+                      </div>
+                    )}
+                    {unidadServicio && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">🩺 Unidad/Servicio:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{unidadServicio}</p>
+                      </div>
+                    )}
+                    {detalleAdicional && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">📝 Detalles:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{detalleAdicional}</p>
+                      </div>
+                    )}
+                    {!nombreEstablecimiento && !direccionEstablecimiento && !regionEstablecimiento && 
+                     !comunaEstablecimiento && !unidadServicio && !detalleAdicional && ubicacion && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                      Unidad de Servicio
-                    </label>
-                    <p className="font-medium text-gray-900">
-                      {denuncia.detalle_campo_clinico.Unidad_Servicio || 'No informado'}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                      Tipo de Vinculación del Denunciado
-                    </label>
-                    <p className="text-gray-700">
-                      {denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado 
-                        ? denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado === 'DOCENTE_IES'
-                          ? 'Docente Institución de Educación Superior'
-                          : denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado === 'TUTOR_HOSPITAL'
-                          ? 'Personal colaborador docente (Tutor Hospital)'
-                          : denuncia.detalle_campo_clinico.Tipo_Vinculacion_Denunciado
-                        : 'No informado'}
-                    </p>
-                  </div>
-                  {(denuncia.detalle_campo_clinico.Region || denuncia.detalle_campo_clinico.Comuna) && (
-                    <div>
-                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                        Ubicación del Establecimiento
-                      </label>
-                      <p className="text-gray-700">
-                        {[
-                          denuncia.detalle_campo_clinico.Region,
-                          denuncia.detalle_campo_clinico.Comuna
-                        ].filter(Boolean).join(', ') || 'No informado'}
-                      </p>
-                    </div>
-                  )}
-                  {denuncia.detalle_campo_clinico.Direccion_Establecimiento && (
-                    <div className="md:col-span-2">
-                      <label className="text-xs text-gray-400 uppercase font-bold block mb-1">
-                        Dirección del Establecimiento
-                      </label>
-                      <p className="text-gray-700">
-                        {denuncia.detalle_campo_clinico.Direccion_Establecimiento}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Ubicación */}
-          {denuncia.Ubicacion && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">📍 Ubicación</h3>
-              <p className="text-sm text-gray-700">{denuncia.Ubicacion}</p>
-            </div>
-          )}
+              );
+            } else {
+              // CASO B: Denuncia General (Convivencia, Género, etc.)
+              let sedeNombre = denuncia?.sedeHecho || denuncia?.Sede_Hecho;
+              let regionNombre = denuncia?.regionHecho || denuncia?.Region_Hecho;
+              let lugarNombre = denuncia?.lugarHecho || denuncia?.Lugar_Hecho;
+              let detalleHecho = denuncia?.detalleHecho || denuncia?.Detalle_Hecho;
+              
+              // Si no hay campos desagregados pero sí hay string de ubicación, parsearlo
+              if (!sedeNombre && !lugarNombre && !detalleHecho && ubicacion) {
+                const partes = ubicacion.split(' - ').map((p: string) => p.trim()).filter(Boolean);
+                
+                if (partes.length > 0) {
+                  sedeNombre = partes[0] || null;
+                  
+                  // Extraer región de la sede si está incluida
+                  if (sedeNombre) {
+                    const regionMatch = sedeNombre.match(/Región\s+(?:de\s+)?(?:del\s+)?([^-()]+)|(?:Región\s+)?([IVX]+)\s+Región/i);
+                    if (regionMatch && !regionNombre) {
+                      const posiblesRegiones = [
+                        'Bío-Bío', 'Biobío', 'Bio-Bio', 'Bio Bio',
+                        'Ñuble', 'Nuble',
+                        'Metropolitana', 'Metropolitana de Santiago',
+                        'Valparaíso', 'Valparaiso',
+                        'Maule', 'Araucanía', 'Araucania',
+                        'Los Lagos', 'Los Ríos', 'Los Rios',
+                        'Arica y Parinacota', 'Tarapacá', 'Tarapaca',
+                        'Antofagasta', 'Atacama', 'Coquimbo',
+                        'O\'Higgins', 'OHiggins',
+                        'Aysén', 'Aysen', 'Magallanes'
+                      ];
+                      
+                      posiblesRegiones.forEach(reg => {
+                        if (sedeNombre.toLowerCase().includes(reg.toLowerCase()) && !regionNombre) {
+                          regionNombre = sedeNombre.match(new RegExp(`[IVX]+\\s*Región\\s*(?:de\\s*)?(?:del\\s*)?${reg}`, 'i'))?.[0] || 
+                                         sedeNombre.match(new RegExp(reg, 'i'))?.[0] || 
+                                         null;
+                        }
+                      });
+                    }
+                  }
+                  
+                  if (partes.length > 1) {
+                    lugarNombre = partes[1] || null;
+                  }
+                  
+                  if (partes.length > 2) {
+                    detalleHecho = partes.slice(2).join(' - ') || null;
+                  }
+                }
+              }
+              
+              // Si aún no tenemos región, intentar buscar en el string completo
+              if (!regionNombre && ubicacion) {
+                const regionMatch = ubicacion.match(/([IVX]+\s*Región\s*(?:de\s+)?(?:del\s+)?[^-()]+)/i);
+                if (regionMatch) {
+                  regionNombre = regionMatch[1].trim();
+                } else {
+                  const posiblesRegiones = [
+                    { pattern: /(VIII|8)\s*Región\s*(?:de\s+)?(?:del\s+)?(Bío-Bío|Biobío|Bio-Bio)/i, nombre: 'VIII Región del Bío-Bío' },
+                    { pattern: /(XVI|16)\s*Región\s*(?:de\s+)?(Ñuble|Nuble)/i, nombre: 'XVI Región de Ñuble' },
+                    { pattern: /(XIII|13)\s*Región\s*(?:de\s+)?(?:del\s+)?(Metropolitana|Metropolitana de Santiago)/i, nombre: 'Región Metropolitana' },
+                    { pattern: /(V|5)\s*Región\s*(?:de\s+)?(Valparaíso|Valparaiso)/i, nombre: 'V Región de Valparaíso' },
+                  ];
+                  
+                  for (const reg of posiblesRegiones) {
+                    if (reg.pattern.test(ubicacion)) {
+                      regionNombre = reg.nombre;
+                      break;
+                    }
+                  }
+                }
+              }
+              
+              return (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📍 Ubicación</h3>
+                  <div className="space-y-3">
+                    {sedeNombre && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">🏫 Sede:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{sedeNombre}</p>
+                      </div>
+                    )}
+                    {regionNombre && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">🗺️ Región:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{regionNombre}</p>
+                      </div>
+                    )}
+                    {lugarNombre && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">📍 Lugar Específico:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{lugarNombre}</p>
+                      </div>
+                    )}
+                    {detalleHecho && (
+                      <div>
+                        <span className="text-xs text-gray-500 font-semibold">📝 Detalles Adicionales:</span>
+                        <p className="text-sm font-medium text-gray-900 mt-1">{detalleHecho}</p>
+                      </div>
+                    )}
+                    {!sedeNombre && !regionNombre && !lugarNombre && !detalleHecho && ubicacion && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+          })()}
         </div>
       </div>
       
