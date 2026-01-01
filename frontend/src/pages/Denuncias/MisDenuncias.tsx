@@ -120,20 +120,15 @@ export default function MisDenuncias() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <tr>
-                  <th scope="col" className="px-4 py-3">ID</th>
                   <th scope="col" className="px-4 py-3">Tipo</th>
                   <th scope="col" className="px-4 py-3">Estado</th>
-                  <th scope="col" className="px-4 py-3">Fecha de inicio</th>
-                  <th scope="col" className="px-4 py-3">Ubicación</th>
+                  <th scope="col" className="px-4 py-3">Fecha de Ingreso</th>
                   <th scope="col" className="px-4 py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white text-gray-800">
                 {denuncias.map((denuncia) => (
                   <tr key={denuncia.ID_Denuncia} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-semibold text-gray-900">
-                      #{denuncia.ID_Denuncia}
-                    </td>
                     <td className="px-4 py-3">
                       {denuncia.tipo_denuncia?.Nombre ?? 'Sin tipo'}
                     </td>
@@ -143,16 +138,7 @@ export default function MisDenuncias() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {denuncia.Fecha_Fin ? (
-                        <span className="text-sm">
-                          {formatFecha(denuncia.Fecha_Inicio)} - {formatFecha(denuncia.Fecha_Fin)}
-                        </span>
-                      ) : (
-                        formatFecha(denuncia.Fecha_Inicio)
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {denuncia.Ubicacion ?? '—'}
+                      {denuncia.Fecha_Ingreso ? formatFecha(denuncia.Fecha_Ingreso) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <Link
