@@ -223,9 +223,17 @@ export default function DetalleRevisor() {
             </p>
           )}
         </div>
-        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
-          {estadoCaso}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+            {estadoCaso}
+          </span>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          >
+            Volver
+          </button>
+        </div>
       </div>
 
       {/* --- DETALLE --- */}

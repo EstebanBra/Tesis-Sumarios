@@ -167,6 +167,7 @@ export default function DetalleDenuncia() {
     )
   );
 
+
   const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
     return !nombresDenunciados.has(nombreParticipante);
@@ -261,6 +262,7 @@ export default function DetalleDenuncia() {
 
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
+
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4 pt-2">
         <div>
@@ -303,7 +305,7 @@ export default function DetalleDenuncia() {
       </div>
 
       {/* --- LÍNEA DE TIEMPO --- */}
-      <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+      {/* <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
         <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
           <div>
             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
@@ -362,12 +364,13 @@ export default function DetalleDenuncia() {
             según complejidad.
           </p>
         </div>
-      </div>
+      </div> */}
 
       {/* --- DETALLE --- */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* COLUMNA IZQUIERDA (8) */}
         <div className="lg:col-span-8 space-y-6">
+
           {/* 1. CLASIFICACIÓN Y RELATO */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="mb-4 pb-4 border-b border-gray-100">
@@ -943,6 +946,7 @@ export default function DetalleDenuncia() {
 
         {/* COLUMNA DERECHA (4) */}
         <div className="lg:col-span-4 space-y-6">
+
           {/* CARD: DENUNCIANTE */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
