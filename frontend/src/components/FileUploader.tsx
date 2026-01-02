@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
 import { http } from '@/services/api';
 
 export interface FileMetadata {
@@ -86,7 +86,7 @@ export default function FileUploader({
   const prepareFileMetadata = (file: File): FileMetadata => {
     // Generar un ID temporal para el archivo (el backend generará el objectKey real)
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     return {
       objectKey: tempId, // Temporal, el backend generará el real
       fileName: file.name,
@@ -122,10 +122,10 @@ export default function FileUploader({
       try {
         // Preparar metadata del archivo (sin subir a MinIO - el backend lo hará)
         setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
-        
+
         const metadata = prepareFileMetadata(file);
         newFiles.push(metadata);
-        
+
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
       } catch (error: any) {
         newErrors[file.name] = error.message || 'Error al procesar el archivo';
@@ -144,12 +144,12 @@ export default function FileUploader({
     }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     await processFiles(selectedFiles);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (!disabled && !uploading && files.length < maxFiles) {
@@ -157,13 +157,13 @@ export default function FileUploader({
     }
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);

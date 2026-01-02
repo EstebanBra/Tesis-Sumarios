@@ -1,30 +1,30 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react';
 
-export type TipoDerivacionVRA = 'vra_general' | 'casos_clinicos'
+export type TipoDerivacionVRA = 'vra_general' | 'casos_clinicos';
 
 interface Props {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
   // Ahora también enviamos el tipo de derivación VRA
-  onConfirm: (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => void 
-  isProcessing: boolean
+  onConfirm: (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => void;
+  isProcessing: boolean;
 }
 
 export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessing }: Props) {
-  const [observacion, setObservacion] = useState('')
-  const [tipoDerivacion, setTipoDerivacion] = useState<TipoDerivacionVRA>('vra_general')
+  const [observacion, setObservacion] = useState('');
+  const [tipoDerivacion, setTipoDerivacion] = useState<TipoDerivacionVRA>('vra_general');
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
     if (!observacion.trim()) {
-      alert("Debes escribir la observación para derivar.")
-      return
+      alert('Debes escribir la observación para derivar.');
+      return;
     }
     // Enviamos el texto y el tipo de derivación al padre
-    onConfirm(observacion, tipoDerivacion) 
-  }
+    onConfirm(observacion, tipoDerivacion);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -47,12 +47,14 @@ export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessi
                   name="tipoDerivacion"
                   value="vra_general"
                   checked={tipoDerivacion === 'vra_general'}
-                  onChange={(e) => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                  onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
                   className="mr-3 text-ubb-blue focus:ring-ubb-blue"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">VRA General</span>
-                  <p className="text-xs text-gray-500 mt-0.5">Derivación a Vicerrectoría Académica General</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Derivación a Vicerrectoría Académica General
+                  </p>
                 </div>
               </label>
               <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
@@ -61,25 +63,25 @@ export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessi
                   name="tipoDerivacion"
                   value="casos_clinicos"
                   checked={tipoDerivacion === 'casos_clinicos'}
-                  onChange={(e) => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                  onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
                   className="mr-3 text-ubb-blue focus:ring-ubb-blue"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">Casos Clínicos</span>
-                  <p className="text-xs text-gray-500 mt-0.5">Derivación a área de Casos Clínicos</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Derivación a área de Casos Clínicos
+                  </p>
                 </div>
               </label>
             </div>
           </div>
 
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
-            Observación *
-          </label>
+          <label className="block text-sm font-semibold text-gray-700 mb-1">Observación *</label>
           <textarea
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-ubb-blue focus:ring-ubb-blue text-sm h-32 p-3 border"
             placeholder="Escribe aquí las observaciones y conclusiones técnicas para la derivación..."
             value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
+            onChange={e => setObservacion(e.target.value)}
             required
             autoFocus
           />
@@ -107,5 +109,5 @@ export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessi
         </form>
       </div>
     </div>
-  )
+  );
 }

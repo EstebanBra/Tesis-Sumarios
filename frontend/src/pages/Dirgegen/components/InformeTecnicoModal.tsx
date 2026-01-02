@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent, type ChangeEvent } from 'react'
 import { crearInformeTecnico, actualizarInformeTecnico, type CrearInformeDTO } from '@/services/informeTecnico.api'
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 
 export default function InformeTecnicoModal({ isOpen, onClose, onSuccess, idDenuncia, idAutor, denunciaData }: Props) {
   const [loading, setLoading] = useState(false)
-  
+
   // 1. Detectar si existe informe previo en los datos de la denuncia
   // Nota: Ajusta 'informe_tecnico' si tu backend usa otro nombre (ej: informeTecnico)
   const informeExistente = denunciaData?.informe_tecnico || denunciaData?.informeTecnico || null;
@@ -53,22 +53,22 @@ export default function InformeTecnicoModal({ isOpen, onClose, onSuccess, idDenu
 
   if (!isOpen) return null
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    
-    const mensajeConfirmacion = isEditing 
-      ? '¿Confirmas la ACTUALIZACIÓN de este informe? Quedará registro del cambio.' 
+
+    const mensajeConfirmacion = isEditing
+      ? '¿Confirmas la ACTUALIZACIÓN de este informe? Quedará registro del cambio.'
       : '¿Confirmas la emisión de este Informe Técnico? Esta acción es oficial.';
 
     if (!confirm(mensajeConfirmacion)) return
 
     try {
       setLoading(true)
-      
+
       if (isEditing) {
         // --- MODO EDICIÓN ---
         await actualizarInformeTecnico(idDenuncia, formData)
@@ -100,7 +100,7 @@ export default function InformeTecnicoModal({ isOpen, onClose, onSuccess, idDenu
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col">
-        
+
         {/* Encabezado */}
         <div className="bg-ubb-blue px-6 py-4 flex justify-between items-center shrink-0">
           <div>
@@ -114,7 +114,7 @@ export default function InformeTecnicoModal({ isOpen, onClose, onSuccess, idDenu
 
         {/* Contenido */}
         <div className="overflow-y-auto flex-1 p-8 bg-white">
-          
+
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="flex items-center gap-3 mb-6 pb-3 border-b-2 border-ubb-blue/10">
                 <span className="text-2xl">{isEditing ? '✏️' : '📝'}</span>
@@ -201,8 +201,8 @@ export default function InformeTecnicoModal({ isOpen, onClose, onSuccess, idDenu
                   isEditing ? 'bg-orange-600 hover:bg-orange-700' : 'bg-ubb-blue hover:bg-blue-900'
                 }`}
               >
-                {loading 
-                  ? 'Guardando...' 
+                {loading
+                  ? 'Guardando...'
                   : (isEditing ? '💾 Guardar Cambios' : '💾 Emitir Informe Oficial')
                 }
               </button>

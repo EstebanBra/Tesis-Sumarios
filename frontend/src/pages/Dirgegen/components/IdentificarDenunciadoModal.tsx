@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type FormEvent } from 'react'
 import { identificarDenunciado } from '@/services/digergen.apis'
 import { clRegions } from '@clregions/data'
 
@@ -57,7 +57,7 @@ export default function IdentificarDenunciadoModal({
 
   if (!isOpen) return null
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
 
