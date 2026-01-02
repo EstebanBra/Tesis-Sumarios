@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { identificarDenunciado } from '@/services/digergen.apis'
+import { clRegions } from '@clregions/data'
 
 interface IdentificarDenunciadoModalProps {
   isOpen: boolean
@@ -22,13 +23,37 @@ export default function IdentificarDenunciadoModal({
     Correo: '',
     Telefono: '',
     sexo: '',
-    genero: '',
     region: '',
     comuna: '',
     direccion: ''
   })
   const [error, setError] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
+
+  // --- Dynamic Regions and Communes ---
+  const allRegions = useMemo(() => {
+    // clRegions.regions is an object with ID as key
+    return Object.values(clRegions.regions).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    )
+  }, [])
+
+  const communes = useMemo(() => {
+    if (!form.region) return []
+    // Find region by name
+    const region = allRegions.find((r) => r.name === form.region)
+    if (!region) return []
+
+    // Extract all communes from all provinces in that region
+    const allCommunes: any[] = []
+    Object.values(region.provinces).forEach((province: any) => {
+      Object.values(province.communes).forEach((commune: any) => {
+        allCommunes.push(commune)
+      })
+    })
+
+    return allCommunes.sort((a, b) => a.name.localeCompare(b.name))
+  }, [form.region, allRegions])
 
   if (!isOpen) return null
 
@@ -49,7 +74,6 @@ export default function IdentificarDenunciadoModal({
         Correo: form.Correo.trim() || undefined,
         Telefono: form.Telefono.trim() || undefined,
         sexo: form.sexo || undefined,
-        genero: form.genero || undefined,
         region: form.region || undefined,
         comuna: form.comuna || undefined,
         direccion: form.direccion || undefined
@@ -61,7 +85,6 @@ export default function IdentificarDenunciadoModal({
         Correo: '',
         Telefono: '',
         sexo: '',
-        genero: '',
         region: '',
         comuna: '',
         direccion: ''
@@ -176,46 +199,39 @@ export default function IdentificarDenunciadoModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Región</label>
               <select
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                value={form.genero}
-                onChange={(e) => setForm({ ...form, genero: e.target.value })}
+                value={form.region}
+                onChange={(e) => {
+                  setForm({ ...form, region: e.target.value, comuna: '' }) // Clear commune when region changes
+                }}
                 disabled={processing}
               >
                 <option value="">Seleccionar</option>
-                <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
-                <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
-                <option value="NoBinario">No Binario</option>
-                <option value="Fluido">Fluido</option>
-                <option value="Otro">Otro</option>
-                <option value="NoLoSe">No lo sé</option>
+                {allRegions.map((r) => (
+                  <option key={r.id} value={r.name}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">Cómo se percibe la persona (puede no saberse)</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Región</label>
-              <input
-                type="text"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                placeholder="Región"
-                value={form.region}
-                onChange={(e) => setForm({ ...form, region: e.target.value })}
-                disabled={processing}
-              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Comuna</label>
-              <input
-                type="text"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                placeholder="Comuna"
+              <select
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 value={form.comuna}
                 onChange={(e) => setForm({ ...form, comuna: e.target.value })}
-                disabled={processing}
-              />
+                disabled={!form.region || processing}
+              >
+                <option value="">Seleccionar</option>
+                {communes.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="md:col-span-2">
