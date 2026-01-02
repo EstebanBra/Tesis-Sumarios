@@ -1,15 +1,14 @@
-import React from 'react'
-
+import type { ReactNode } from 'react';
 
 interface CardsProps {
-  title: string
-  description: string
-  icon?: React.ReactNode
-  onClick: () => void
+  title: string;
+  description: string;
+  icon?: ReactNode;
+  onClick: () => void;
 }
 
 export function Cards({ title, description, icon, onClick }: CardsProps) {
-  const hasIcon = !!icon
+  const hasIcon = !!icon;
 
   return (
     <button
@@ -31,21 +30,23 @@ export function Cards({ title, description, icon, onClick }: CardsProps) {
       )}
 
       {/* Título */}
-      <h3 className={`text-lg font-bold text-gray-900 transition-colors group-hover:text-ubb-blue ${hasIcon ? 'mb-3 text-xl' : 'mb-2'}`}>
+      <h3
+        className={`text-lg font-bold text-gray-900 transition-colors group-hover:text-ubb-blue ${hasIcon ? 'mb-3 text-xl' : 'mb-2'}`}
+      >
         {title}
       </h3>
 
       {/* Descripción */}
-      <p className="text-sm leading-relaxed text-gray-600">
-        {description}
-      </p>
+      <p className="text-sm leading-relaxed text-gray-600">{description}</p>
 
       {/*botone */}
-      <div className={`mt-auto w-full pt-5 ${hasIcon ? 'flex justify-center' : 'flex justify-end'}`}>
+      <div
+        className={`mt-auto w-full pt-5 ${hasIcon ? 'flex justify-center' : 'flex justify-end'}`}
+      >
         <span className="inline-flex items-center text-xs font-bold uppercase tracking-wide text-ubb-blue opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100">
           Seleccionar <span className="ml-1 text-base leading-none">&rarr;</span>
         </span>
       </div>
     </button>
-  )
+  );
 }

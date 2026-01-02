@@ -1,52 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FormEvent } from 'react';
 
-export type DestinoDerivacion = 'VRA' | 'VRAE' | 'Dirgegen'
+export type DestinoDerivacion = 'VRA' | 'VRAE' | 'Dirgegen';
 
 interface Props {
-  isOpen: boolean
-  onClose: () => void
-  onConfirm: (observacion: string, destino: DestinoDerivacion) => void
-  isProcessing: boolean
-  autoridadActual: 'VRA' | 'VRAE'
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (observacion: string, destino: DestinoDerivacion) => void;
+  isProcessing: boolean;
+  autoridadActual: 'VRA' | 'VRAE';
 }
 
-export default function DerivacionAutoridadModal({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
+export default function DerivacionAutoridadModal({
+  isOpen,
+  onClose,
+  onConfirm,
   isProcessing,
-  autoridadActual 
+  autoridadActual,
 }: Props) {
-  const [observacion, setObservacion] = useState('')
+  const [observacion, setObservacion] = useState('');
   // Inicializar destino según autoridad actual (valor por defecto)
-  const destinoDefault: DestinoDerivacion = autoridadActual === 'VRA' ? 'VRAE' : 'VRA'
-  const [destino, setDestino] = useState<DestinoDerivacion>(destinoDefault)
+  const destinoDefault: DestinoDerivacion = autoridadActual === 'VRA' ? 'VRAE' : 'VRA';
+  const [destino, setDestino] = useState<DestinoDerivacion>(destinoDefault);
 
   // Resetear estado cuando se abre el modal
   useEffect(() => {
     if (isOpen) {
-      setObservacion('')
-      setDestino(destinoDefault)
+      setObservacion('');
+      setDestino(autoridadActual === 'VRA' ? 'VRAE' : 'VRA');
     }
-  }, [isOpen, destinoDefault])
+  }, [isOpen, autoridadActual]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
     if (!observacion.trim()) {
-      alert("Debes escribir la justificación de la derivación.")
-      return
+      alert('Debes escribir la justificación de la derivación.');
+      return;
     }
-    onConfirm(observacion, destino)
-  }
+    onConfirm(observacion, destino);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
-          Derivar Caso
-        </h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Derivar Caso</h2>
         <p className="text-sm text-gray-500 mb-4">
           Selecciona el destino de la derivación y completa la observación obligatoria.
         </p>
@@ -65,12 +63,14 @@ export default function DerivacionAutoridadModal({
                     name="destino"
                     value="VRAE"
                     checked={destino === 'VRAE'}
-                    onChange={(e) => setDestino(e.target.value as DestinoDerivacion)}
+                    onChange={e => setDestino(e.target.value as DestinoDerivacion)}
                     className="mr-3 text-orange-500 focus:ring-orange-500"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900">VRAE</span>
-                    <p className="text-xs text-gray-500 mt-0.5">El denunciado es un funcionario o académico (competencia de VRAE)</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      El denunciado es un funcionario o académico (competencia de VRAE)
+                    </p>
                   </div>
                 </label>
               )}
@@ -81,12 +81,14 @@ export default function DerivacionAutoridadModal({
                     name="destino"
                     value="VRA"
                     checked={destino === 'VRA'}
-                    onChange={(e) => setDestino(e.target.value as DestinoDerivacion)}
+                    onChange={e => setDestino(e.target.value as DestinoDerivacion)}
                     className="mr-3 text-orange-500 focus:ring-orange-500"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-900">VRA</span>
-                    <p className="text-xs text-gray-500 mt-0.5">El denunciado es un estudiante (competencia de VRA)</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      El denunciado es un estudiante (competencia de VRA)
+                    </p>
                   </div>
                 </label>
               )}
@@ -96,12 +98,14 @@ export default function DerivacionAutoridadModal({
                   name="destino"
                   value="Dirgegen"
                   checked={destino === 'Dirgegen'}
-                  onChange={(e) => setDestino(e.target.value as DestinoDerivacion)}
+                  onChange={e => setDestino(e.target.value as DestinoDerivacion)}
                   className="mr-3 text-orange-500 focus:ring-orange-500"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-900">Dirgegen</span>
-                  <p className="text-xs text-gray-500 mt-0.5">Derivar a Dirección de Género y Equidad</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Derivar a Dirección de Género y Equidad
+                  </p>
                 </div>
               </label>
             </div>
@@ -114,7 +118,7 @@ export default function DerivacionAutoridadModal({
             className="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-sm h-32 p-3 border"
             placeholder="Describe por qué este caso debe ser derivado..."
             value={observacion}
-            onChange={(e) => setObservacion(e.target.value)}
+            onChange={e => setObservacion(e.target.value)}
             required
             autoFocus
           />
@@ -142,5 +146,5 @@ export default function DerivacionAutoridadModal({
         </form>
       </div>
     </div>
-  )
+  );
 }

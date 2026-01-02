@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 
 export type OpcionTipo = {
     id: number;
     nombre: string;
     descripcion: string;
-    icono: React.ReactNode
+    icono: ReactNode
 }
 
 export type OpcionSubtipo = {
@@ -70,7 +71,7 @@ export type FormularioDenuncia = {
     involucrados: Involucrado[]
     nuevoInvolucrado: Involucrado
     testigos: Testigo[]
-    
+
     // Campos específicos para denuncias de campo clínico
     nombreEstablecimiento: string
     unidadServicio: string

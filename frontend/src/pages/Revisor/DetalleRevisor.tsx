@@ -5,7 +5,6 @@ import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunc
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
-import { useAuth } from '@/context/AuthContext'
 
 export default function DetalleRevisor() {
   const { id } = useParams()
