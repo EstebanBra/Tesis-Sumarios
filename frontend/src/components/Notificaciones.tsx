@@ -1,12 +1,12 @@
 // src/components/Notificaciones.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { 
-  getNotificaciones, 
-  getContadorNoLeidas, 
+import {
+  getNotificaciones,
+  getContadorNoLeidas,
   marcarNotificacionLeida,
   marcarTodasLeidas,
-  type Notificacion 
+  type Notificacion
 } from '@/services/notificaciones.api'
 import { useSocket } from '@/hooks/useSocket'
 import { formatDistanceToNow } from 'date-fns'
@@ -47,7 +47,7 @@ export default function Notificaciones() {
     const handleNuevaNotificacion = (notificacion: Notificacion) => {
       setNotificaciones(prev => [notificacion, ...prev])
       setContador(prev => prev + 1)
-      
+
       // Mostrar notificación del navegador si está permitido
       if ('Notification' in window && Notification.permission === 'granted') {
         new Notification(notificacion.Titulo, {
@@ -78,7 +78,7 @@ export default function Notificaciones() {
         prev.map(n => n.ID_Notificacion === id ? { ...n, Leida: true } : n)
       )
       setContador(prev => Math.max(0, prev - 1))
-      
+
       // Navegar a la denuncia si tiene ID
       if (denunciaId) {
         navigate(`/dirgegen/denuncia/${denunciaId}`)
@@ -194,7 +194,8 @@ export default function Notificaciones() {
               )}
             </div>
 
-            {notificaciones.length > 0 && (
+            {/* TODO: Desarrollar vista completa de notificaciones */}
+            {/* {notificaciones.length > 0 && (
               <div className="border-t border-gray-200 px-4 py-2">
                 <button
                   onClick={() => {
@@ -206,7 +207,7 @@ export default function Notificaciones() {
                   Ver todas las notificaciones
                 </button>
               </div>
-            )}
+            )} */}
           </div>
         </>
       )}

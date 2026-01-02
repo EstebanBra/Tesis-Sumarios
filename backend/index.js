@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
@@ -10,8 +9,6 @@ import authRoutes from "./src/routes/auth.routes.js";
 import { runInitialSetup } from "./prisma/seed.js";
 import { initializeSocket } from "./src/socket/socket.js";
 import { initializeBucket } from "./src/services/storage.service.js";
-
-dotenv.config();
 
 const app = express();
 const server = createServer(app);
@@ -44,6 +41,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : (tokens, req
 }));
 
 app.get("/", (req, res) => res.send("Servidor backend operativo 🚀"));
+app.get("/health", (req, res) => res.status(200).send("OK"));
 app.use("/api/auth", authRoutes);
 app.use("/api", routes);
 

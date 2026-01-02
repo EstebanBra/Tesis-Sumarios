@@ -10,7 +10,6 @@ import { useAuth } from '@/context/AuthContext'
 export default function DetalleRevisor() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
   
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)

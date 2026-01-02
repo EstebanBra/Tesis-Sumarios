@@ -1,5 +1,5 @@
 import * as MinIO from 'minio';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'node:crypto';
 import path from 'path';
 
 // Configuración de MinIO desde variables de entorno
@@ -82,12 +82,12 @@ export async function initializeBucket() {
  */
 export function validateFileType(mimeType, originalName) {
   if (!mimeType) return false;
-  
+
   const extension = path.extname(originalName).toLowerCase();
   const allowedExtensions = ALLOWED_MIME_TYPES[mimeType];
-  
+
   if (!allowedExtensions) return false;
-  
+
   return allowedExtensions.includes(extension);
 }
 
@@ -109,7 +109,7 @@ export function generateUniqueFileName(originalName) {
   const extension = path.extname(originalName);
   const baseName = path.basename(originalName, extension);
   const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_');
-  const uuid = uuidv4();
+  const uuid = crypto.randomUUID();
   return `${uuid}-${sanitizedBaseName}${extension}`;
 }
 
@@ -126,12 +126,12 @@ function replacePresignedUrlEndpoint(url) {
   try {
     const urlObj = new URL(url);
     const publicUrlObj = new URL(MINIO_PUBLIC_ENDPOINT);
-    
+
     // Reemplazar host y puerto con el endpoint público
     urlObj.host = publicUrlObj.host;
     urlObj.port = publicUrlObj.port;
     urlObj.protocol = publicUrlObj.protocol;
-    
+
     return urlObj.toString();
   } catch (error) {
     console.warn('Error reemplazando endpoint en presigned URL, usando URL original:', error);
@@ -153,7 +153,7 @@ export async function getPresignedUploadUrl(fileName, mimeType, expiresIn = 3600
       fileName,
       expiresIn
     );
-    
+
     // Reemplazar con endpoint público si está configurado
     return replacePresignedUrlEndpoint(url);
   } catch (error) {
@@ -175,7 +175,7 @@ export async function getPresignedDownloadUrl(objectKey, expiresIn = 3600) {
       objectKey,
       expiresIn
     );
-    
+
     // Reemplazar con endpoint público si está configurado
     return replacePresignedUrlEndpoint(url);
   } catch (error) {
