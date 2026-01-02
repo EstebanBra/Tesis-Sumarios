@@ -4,63 +4,48 @@
  */
 
 /**
- * Limpia un RUT removiendo puntos y guiones
+ * Valida si un RUT es matemáticamente correcto (Módulo 11).
+ * Soporta formato 12.345.678-9 o 123456789.
  */
-export function limpiarRut(rut: string): string {
-  return rut.replace(/[.-]/g, '').toUpperCase();
-}
+export const validarRut = (rut: string): boolean => {
+  if (!rut || rut.trim().length < 2) return false;
+  
+  const valor = rut.replace(/[^0-9kK]/g, "").toUpperCase();
+  const cuerpo = valor.slice(0, -1);
+  const dv = valor.slice(-1);
+  
+  if (cuerpo.length < 7) return false;
+
+  let suma = 0;
+  let multiplo = 2;
+  
+  for (let i = 1; i <= cuerpo.length; i++) {
+    const index = multiplo * parseInt(valor.charAt(cuerpo.length - i));
+    suma = suma + index;
+    if (multiplo < 7) { multiplo = multiplo + 1; } else { multiplo = 2; }
+  }
+  
+  const dvEsperado = 11 - (suma % 11);
+  const dvCalculado = (dvEsperado === 11) ? "0" : (dvEsperado === 10) ? "K" : dvEsperado.toString();
+  
+  return dvCalculado === dv;
+};
 
 /**
- * Valida un RUT chileno usando el algoritmo módulo 11
- * Acepta formatos con o sin puntos y guion
- * 
- * @param rut - RUT a validar (ej: "12.345.678-9" o "12345678-9")
- * @returns true si el RUT es válido, false en caso contrario
+ * Formatea visualmente el RUT mientras el usuario escribe.
+ * Entrada: 123456789 -> Salida: 12.345.678-9
  */
-export function validarRut(rut: string): boolean {
-  if (!rut || typeof rut !== 'string') return false;
+export const formatearRut = (rut: string): string => {
+  const actual = rut.replace(/^0+/, "").replace(/[^0-9kK]/g, "").toUpperCase();
+  if (actual === '') return '';
   
-  // Limpiar el RUT
-  const rutLimpio = limpiarRut(rut);
+  const cuerpo = actual.slice(0, -1);
+  const dv = actual.slice(-1);
   
-  // Debe tener al menos 8 caracteres (sin contar el guion) y máximo 9
-  // Formato esperado después de limpiar: "123456789" o "12345678K"
-  if (rutLimpio.length < 8 || rutLimpio.length > 9) return false;
+  if (actual.length < 2) return actual;
   
-  // Separar el cuerpo del dígito verificador
-  const cuerpo = rutLimpio.slice(0, -1);
-  const dv = rutLimpio.slice(-1).toUpperCase();
-  
-  // El cuerpo debe ser solo números
-  if (!/^\d+$/.test(cuerpo)) return false;
-  
-  // El dígito verificador debe ser un número o 'K'
-  if (!/^[0-9K]$/.test(dv)) return false;
-  
-  // Calcular el dígito verificador esperado
-  let suma = 0;
-  let multiplicador = 2;
-  
-  // Iterar desde el final del cuerpo hacia el inicio
-  for (let i = cuerpo.length - 1; i >= 0; i--) {
-    suma += parseInt(cuerpo[i]) * multiplicador;
-    multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
-  }
-  
-  const resto = suma % 11;
-  let dvEsperado: string;
-  
-  if (resto < 2) {
-    dvEsperado = String(11 - resto);
-  } else if (resto === 2) {
-    dvEsperado = 'K';
-  } else {
-    dvEsperado = String(11 - resto);
-  }
-  
-  // Comparar dígitos verificadores
-  return dv === dvEsperado;
-}
+  return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv;
+};
 
 /**
  * Valida un correo electrónico

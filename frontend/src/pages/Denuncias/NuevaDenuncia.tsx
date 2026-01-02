@@ -10,7 +10,7 @@ import FormularioLayout from "./components/FormularioLayout";
 import { useAuth } from "@/context/AuthContext";
 import { clRegions } from "@clregions/data";
 import FileUploader, { type FileMetadata } from "@/components/FileUploader";
-import { validarRut, validarEmail, validarTelefono } from "@/utils/validation.utils";
+import { validarRut, validarEmail, validarTelefono, formatearRut } from "@/utils/validation.utils";
 
 const initialInvolucrado: Involucrado = {
   nombre: "",
@@ -88,6 +88,7 @@ export default function NuevaDenuncia() {
   const [error, setError] = useState<string | null>(null);
   const [detalles, setDetalles] = useState< { field: string; msg: string }[] | null > (null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [intentoAvanzar, setIntentoAvanzar] = useState(false);
   const [mostrarCamposAdicionalesDenunciado,setMostrarCamposAdicionalesDenunciado,] = useState(false);
   const [mostrarFormTestigo, setMostrarFormTestigo] = useState(false);
   const [nuevoTestigo, setNuevoTestigo] = useState<Testigo>({nombreCompleto: "",rut: "",contacto: "",});
@@ -262,6 +263,179 @@ export default function NuevaDenuncia() {
     }));
   }
 
+  /**
+   * Valida solo los campos del paso actual (Validation Gating)
+   * Retorna true si el paso es válido, false si hay errores
+   */
+  function validarPasoActual(): boolean {
+    const newErrors: Record<string, string> = {};
+    
+    switch (step) {
+      case 1: // Paso 1: Información del Denunciante
+        // Validar RUT solo si se ingresó
+        if (form.rut.trim()) {
+          if (!validarRut(form.rut)) {
+            newErrors.rut = "El RUT es inválido";
+          }
+        }
+        // Validar nombre solo si se ingresó
+        if (form.nombre.trim()) {
+          const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+          if (!nombreRegex.test(form.nombre.trim())) {
+            newErrors.nombre = "El nombre solo puede contener letras";
+          }
+        }
+        // Validar correo solo si se ingresó
+        if (form.correo.trim()) {
+          if (!validarEmail(form.correo)) {
+            newErrors.correo = "El correo es inválido";
+          }
+        }
+        // Validar teléfono solo si se ingresó
+        if (form.telefono.trim()) {
+          if (!validarTelefono(form.telefono)) {
+            newErrors.telefono = "El teléfono es inválido (debe tener 8-9 dígitos)";
+          }
+        }
+        break;
+        
+      case 2: // Paso 2: Hechos y Denunciados
+        // Validar RUT de víctima si no es el denunciante
+        if (form.esVictima === "no") {
+          if (!form.victimaRut.trim()) {
+            newErrors.victimaRut = "El RUT de la víctima es obligatorio";
+          } else if (!validarRut(form.victimaRut)) {
+            newErrors.victimaRut = "RUT de víctima inválido";
+          }
+          // Validar nombre de víctima si se ingresó
+          if (form.victimaNombre.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(form.victimaNombre.trim())) {
+              newErrors.victimaNombre = "El nombre solo puede contener letras";
+            }
+          }
+          // Validar correo de víctima si se ingresó
+          if (form.victimaCorreo.trim() && !validarEmail(form.victimaCorreo)) {
+            newErrors.victimaCorreo = "Correo electrónico de víctima inválido";
+          }
+          // Validar teléfono de víctima si se ingresó
+          if (form.victimaTelefono.trim() && !validarTelefono(form.victimaTelefono)) {
+            newErrors.victimaTelefono = "Teléfono de víctima inválido (debe tener 8-9 dígitos)";
+          }
+        }
+        
+        // Validar fechas
+        if (form.fechaHecho) {
+          const fechaHecho = new Date(form.fechaHecho);
+          const hoy = new Date();
+          hoy.setHours(23, 59, 59, 999); // Fin del día actual
+          if (fechaHecho > hoy) {
+            newErrors.fechaHecho = "La fecha no puede ser futura";
+          }
+        }
+        
+        // Validar rango de fechas
+        if (form.tipoFecha === "rango" && form.fechaHecho && form.fechaHechoFin) {
+          const fechaInicio = new Date(form.fechaHecho);
+          const fechaFin = new Date(form.fechaHechoFin);
+          if (fechaFin < fechaInicio) {
+            newErrors.fechaHechoFin = "La fecha de término debe ser posterior al inicio";
+          }
+        }
+        
+        // Validar relato (obligatorio, mínimo 20 caracteres)
+        if (!form.relato.trim()) {
+          newErrors.relato = "La descripción de los hechos es obligatoria";
+        } else if (form.relato.trim().length < 20) {
+          newErrors.relato = "La descripción debe tener al menos 20 caracteres";
+        }
+        
+        // Validar campos específicos según tipo de denuncia
+        if (form.tipoId === 3) {
+          // Denuncia de campo clínico
+          if (!form.nombreEstablecimiento.trim()) {
+            newErrors.nombreEstablecimiento = "El nombre del establecimiento es obligatorio";
+          }
+          if (!form.regionEstablecimiento.trim()) {
+            newErrors.regionEstablecimiento = "La región del establecimiento es obligatoria";
+          }
+          if (!form.comunaEstablecimiento.trim()) {
+            newErrors.comunaEstablecimiento = "La comuna del establecimiento es obligatoria";
+          }
+          if (!form.direccionEstablecimiento.trim()) {
+            newErrors.direccionEstablecimiento = "La dirección del establecimiento es obligatoria";
+          }
+          if (!form.unidadServicio.trim()) {
+            newErrors.unidadServicio = "La unidad de servicio es obligatoria";
+          }
+        } else {
+          // Denuncia normal
+          if (!form.sedeHecho) {
+            newErrors.sedeHecho = "La sede del hecho es obligatoria";
+          }
+        }
+        
+        // Validar nombres y RUTs de denunciados si se ingresaron
+        form.involucrados.forEach((inv, index) => {
+          // Validar nombre si se ingresó
+          if (inv.nombre && inv.nombre.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(inv.nombre.trim())) {
+              newErrors[`involucrado_${index}_nombre`] = "El nombre solo puede contener letras";
+            }
+          }
+          // Validar RUT si se ingresó
+          if (inv.rut && inv.rut.trim() && !validarRut(inv.rut)) {
+            newErrors[`involucrado_${index}_rut`] = "RUT del denunciado inválido";
+          }
+        });
+        
+        // Validar testigos: todos deben tener contacto válido
+        form.testigos.forEach((test, index) => {
+          // Validar nombre si se ingresó
+          if (test.nombreCompleto && test.nombreCompleto.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(test.nombreCompleto.trim())) {
+              newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+            }
+          }
+          // Validar RUT si se ingresó
+          if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
+            newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
+          }
+          // Contacto es obligatorio para todos los testigos
+          if (!test.contacto || !test.contacto.trim()) {
+            newErrors.testigos = "Todos los testigos deben tener información de contacto";
+          } else {
+            // Si tiene contacto, validarlo
+            const esEmail = test.contacto.includes('@');
+            if (esEmail && !validarEmail(test.contacto)) {
+              newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
+            } else if (!esEmail && !validarTelefono(test.contacto)) {
+              newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+            }
+          }
+        });
+        break;
+        
+      case 3: // Paso 3: Revisión (no requiere validación adicional)
+        break;
+        
+      default:
+        break;
+    }
+    
+    // Si hay errores, actualizar el estado y retornar false
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return false;
+    }
+    
+    // Si no hay errores, limpiar errores y retornar true
+    setErrors({});
+    return true;
+  }
+
   function puedeAvanzar() {
     if (step === 1)
       return true; // Todos los campos del denunciante son opcionales ahora
@@ -282,14 +456,194 @@ export default function NuevaDenuncia() {
   }
 
   function handleNext() {
-    if (step < steps.length && puedeAvanzar()) {
+    // Validar paso actual antes de avanzar
+    // Primero obtenemos los errores directamente desde la validación
+    const newErrors: Record<string, string> = {};
+    let tieneErrores = false;
+    
+    // Ejecutar la misma lógica de validación pero capturando los errores
+    switch (step) {
+      case 1:
+        if (form.rut.trim() && !validarRut(form.rut)) {
+          newErrors.rut = "El RUT es inválido";
+          tieneErrores = true;
+        }
+        // Validar nombre
+        if (form.nombre.trim()) {
+          const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+          if (!nombreRegex.test(form.nombre.trim())) {
+            newErrors.nombre = "El nombre solo puede contener letras";
+            tieneErrores = true;
+          }
+        }
+        if (form.correo.trim() && !validarEmail(form.correo)) {
+          newErrors.correo = "El correo es inválido";
+          tieneErrores = true;
+        }
+        if (form.telefono.trim() && !validarTelefono(form.telefono)) {
+          newErrors.telefono = "El teléfono es inválido (debe tener 8-9 dígitos)";
+          tieneErrores = true;
+        }
+        break;
+      case 2:
+        if (form.esVictima === "no") {
+          if (!form.victimaRut.trim()) {
+            newErrors.victimaRut = "El RUT de la víctima es obligatorio";
+            tieneErrores = true;
+          } else if (!validarRut(form.victimaRut)) {
+            newErrors.victimaRut = "RUT de víctima inválido";
+            tieneErrores = true;
+          }
+          // Validar nombre de víctima
+          if (form.victimaNombre.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(form.victimaNombre.trim())) {
+              newErrors.victimaNombre = "El nombre solo puede contener letras";
+              tieneErrores = true;
+            }
+          }
+          if (form.victimaCorreo.trim() && !validarEmail(form.victimaCorreo)) {
+            newErrors.victimaCorreo = "Correo electrónico de víctima inválido";
+            tieneErrores = true;
+          }
+          if (form.victimaTelefono.trim() && !validarTelefono(form.victimaTelefono)) {
+            newErrors.victimaTelefono = "Teléfono de víctima inválido (debe tener 8-9 dígitos)";
+            tieneErrores = true;
+          }
+        }
+        // Validar fechas
+        if (form.fechaHecho) {
+          const fechaHecho = new Date(form.fechaHecho);
+          const hoy = new Date();
+          hoy.setHours(23, 59, 59, 999);
+          if (fechaHecho > hoy) {
+            newErrors.fechaHecho = "La fecha no puede ser futura";
+            tieneErrores = true;
+          }
+        }
+        // Validar rango de fechas
+        if (form.tipoFecha === "rango" && form.fechaHecho && form.fechaHechoFin) {
+          const fechaInicio = new Date(form.fechaHecho);
+          const fechaFin = new Date(form.fechaHechoFin);
+          if (fechaFin < fechaInicio) {
+            newErrors.fechaHechoFin = "La fecha de término debe ser posterior al inicio";
+            tieneErrores = true;
+          }
+        }
+        if (!form.relato.trim()) {
+          newErrors.relato = "La descripción de los hechos es obligatoria";
+          tieneErrores = true;
+        } else if (form.relato.trim().length < 20) {
+          newErrors.relato = "La descripción debe tener al menos 20 caracteres";
+          tieneErrores = true;
+        }
+        if (form.tipoId === 3) {
+          if (!form.nombreEstablecimiento.trim()) {
+            newErrors.nombreEstablecimiento = "El nombre del establecimiento es obligatorio";
+            tieneErrores = true;
+          }
+          if (!form.regionEstablecimiento.trim()) {
+            newErrors.regionEstablecimiento = "La región del establecimiento es obligatoria";
+            tieneErrores = true;
+          }
+          if (!form.comunaEstablecimiento.trim()) {
+            newErrors.comunaEstablecimiento = "La comuna del establecimiento es obligatoria";
+            tieneErrores = true;
+          }
+          if (!form.direccionEstablecimiento.trim()) {
+            newErrors.direccionEstablecimiento = "La dirección del establecimiento es obligatoria";
+            tieneErrores = true;
+          }
+          if (!form.unidadServicio.trim()) {
+            newErrors.unidadServicio = "La unidad de servicio es obligatoria";
+            tieneErrores = true;
+          }
+        } else {
+          if (!form.sedeHecho) {
+            newErrors.sedeHecho = "La sede del hecho es obligatoria";
+            tieneErrores = true;
+          }
+        }
+        // Validar nombres y RUTs de denunciados
+        form.involucrados.forEach((inv, index) => {
+          if (inv.nombre && inv.nombre.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(inv.nombre.trim())) {
+              newErrors[`involucrado_${index}_nombre`] = "El nombre solo puede contener letras";
+              tieneErrores = true;
+            }
+          }
+          if (inv.rut && inv.rut.trim() && !validarRut(inv.rut)) {
+            newErrors[`involucrado_${index}_rut`] = "RUT del denunciado inválido";
+            tieneErrores = true;
+          }
+        });
+        // Validar testigos
+        form.testigos.forEach((test, index) => {
+          if (test.nombreCompleto && test.nombreCompleto.trim()) {
+            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+            if (!nombreRegex.test(test.nombreCompleto.trim())) {
+              newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+              tieneErrores = true;
+            }
+          }
+          if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
+            newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
+            tieneErrores = true;
+          }
+          // Contacto es obligatorio
+          if (!test.contacto || !test.contacto.trim()) {
+            newErrors.testigos = "Todos los testigos deben tener información de contacto";
+            tieneErrores = true;
+          } else {
+            const esEmail = test.contacto.includes('@');
+            if (esEmail && !validarEmail(test.contacto)) {
+              newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
+              tieneErrores = true;
+            } else if (!esEmail && !validarTelefono(test.contacto)) {
+              newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+              tieneErrores = true;
+            }
+          }
+        });
+        break;
+    }
+    
+    if (tieneErrores) {
+      setErrors(newErrors);
+      setIntentoAvanzar(true);
+      // Scroll al primer error
+      setTimeout(() => {
+        const firstErrorField = Object.keys(newErrors)[0];
+        if (firstErrorField) {
+          const element = document.querySelector(`[data-field="${firstErrorField}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (element instanceof HTMLElement && (element.tagName === 'INPUT' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA')) {
+              element.focus();
+            }
+          }
+        }
+      }, 100);
+      return;
+    }
+    
+    // Si la validación pasa, avanzar de fase
+    setIntentoAvanzar(false);
+    setErrors({});
+    if (step < steps.length) {
       setStep((prev) => prev + 1);
       window.scrollTo(0, 0);
     }
   }
 
   function handlePrev() {
-    if (step > 1) setStep((prev) => prev - 1);
+    if (step > 1) {
+      // Limpiar errores y estado de intento al retroceder
+      setErrors({});
+      setIntentoAvanzar(false);
+      setStep((prev) => prev - 1);
+    }
   }
 
   /**
@@ -747,12 +1101,15 @@ export default function NuevaDenuncia() {
                   <input
                     data-field="rut"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                      errors.rut ? 'border-red-500' : 'border-gray-300'
+                      errors.rut && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="12.345.678-9"
                     value={form.rut}
                     onChange={(e) => {
-                      updateField("rut", e.target.value);
+                      const valor = e.target.value;
+                      // Formatear visualmente mientras escribe
+                      const formateado = formatearRut(valor);
+                      updateField("rut", formateado);
                       // Limpiar error al escribir
                       if (errors.rut) {
                         setErrors(prev => {
@@ -763,7 +1120,7 @@ export default function NuevaDenuncia() {
                       }
                     }}
                   />
-                  {errors.rut && (
+                  {errors.rut && intentoAvanzar && (
                     <p className="mt-1 text-xs text-red-500">{errors.rut}</p>
                   )}
                 </div>
@@ -774,11 +1131,25 @@ export default function NuevaDenuncia() {
                   </label>
                   <input
                     data-field="nombre"
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                      errors.nombre && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Tu nombre"
                     value={form.nombre}
-                    onChange={(e) => updateField("nombre", e.target.value)}
+                    onChange={(e) => {
+                      updateField("nombre", e.target.value);
+                      if (errors.nombre) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.nombre;
+                          return newErrors;
+                        });
+                      }
+                    }}
                   />
+                  {errors.nombre && intentoAvanzar && (
+                    <p className="mt-1 text-xs text-red-500">{errors.nombre}</p>
+                  )}
                 </div>
               </div>
 
@@ -856,7 +1227,7 @@ export default function NuevaDenuncia() {
                   <input
                     data-field="telefono"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                      errors.telefono ? 'border-red-500' : 'border-gray-300'
+                      errors.telefono && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="+56 9 ..."
                     value={form.telefono}
@@ -872,7 +1243,7 @@ export default function NuevaDenuncia() {
                       }
                     }}
                   />
-                  {errors.telefono && (
+                  {errors.telefono && intentoAvanzar && (
                     <p className="mt-1 text-xs text-red-500">{errors.telefono}</p>
                   )}
                 </div>
@@ -884,7 +1255,7 @@ export default function NuevaDenuncia() {
                     data-field="correo"
                     type="email"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                      errors.correo ? 'border-red-500' : 'border-gray-300'
+                      errors.correo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="correo@ubb.cl"
                     value={form.correo}
@@ -900,7 +1271,7 @@ export default function NuevaDenuncia() {
                       }
                     }}
                   />
-                  {errors.correo && (
+                  {errors.correo && intentoAvanzar && (
                     <p className="mt-1 text-xs text-red-500">{errors.correo}</p>
                   )}
                 </div>
@@ -1040,10 +1411,10 @@ export default function NuevaDenuncia() {
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <div className="grid gap-6 md:grid-cols-2 mb-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                  <div className="text-sm font-medium text-gray-700 mb-2 flex items-center">
                     ¿Víctima menor de edad?
                     <InfoTooltip text="Si la víctima es menor de 18 años, la Universidad tiene la obligación de priorizar medidas de resguardo urgentes." />
-                  </p>
+                  </div>
                   <div className="flex gap-4">
                     <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                       <input
@@ -1101,11 +1472,14 @@ export default function NuevaDenuncia() {
                   <input
                     data-field="victimaRut"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
-                      errors.victimaRut ? 'border-red-500' : 'border-gray-300'
+                      errors.victimaRut && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     value={form.victimaRut}
                     onChange={(e) => {
-                      updateField("victimaRut", e.target.value);
+                      const valor = e.target.value;
+                      // Formatear visualmente mientras escribe
+                      const formateado = formatearRut(valor);
+                      updateField("victimaRut", formateado);
                       if (errors.victimaRut) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -1116,7 +1490,7 @@ export default function NuevaDenuncia() {
                     }}
                     disabled={form.esVictima === "si"}
                   />
-                  {errors.victimaRut && form.esVictima === "no" && (
+                  {errors.victimaRut && intentoAvanzar && form.esVictima === "no" && (
                     <p className="mt-1 text-xs text-red-500">{errors.victimaRut}</p>
                   )}
                 </div>
@@ -1126,13 +1500,26 @@ export default function NuevaDenuncia() {
                     <InfoTooltip text="Indica el nombre de la víctima. Si ella utiliza un Nombre Social distinto a su nombre legal, escríbelo aquí. La Universidad prioriza el reconocimiento de la identidad de género para garantizar un trato digno." />
                   </label>
                   <input
-                    className={`mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-60`}
+                    data-field="victimaNombre"
+                    className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                      errors.victimaNombre && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     value={form.victimaNombre}
-                    onChange={(e) =>
-                      updateField("victimaNombre", e.target.value)
-                    }
+                    onChange={(e) => {
+                      updateField("victimaNombre", e.target.value);
+                      if (errors.victimaNombre) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.victimaNombre;
+                          return newErrors;
+                        });
+                      }
+                    }}
                     disabled={form.esVictima === "si"}
                   />
+                  {errors.victimaNombre && intentoAvanzar && (
+                    <p className="mt-1 text-xs text-red-500">{errors.victimaNombre}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 flex items-center">
@@ -1142,7 +1529,7 @@ export default function NuevaDenuncia() {
                   <input
                     data-field="victimaCorreo"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
-                      errors.victimaCorreo ? 'border-red-500' : 'border-gray-300'
+                      errors.victimaCorreo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     value={form.victimaCorreo}
                     onChange={(e) => {
@@ -1157,7 +1544,7 @@ export default function NuevaDenuncia() {
                     }}
                     disabled={form.esVictima === "si"}
                   />
-                  {errors.victimaCorreo && (
+                  {errors.victimaCorreo && intentoAvanzar && (
                     <p className="mt-1 text-xs text-red-500">{errors.victimaCorreo}</p>
                   )}
                 </div>
@@ -1169,7 +1556,7 @@ export default function NuevaDenuncia() {
                   <input
                     data-field="victimaTelefono"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
-                      errors.victimaTelefono ? 'border-red-500' : 'border-gray-300'
+                      errors.victimaTelefono && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     value={form.victimaTelefono}
                     onChange={(e) => {
@@ -1184,7 +1571,7 @@ export default function NuevaDenuncia() {
                     }}
                     disabled={form.esVictima === "si"}
                   />
-                  {errors.victimaTelefono && (
+                  {errors.victimaTelefono && intentoAvanzar && (
                     <p className="mt-1 text-xs text-red-500">{errors.victimaTelefono}</p>
                   )}
                 </div>
@@ -1378,15 +1765,17 @@ export default function NuevaDenuncia() {
                           placeholder="12.345.678-9 (opcional)"
                           className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                           value={form.nuevoInvolucrado.rut || ""}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const valor = e.target.value;
+                            const formateado = formatearRut(valor);
                             setForm((p) => ({
                               ...p,
                               nuevoInvolucrado: {
                                 ...p.nuevoInvolucrado,
-                                rut: e.target.value,
+                                rut: formateado,
                               },
-                            }))
-                          }
+                            }));
+                          }}
                         />
                       </div>
                       <div>
@@ -1505,13 +1894,26 @@ export default function NuevaDenuncia() {
                         : "Fecha de inicio"}
                     </label>
                     <input
+                      data-field="fechaHecho"
                       type="date"
-                      className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                        errors.fechaHecho && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={form.fechaHecho}
-                      onChange={(e) =>
-                        updateField("fechaHecho", e.target.value)
-                      }
+                      onChange={(e) => {
+                        updateField("fechaHecho", e.target.value);
+                        if (errors.fechaHecho) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.fechaHecho;
+                            return newErrors;
+                          });
+                        }
+                      }}
                     />
+                    {errors.fechaHecho && intentoAvanzar && (
+                      <p className="mt-1 text-xs text-red-500">{errors.fechaHecho}</p>
+                    )}
                   </div>
                   {form.tipoFecha === "rango" && (
                     <div>
@@ -1519,13 +1921,26 @@ export default function NuevaDenuncia() {
                         Fecha de término
                       </label>
                       <input
+                        data-field="fechaHechoFin"
                         type="date"
-                        className="mmt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                        className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                          errors.fechaHechoFin && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         value={form.fechaHechoFin}
-                        onChange={(e) =>
-                          updateField("fechaHechoFin", e.target.value)
-                        }
+                        onChange={(e) => {
+                          updateField("fechaHechoFin", e.target.value);
+                          if (errors.fechaHechoFin) {
+                            setErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.fechaHechoFin;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       />
+                      {errors.fechaHechoFin && intentoAvanzar && (
+                        <p className="mt-1 text-xs text-red-500">{errors.fechaHechoFin}</p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1546,7 +1961,7 @@ export default function NuevaDenuncia() {
                     <input
                       data-field="nombreEstablecimiento"
                       className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                        errors.nombreEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                        errors.nombreEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Ej: Hospital Regional de Concepción, CESFAM Las Higueras..."
                       value={form.nombreEstablecimiento}
@@ -1562,7 +1977,7 @@ export default function NuevaDenuncia() {
                       }}
                       required
                     />
-                    {errors.nombreEstablecimiento && (
+                    {errors.nombreEstablecimiento && intentoAvanzar && (
                       <p className="mt-1 text-xs text-red-500">{errors.nombreEstablecimiento}</p>
                     )}
                   </div>
@@ -1575,7 +1990,7 @@ export default function NuevaDenuncia() {
                       <select
                         data-field="regionEstablecimiento"
                         className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                          errors.regionEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                          errors.regionEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                         }`}
                         value={form.regionEstablecimiento}
                         onChange={(e) => {
@@ -1598,7 +2013,7 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
-                      {errors.regionEstablecimiento && (
+                      {errors.regionEstablecimiento && intentoAvanzar && (
                         <p className="mt-1 text-xs text-red-500">{errors.regionEstablecimiento}</p>
                       )}
                     </div>
@@ -1609,7 +2024,7 @@ export default function NuevaDenuncia() {
                       <select
                         data-field="comunaEstablecimiento"
                         className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                          errors.comunaEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                          errors.comunaEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                         }`}
                         value={form.comunaEstablecimiento}
                         onChange={(e) => {
@@ -1643,7 +2058,7 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
-                      {errors.comunaEstablecimiento && (
+                      {errors.comunaEstablecimiento && intentoAvanzar && (
                         <p className="mt-1 text-xs text-red-500">{errors.comunaEstablecimiento}</p>
                       )}
                     </div>
@@ -1656,7 +2071,7 @@ export default function NuevaDenuncia() {
                     <input
                       data-field="direccionEstablecimiento"
                       className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                        errors.direccionEstablecimiento ? 'border-red-500' : 'border-gray-300'
+                        errors.direccionEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="Ej: Av. O'Higgins 1234, Concepción..."
                       value={form.direccionEstablecimiento}
@@ -1672,7 +2087,7 @@ export default function NuevaDenuncia() {
                       }}
                       required
                     />
-                    {errors.direccionEstablecimiento && (
+                    {errors.direccionEstablecimiento && intentoAvanzar && (
                       <p className="mt-1 text-xs text-red-500">{errors.direccionEstablecimiento}</p>
                     )}
                   </div>
@@ -1685,7 +2100,7 @@ export default function NuevaDenuncia() {
                       <input
                         data-field="unidadServicio"
                         className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                          errors.unidadServicio ? 'border-red-500' : 'border-gray-300'
+                          errors.unidadServicio && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                         }`}
                         placeholder="Ej: Urgencias, Pediatría, Medicina Interna..."
                         value={form.unidadServicio}
@@ -1701,7 +2116,7 @@ export default function NuevaDenuncia() {
                         }}
                         required
                       />
-                      {errors.unidadServicio && (
+                      {errors.unidadServicio && intentoAvanzar && (
                         <p className="mt-1 text-xs text-red-500">{errors.unidadServicio}</p>
                       )}
                     </div>
@@ -1732,7 +2147,7 @@ export default function NuevaDenuncia() {
                       <select
                         data-field="sedeHecho"
                         className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                          errors.sedeHecho ? 'border-red-500' : 'border-gray-300'
+                          errors.sedeHecho && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                         }`}
                         value={form.sedeHecho}
                         onChange={(e) => {
@@ -1756,7 +2171,7 @@ export default function NuevaDenuncia() {
                           </option>
                         ))}
                       </select>
-                      {errors.sedeHecho && (
+                      {errors.sedeHecho && intentoAvanzar && (
                         <p className="mt-1 text-xs text-red-500">{errors.sedeHecho}</p>
                       )}
                     </div>
@@ -1819,7 +2234,7 @@ export default function NuevaDenuncia() {
                 <textarea
                   data-field="relato"
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm h-32 focus:ring-2 focus:ring-ubb-blue/20 ${
-                    errors.relato ? 'border-red-500' : 'border-gray-300'
+                    errors.relato && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder={
                     form.tipoId === 3
@@ -1838,7 +2253,7 @@ export default function NuevaDenuncia() {
                     }
                   }}
                 />
-                {errors.relato && (
+                {errors.relato && intentoAvanzar && (
                   <p className="mt-1 text-xs text-red-500">{errors.relato}</p>
                 )}
               </div>
@@ -1846,9 +2261,17 @@ export default function NuevaDenuncia() {
               {/* Sección de Testigos */}
               <div className="pt-4 border-t border-gray-300">
                 <div className="flex justify-between items-center mb-3">
-                  <label className="text-sm font-medium text-gray-700">
-                    Testigos
-                  </label>
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-700">
+                      Testigos
+                    </label>
+                    {errors.testigos && intentoAvanzar && (
+                      <p className="mt-1 text-xs text-red-500">{errors.testigos}</p>
+                    )}
+                  </div>
+                  {errors.testigos && intentoAvanzar && (
+                    <p className="text-xs text-red-500">{errors.testigos}</p>
+                  )}
                   <button
                     type="button"
                     onClick={() => setMostrarFormTestigo(!mostrarFormTestigo)}
@@ -1903,12 +2326,14 @@ export default function NuevaDenuncia() {
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
                           placeholder="12.345.678-9"
                           value={nuevoTestigo.rut}
-                          onChange={(e) =>
+                          onChange={(e) => {
+                            const valor = e.target.value;
+                            const formateado = formatearRut(valor);
                             setNuevoTestigo({
                               ...nuevoTestigo,
-                              rut: e.target.value,
-                            })
-                          }
+                              rut: formateado,
+                            });
+                          }}
                         />
                       </div>
                     </div>
