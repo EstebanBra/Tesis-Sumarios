@@ -35,7 +35,7 @@ export default function InfoTooltip({ text, className = '' }: InfoTooltipProps) 
       </button>
       {showTooltip && (
         <div
-          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-[9999] pointer-events-none"
+          className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-ubb-blue-dark text-white text-xs rounded-lg shadow-xl z-[9999] pointer-events-none"
           role="tooltip"
           style={{
             whiteSpace: 'normal',
@@ -46,7 +46,7 @@ export default function InfoTooltip({ text, className = '' }: InfoTooltipProps) 
         >
           {text}
           {/* Flecha apuntando abajo */}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-ubb-blue-dark"></div>
         </div>
       )}
     </div>

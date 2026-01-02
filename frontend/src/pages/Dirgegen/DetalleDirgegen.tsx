@@ -14,7 +14,7 @@ export default function DetalleDirgegen() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
-  
+
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -51,18 +51,18 @@ export default function DetalleDirgegen() {
     try {
       setProcessing(true)
       const idDenuncia = denuncia.ID_Denuncia || denuncia.id;
-      
+
       // Mapear tipo de derivación a nuevoTipoId
       // 301 = VRA General, 302 = Casos Clínicos
       const nuevoTipoId = tipoDerivacion === 'casos_clinicos' ? 302 : 301;
-      
-      await gestionarDenuncia(idDenuncia, { 
-        observacion, 
+
+      await gestionarDenuncia(idDenuncia, {
+        observacion,
         nuevoEstadoId: 3,
-        nuevoTipoId 
+        nuevoTipoId
       })
       setShowModal(false)
-      const mensaje = tipoDerivacion === 'casos_clinicos' 
+      const mensaje = tipoDerivacion === 'casos_clinicos'
         ? 'Denuncia derivada exitosamente a Casos Clínicos.'
         : 'Denuncia derivada exitosamente a VRA General.'
       alert(mensaje)
@@ -91,7 +91,7 @@ export default function DetalleDirgegen() {
       Cargando información del caso...
     </div>
   )
-  
+
   if (!denuncia) return (
     <div className="p-10 text-center text-red-600 font-bold border border-red-200 bg-red-50 rounded-lg mx-auto max-w-lg mt-10">
       Error: Denuncia no encontrada.
@@ -101,33 +101,33 @@ export default function DetalleDirgegen() {
   // --- CORRECCIÓN 1: Leer correctamente 'datos_denunciados' ---
   // Ahora tu backend envía 'datos_denunciados', así que lo ponemos primero en la lista
   const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
-  
+
   // Testigos: filtrar participantes que NO están en datos_denunciados
   // Los denunciados están en datos_denunciados Y en participante_denuncia
   // Los testigos SOLO están en participante_denuncia
   const todosParticipantes = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
   const nombresDenunciados = new Set(
-    listaInvolucrados.map((inv: any) => 
+    listaInvolucrados.map((inv: any) =>
       (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
     )
   );
-  
+
   // Filtrar: testigos son los que NO están en datos_denunciados
   const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
     return !nombresDenunciados.has(nombreParticipante);
   });
-  
+
   // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
-  const archivosRaw = denuncia.archivos_denuncia || 
-    (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) => 
+  const archivosRaw = denuncia.archivos_denuncia ||
+    (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) =>
       pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
     ) || []) ||
-    denuncia.Evidencias || 
-    denuncia.evidencias || 
-    denuncia.Archivos || 
+    denuncia.Evidencias ||
+    denuncia.evidencias ||
+    denuncia.Archivos ||
     [];
-  
+
   // Filtrar duplicados por ID_Archivo
   const archivosUnicos = new Map();
   archivosRaw.forEach((arch: any) => {
@@ -137,7 +137,7 @@ export default function DetalleDirgegen() {
     }
   });
   const listaEvidencias = Array.from(archivosUnicos.values());
-  
+
   // Normalización de Datos Principales
   const idCaso = denuncia.ID_Denuncia || denuncia.id;
   const fechaIngreso = denuncia.Fecha_Ingreso || denuncia.fechaCreacion; // Fecha de ingreso al sistema
@@ -146,10 +146,10 @@ export default function DetalleDirgegen() {
   const esRangoFechas = !!fechaFinCaso; // Si hay Fecha_Fin, es un rango
   const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
   const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
-  
+
   // Datos Denunciante: Si existe denuncia.denunciante, usar esos datos (persona con RUT reconocido)
   // Si no existe, usar datos del objeto denuncia directamente
-  const datosDenuncianteObj = denuncia.denunciante || denuncia; 
+  const datosDenuncianteObj = denuncia.denunciante || denuncia;
   const nombreCompletoDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
   const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
   const correoDenunciante = getProp(datosDenuncianteObj, 'Correo', 'correo');
@@ -160,14 +160,14 @@ export default function DetalleDirgegen() {
   const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
   const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
-  
+
 
   // Función helper para parsear datos de víctima desde caracteristicasDenunciado
   // Determinar si el denunciante es la víctima buscando en los hitos
   // Solo necesitamos saber esto para decidir qué datos mostrar
   let esVictima = false;
   let victimaMenor = false;
-  
+
   if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
@@ -188,12 +188,12 @@ export default function DetalleDirgegen() {
       }
     }
   }
-  
+
   // Si no es víctima, buscar víctima externa en participantes
   // La víctima externa se guarda como participante cuando se crea la denuncia
   let victimaExterna: any = null;
   const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
-  
+
   if (!esVictima) {
     // Buscar en todos los participantes - la víctima externa estará guardada ahí
     // Priorizamos buscar por ID_Persona (si está identificada)
@@ -207,30 +207,30 @@ export default function DetalleDirgegen() {
   // Datos finales para mostrar
   // IMPORTANTE: Si esVictima es true, mostrar datos del denunciante
   // Si esVictima es false, mostrar datos de la víctima externa encontrada en participantes
-  const nombreVictima = esVictima 
+  const nombreVictima = esVictima
     ? nombreCompletoDenunciante
     : (victimaExterna?.persona?.Nombre || 'No identificado');
-  
+
   const rutVictima = esVictima
     ? rutDenunciante
     : (victimaExterna?.persona?.Rut || null);
-  
+
   const correoVictima = esVictima
     ? correoDenunciante
     : (victimaExterna?.persona?.Correo || null);
-  
+
   const telefonoVictima = esVictima
     ? telefonoDenunciante
     : (victimaExterna?.persona?.Telefono || null);
-  
+
   const sexoVictima = esVictima
     ? sexoDenunciante
     : (victimaExterna?.persona?.sexo || null);
-  
+
   const generoVictima = esVictima
     ? generoDenunciante
     : (victimaExterna?.persona?.genero || null);
-  
+
 
   // Solicitudes
   const solicitudesDeMedida: SolicitudMedida[] = denuncia.solicitudes_medidas || denuncia.SolicitudesMedidas || [];
@@ -239,7 +239,7 @@ export default function DetalleDirgegen() {
 
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
-      
+
       {/* --- BANNER DE OBSERVACIÓN DE DERIVACIÓN (si fue derivada) --- */}
       {(denuncia.tipo_denuncia?.ID_TipoDe === 301 || denuncia.tipo_denuncia?.ID_TipoDe === 302 || denuncia.tipo_denuncia?.ID_TipoDe === 303) && denuncia.observacionDirgegen && (
         <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
@@ -260,7 +260,7 @@ export default function DetalleDirgegen() {
           </div>
         </div>
       )}
-      
+
       {/* --- ALERTAS --- */}
       <div className="space-y-4">
         {solicitudesDeMedida.length > 0 && (
@@ -306,9 +306,17 @@ export default function DetalleDirgegen() {
             </p>
           )}
         </div>
-        <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
-          {estadoCaso}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
+            {estadoCaso}
+          </span>
+          <button
+            onClick={() => navigate(-1)}
+            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+          >
+            Volver
+          </button>
+        </div>
       </div>
 
       {/* --- DETALLE --- */}
@@ -316,7 +324,7 @@ export default function DetalleDirgegen() {
 
         {/* COLUMNA IZQUIERDA (8) */}
         <div className="lg:col-span-8 space-y-6">
-            
+
             {/* 1. CLASIFICACIÓN Y RELATO */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="mb-4 pb-4 border-b border-gray-100">
@@ -328,7 +336,7 @@ export default function DetalleDirgegen() {
                          {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
                     </p>
                 </div>
-                
+
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
                 {/* --- CORRECCIÓN 2: DELIMITAR RELATO ---
                    Usamos max-h-96 (altura máx) y overflow-y-auto (scroll)
@@ -352,14 +360,14 @@ export default function DetalleDirgegen() {
                         <div className="grid grid-cols-1 gap-4">
                             {listaInvolucrados.map((inv: any, idx: number) => {
                               // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
-                              const nombreCompleto = inv.persona?.Nombre 
+                              const nombreCompleto = inv.persona?.Nombre
                                 ? inv.persona.Nombre.trim()
                                 : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
                               const estaIdentificado = !!(inv.ID_Persona || inv.persona)
-                              
+
                               return (
-                                <div 
-                                  key={idx} 
+                                <div
+                                  key={idx}
                                   className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-orange-50 hover:border-orange-300 transition-all"
                                   onClick={() => {
                                     setSelectedDenunciado(inv)
@@ -383,7 +391,7 @@ export default function DetalleDirgegen() {
                                                 </span>
                                               )}
                                             </div>
-                                            
+
                                             {/* Mostrar datos de persona si está identificado */}
                                             {estaIdentificado && inv.persona && (
                                               <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
@@ -392,7 +400,7 @@ export default function DetalleDirgegen() {
                                                 {inv.persona.Telefono && <p><span className="font-semibold">Teléfono:</span> {inv.persona.Telefono}</p>}
                                               </div>
                                             )}
-                                            
+
                                             {/* Mostrar información de identidad de género si existe */}
                                             {(inv.persona?.sexo || inv.persona?.genero) && (
                                               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
@@ -401,15 +409,15 @@ export default function DetalleDirgegen() {
                                                 )}
                                                 {inv.persona?.genero && (
                                                   <p><span className="font-semibold">Género:</span> {
-                                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' :
                                                     inv.persona.genero === 'NoBinario' ? 'No Binario' :
                                                     inv.persona.genero
                                                   }</p>
                                                 )}
                                               </div>
                                             )}
-                                            
-                                            {/* Aquí mostramos la descripción completa concatenada 
+
+                                            {/* Aquí mostramos la descripción completa concatenada
                                                 que viene en 'Descripcion' o 'descripcion'
                                             */}
                                             {(inv.Descripcion || inv.descripcion) ? (
@@ -426,7 +434,7 @@ export default function DetalleDirgegen() {
                                           Sindicado #{idx + 1}
                                         </span>
                                     </div>
-                                    
+
                                     {/* Botón para identificar si no está identificado */}
                                     {!estaIdentificado && (
                                       <div className="mt-3 pt-3 border-t border-orange-100">
@@ -442,7 +450,7 @@ export default function DetalleDirgegen() {
                                         </button>
                                       </div>
                                     )}
-                                    
+
                                     {/* Compatibilidad con campos antiguos si existieran */}
                                     {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
                                         <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
@@ -467,8 +475,8 @@ export default function DetalleDirgegen() {
                 {listaTestigos.length > 0 ? (
                     <ul className="space-y-3">
                         {listaTestigos.map((t: any, idx: number) => (
-                            <li 
-                                  key={idx} 
+                            <li
+                                  key={idx}
                                   className="text-sm border-b border-gray-100 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 hover:px-2 hover:-mx-2 rounded transition-all"
                                   onClick={() => {
                                     setSelectedTestigo(t)
@@ -505,7 +513,7 @@ export default function DetalleDirgegen() {
 
         {/* COLUMNA DERECHA (4) */}
         <div className="lg:col-span-4 space-y-6">
-            
+
             {/* CARD: DENUNCIANTE */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -676,7 +684,7 @@ export default function DetalleDirgegen() {
                     )}
                 </div>
             </div>
-            
+
             {/* Medidas */}
             {(denuncia.solicitaMedidas || denuncia.SolicitaMedidas) && (
                  <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
@@ -690,7 +698,7 @@ export default function DetalleDirgegen() {
             )}
         </div>
       </div>
-      
+
       {/* --- FOOTER --- */}
       <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-xl mt-6">
         <div className="text-xs text-gray-500 font-medium">
@@ -714,7 +722,7 @@ export default function DetalleDirgegen() {
         </div>
       </div>
 
-      <div className="flex justify-start pt-2"> 
+      <div className="flex justify-start pt-2">
         <button onClick={() => navigate('/dirgegen/bandeja')} className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">
           ← Volver a la Bandeja
         </button>
@@ -723,14 +731,14 @@ export default function DetalleDirgegen() {
       {/* --- MODALES --- */}
       <DerivacionModal isOpen={showModal} onClose={() => setShowModal(false)} onConfirm={handleDerivacionConfirm} isProcessing={processing} />
       {denuncia && (
-        <InformeTecnicoModal 
-            isOpen={showInformeModal} 
-            onClose={() => setShowInformeModal(false)} 
-            onSuccess={() => cargarDatos()} 
-            idDenuncia={idCaso} 
+        <InformeTecnicoModal
+            isOpen={showInformeModal}
+            onClose={() => setShowInformeModal(false)}
+            onSuccess={() => cargarDatos()}
+            idDenuncia={idCaso}
             // @ts-ignore
-            idAutor={user?.id || 0} 
-            denunciaData={denuncia} 
+            idAutor={user?.id || 0}
+            denunciaData={denuncia}
         />
       )}
       {denunciadoAIdentificar && (
