@@ -325,23 +325,21 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       },
     });
 
-    // Guardar Archivos con metadatos de MinIO (si existen evidencias)
-    if (payload.evidencias && Array.isArray(payload.evidencias) && payload.evidencias.length > 0) {
-      const archivos = payload.evidencias
-        .filter(e => e?.nombreArchivo) // Validar que tenga nombreArchivo (MinIO key)
-        .map(e => ({
-          ID_Hitos: hitoEvid.ID_Hitos,
-          ID_Denuncia: denuncia.ID_Denuncia, // Vincular directamente a la denuncia
-          Archivo: e.nombreArchivo, // Mantener para compatibilidad (deprecated)
-          MinIO_Key: e.nombreArchivo, // Clave del objeto en MinIO
-          Nombre_Original: e.nombreOriginal || e.nombreArchivo,
-          Tipo_Archivo: e.tipoArchivo || 'application/octet-stream',
-          Tamaño: e.tamaño ? BigInt(e.tamaño) : null,
-        }));
+    // c) Guardar Archivos con metadatos de MinIO
+    const archivos = payload.evidencias
+      .filter(e => e?.nombreArchivo) // Validar que tenga nombreArchivo (MinIO key)
+      .map(e => ({
+        ID_Hitos: hitoEvid.ID_Hitos,
+        ID_Denuncia: denuncia.ID_Denuncia, // Vincular directamente a la denuncia
+        Archivo: e.nombreArchivo, // Mantener para compatibilidad (deprecated)
+        MinIO_Key: e.nombreArchivo, // Clave del objeto en MinIO
+        Nombre_Original: e.nombreOriginal || e.nombreArchivo,
+        Tipo_Archivo: e.tipoArchivo || 'application/octet-stream',
+        Tamaño: e.tamaño ? BigInt(e.tamaño) : null,
+      }));
 
-      if (archivos.length > 0) {
-        await tx.archivo.createMany({ data: archivos });
-      }
+    if (archivos.length) {
+      await tx.archivo.createMany({ data: archivos });
     }
 
     // 5️⃣ Retornar denuncia completa
