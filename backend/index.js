@@ -44,6 +44,7 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : (tokens, req
 }));
 
 app.get("/", (req, res) => res.send("Servidor backend operativo 🚀"));
+app.get("/health", (req, res) => res.status(200).send("OK"));
 app.use("/api/auth", authRoutes);
 app.use("/api", routes);
 

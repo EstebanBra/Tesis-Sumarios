@@ -1,53 +1,48 @@
-# --- ETAPA 1: "Builder" ---
-# Aquí instalamos todo (dev) y generamos el cliente Prisma
-FROM node:22-alpine AS builder
+# Node 24 en Alpine Linux 3.23 para una imagen ligera y segura, ademas es la ultima version LTS
+# En esta etapa se instalan todas las dependencias, incluyendo las de desarrollo necesarias para generar 
+# los artefactos de Prisma y que el compose pueda ejecutar las migraciones
+FROM node:24-alpine3.23 AS builder
 
-# Establecer el directorio de trabajo
-WORKDIR /app/backend
+WORKDIR /app
 
-# Copiar los archivos de dependencias
-COPY package.json package-lock.json* ./
+COPY package*.json ./
+COPY prisma ./prisma/
 
-# Instalar TODAS las dependencias (incl. devDependencies)
-RUN npm install
+RUN npm ci
 
-# Copiar el esquema de Prisma
-COPY prisma/ ./prisma/
-
-# Generar el cliente de Prisma
 RUN npx prisma generate
 
-# --- ETAPA 2: "Producción" ---
-# Esta es la imagen final que usaremos, es más ligera
-FROM node:22-alpine
+# De la etapa builder, borramos todas las dependencias de desarrollo. Esto se hace para reducir el tamaño de la 
+# imagen final y mejorar la seguridad.
+FROM builder AS production-deps
+RUN npm prune --production && \
+    npm cache clean --force
 
-WORKDIR /app/backend
+# Desde una imagen limpia, se usa un usuario no root para mejorar la seguridad
+# Se copian las dependencias instaladas en la paso anterior con permisos para el usuario no root
+# Esto evita hacer npm install en la imagen de produccion. Esto reduce el tamaño de la imagen y mejora la seguridad
+# Se setea un healtchek y se inicia con dumb-init para manejar correctamente las señales
+FROM node:24-alpine3.23 AS production
 
-# Copiar los archivos de dependencias
-COPY package.json package-lock.json* ./
+RUN apk add --no-cache dumb-init
 
-# Instalar SOLO dependencias de producción
-RUN npm install 
+WORKDIR /app
 
-# --- Copiar artefactos desde la etapa "builder" ---
+COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=production-deps --chown=node:node /app/prisma ./prisma
 
-# 1. Copiar el cliente Prisma generado y el esquema
-COPY --from=builder /app/backend/prisma ./prisma
+COPY --chown=node:node . .
 
-# 2. Copiar las dependencias instaladas (node_modules)
-# (Opcional pero rápido) Si no, puedes descomentar el RUN npm install --omit=dev de arriba
-# COPY --from=builder /app/backend/node_modules ./node_modules
+ENV NODE_ENV=production \
+    PORT=3000
 
-# --- Fin de la copia de artefactos ---
+USER node
 
-# Copiar el resto del código fuente de la aplicación
-# (Esto asume que index.js y src/ están en la raíz de /backend)
-COPY src ./src
-COPY index.js .
-
-# Exponer el puerto en el que corre tu app
-# (Asumo que es 3000, ¡ajusta esto si es diferente!)
 EXPOSE 3000
 
-# El comando para arrancar tu aplicación
-CMD [ "node", "index.js" ]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+ENTRYPOINT ["dumb-init", "--"]
+
+CMD ["node", "index.js"]
