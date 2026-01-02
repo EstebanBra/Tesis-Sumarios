@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  getDenunciaById, 
-  subirEvidenciaDenuncia,
-} from '@/services/denuncias.api'; 
-// import type { DenunciaListado } from '@/services/denuncias.api'; // Temporalmente deshabilitado
-// import SolicitudMedidaModal from './components/SolicitudMedidaModal'; // Temporalmente deshabilitado
+import { getDenunciaById, subirEvidenciaDenuncia } from '@/services/denuncias.api';
 import { formatearFechaLarga } from '@/utils/date.utils';
 import EvidenciaViewer from '@/components/EvidenciaViewer';
 import FileUploader, { type FileMetadata } from '@/components/FileUploader';
@@ -13,7 +8,7 @@ import FileUploader, { type FileMetadata } from '@/components/FileUploader';
 export default function DetalleDenuncia() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   // Estados
   const [denuncia, setDenuncia] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,18 +39,18 @@ export default function DetalleDenuncia() {
 
     try {
       setUploading(true);
-      
+
       // Subir cada archivo secuencialmente
       for (const fileMetadata of nuevosArchivos) {
         await subirEvidenciaDenuncia(Number(id), fileMetadata.file);
       }
-      
+
       // Recargar datos para mostrar los nuevos archivos
       await cargarDatos();
-      
+
       // Limpiar el uploader
       setNuevosArchivos([]);
-      
+
       alert(`Se subieron ${nuevosArchivos.length} archivo(s) exitosamente.`);
     } catch (error) {
       console.error('Error al subir evidencias:', error);
@@ -104,8 +99,11 @@ export default function DetalleDenuncia() {
   // Determinar si el denunciante es la víctima
   let esVictima = false;
   let victimaMenor = false;
-  
-  if (denuncia?.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+
+  if (
+    denuncia?.denunciante?.participantes_caso &&
+    Array.isArray(denuncia.denunciante.participantes_caso)
+  ) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
         for (const hito of pc.hitos) {
@@ -129,7 +127,7 @@ export default function DetalleDenuncia() {
   const todosParticipantes = denuncia?.participante_denuncia || [];
   const denuncianteId = denuncia?.denunciante?.ID || datosDenuncianteObj?.ID;
   let victimaExterna: any = null;
-  
+
   if (!esVictima) {
     victimaExterna = todosParticipantes.find((p: any) => {
       return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
@@ -137,26 +135,26 @@ export default function DetalleDenuncia() {
   }
 
   // Datos de víctima
-  const nombreVictima = esVictima 
+  const nombreVictima = esVictima
     ? nombreCompletoDenunciante
     : (victimaExterna?.persona?.Nombre || 'No identificado');
-  
+
   const rutVictima = esVictima
     ? rutDenunciante
     : (victimaExterna?.persona?.Rut || null);
-  
+
   const correoVictima = esVictima
     ? correoDenunciante
     : (victimaExterna?.persona?.Correo || null);
-  
+
   const telefonoVictima = esVictima
     ? telefonoDenunciante
     : (victimaExterna?.persona?.Telefono || null);
-  
+
   const sexoVictima = esVictima
     ? sexoDenunciante
     : (victimaExterna?.persona?.sexo || null);
-  
+
   const generoVictima = esVictima
     ? generoDenunciante
     : (victimaExterna?.persona?.genero || null);
@@ -166,26 +164,26 @@ export default function DetalleDenuncia() {
 
   // Testigos
   const nombresDenunciados = new Set(
-    listaInvolucrados.map((inv: any) => 
+    listaInvolucrados.map((inv: any) =>
       (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
     )
   );
-  
+
   const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
     return !nombresDenunciados.has(nombreParticipante);
   });
 
   // Archivos/Evidencias
-  const archivosRaw = denuncia?.archivos_denuncia || 
-    (denuncia?.denunciante?.participantes_caso?.flatMap((pc: any) => 
+  const archivosRaw = denuncia?.archivos_denuncia ||
+    (denuncia?.denunciante?.participantes_caso?.flatMap((pc: any) =>
       pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
     ) || []) ||
-    denuncia?.Evidencias || 
-    denuncia?.evidencias || 
-    denuncia?.Archivos || 
+    denuncia?.Evidencias ||
+    denuncia?.evidencias ||
+    denuncia?.Archivos ||
     [];
-  
+
   // Filtrar duplicados por ID_Archivo
   const archivosUnicos = new Map();
   archivosRaw.forEach((arch: any) => {
@@ -215,7 +213,7 @@ export default function DetalleDenuncia() {
     const index = pasosProceso.findIndex(p => p.claves.some(k => estado.toLowerCase().includes(k)));
     return index !== -1 ? index : 0;
   };
-  
+
   const activeStep = getPasoActual(estadoCaso);
   const diasTranscurridos = fechaIngreso ? Math.floor((new Date().getTime() - new Date(fechaIngreso).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
@@ -226,7 +224,7 @@ export default function DetalleDenuncia() {
       </div>
     );
   }
-  
+
   if (!denuncia) {
     return (
       <div className="p-10 text-center text-red-600 font-bold border border-red-200 bg-red-50 rounded-lg mx-auto max-w-lg mt-10">
@@ -237,7 +235,7 @@ export default function DetalleDenuncia() {
 
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
-      
+
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4 pt-2">
         <div>
@@ -259,14 +257,14 @@ export default function DetalleDenuncia() {
           <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
             {estadoCaso}
           </span>
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
           >
             Volver
           </button>
           {/* BOTÓN SOLICITUD MEDIDA DE RESGUARDO - TEMPORALMENTE OCULTO */}
-          {/* <button 
+          {/* <button
             onClick={() => setShowSolicitudModal(true)}
             disabled={tieneSolicitudPendiente}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -288,8 +286,11 @@ export default function DetalleDenuncia() {
 
         <div className="relative mx-4">
           <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 -z-0 rounded"></div>
-          <div className="absolute top-5 left-0 h-1 bg-indigo-600 -z-0 rounded transition-all duration-700" style={{ width: `${(activeStep / (pasosProceso.length - 1)) * 100}%` }}></div>
-          
+          <div
+            className="absolute top-5 left-0 h-1 bg-indigo-600 -z-0 rounded transition-all duration-700"
+            style={{ width: `${(activeStep / (pasosProceso.length - 1)) * 100}%` }}
+          ></div>
+
           <div className="flex justify-between relative z-10">
             {pasosProceso.map((paso, idx) => {
               const isActive = idx === activeStep;
@@ -319,7 +320,7 @@ export default function DetalleDenuncia() {
 
         {/* COLUMNA IZQUIERDA (8) */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* 1. CLASIFICACIÓN Y RELATO */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="mb-4 pb-4 border-b border-gray-100">
@@ -331,8 +332,10 @@ export default function DetalleDenuncia() {
                 {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
               </p>
             </div>
-            
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
+
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+              Relato de los Hechos
+            </h3>
             <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
               {relatoCaso || 'No hay relato disponible.'}
             </div>
@@ -344,14 +347,16 @@ export default function DetalleDenuncia() {
             // Verificar por tipoId === 3 O si existe detalle_campo_clinico
             const tipoId = denuncia?.ID_TipoDe || denuncia?.tipo_denuncia?.ID_TipoDe;
             const tipoNombre = denuncia?.tipo_denuncia?.Nombre || '';
-            const detalleCampoClinico = denuncia?.detalle_campo_clinico || denuncia?.detalleCampoClinico;
-            
+            const detalleCampoClinico =
+              denuncia?.detalle_campo_clinico || denuncia?.detalleCampoClinico;
+
             // Es campo clínico si: tipoId === 3, o existe detalle_campo_clinico, o el nombre incluye "Campos Clínicos"
-            const esCampoClinico = tipoId === 3 || 
-                                   !!detalleCampoClinico || 
-                                   tipoNombre.toLowerCase().includes('campos clínicos') ||
-                                   tipoNombre.toLowerCase().includes('campo clínico');
-            
+            const esCampoClinico =
+              tipoId === 3 ||
+              !!detalleCampoClinico ||
+              tipoNombre.toLowerCase().includes('campos clínicos') ||
+              tipoNombre.toLowerCase().includes('campo clínico');
+
             // Si no hay ubicación para mostrar, no renderizar nada
             if (!ubicacion && !detalleCampoClinico) {
               return null;
@@ -373,39 +378,44 @@ export default function DetalleDenuncia() {
                 if (partes.length > 0) {
                   // El primer elemento siempre es el nombre del establecimiento
                   nombreEstablecimiento = partes[0] || null;
-                  
+
                   // Para cada parte restante, intentar identificarla
                   for (let i = 1; i < partes.length; i++) {
                     const parte = partes[i];
                     const parteLower = parte.toLowerCase();
-                    
+
                     // Detectar región (contiene "Región" o nombres comunes de regiones)
-                    if ((parteLower.includes('región') || 
-                         parteLower.includes('region')) && 
-                        !regionEstablecimiento) {
+                    if (
+                      (parteLower.includes('región') || parteLower.includes('region')) &&
+                      !regionEstablecimiento
+                    ) {
                       regionEstablecimiento = parte;
                     }
                     // Detectar unidades/servicios comunes
-                    else if ((parteLower.includes('urgencias') ||
-                              parteLower.includes('pediatría') ||
-                              parteLower.includes('pediatria') ||
-                              parteLower.includes('maternidad') ||
-                              parteLower.includes('cirugía') ||
-                              parteLower.includes('cirugia') ||
-                              parteLower.includes('oncología') ||
-                              parteLower.includes('oncologia') ||
-                              parteLower.includes('servicio') ||
-                              parteLower.includes('unidad')) && 
-                             !unidadServicio) {
+                    else if (
+                      (parteLower.includes('urgencias') ||
+                        parteLower.includes('pediatría') ||
+                        parteLower.includes('pediatria') ||
+                        parteLower.includes('maternidad') ||
+                        parteLower.includes('cirugía') ||
+                        parteLower.includes('cirugia') ||
+                        parteLower.includes('oncología') ||
+                        parteLower.includes('oncologia') ||
+                        parteLower.includes('servicio') ||
+                        parteLower.includes('unidad')) &&
+                      !unidadServicio
+                    ) {
                       unidadServicio = parte;
                     }
                     // Detectar comuna (nombres cortos, típicamente entre región y detalles)
-                    else if (!comunaEstablecimiento && 
-                             parte.length < 40 && 
-                             parte.length > 2 &&
-                             !parteLower.includes('región') &&
-                             !parteLower.includes('region') &&
-                             i < partes.length - 2) {
+                    else if (
+                      !comunaEstablecimiento &&
+                      parte.length < 40 &&
+                      parte.length > 2 &&
+                      !parteLower.includes('región') &&
+                      !parteLower.includes('region') &&
+                      i < partes.length - 2
+                    ) {
                       comunaEstablecimiento = parte;
                     }
                     // La penúltima parte suele ser dirección o lugar específico
@@ -417,7 +427,7 @@ export default function DetalleDenuncia() {
                       detalleAdicional = parte;
                     }
                   }
-                  
+
                   // Si no identificamos comuna pero sí hay regiones conocidas, intentar extraer
                   if (!comunaEstablecimiento && partes.length > 2) {
                     // Buscar entre las partes que no son región ni unidad/servicio
@@ -479,12 +489,17 @@ export default function DetalleDenuncia() {
                       </div>
                     )}
                     {/* Si después de todo no hay nada, mostrar el string original */}
-                    {!nombreEstablecimiento && !direccionEstablecimiento && !regionEstablecimiento && 
-                     !comunaEstablecimiento && !unidadServicio && !detalleAdicional && ubicacion && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
-                      </div>
-                    )}
+                    {!nombreEstablecimiento &&
+                      !direccionEstablecimiento &&
+                      !regionEstablecimiento &&
+                      !comunaEstablecimiento &&
+                      !unidadServicio &&
+                      !detalleAdicional &&
+                      ubicacion && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
+                        </div>
+                      )}
                   </div>
                 </div>
               );
@@ -495,15 +510,15 @@ export default function DetalleDenuncia() {
               let regionNombre = denuncia?.regionHecho || denuncia?.Region_Hecho;
               let lugarNombre = denuncia?.lugarHecho || denuncia?.Lugar_Hecho;
               let detalleHecho = denuncia?.detalleHecho || denuncia?.Detalle_Hecho;
-              
+
               // Si no hay campos desagregados pero sí hay string de ubicación, parsearlo
               if (!sedeNombre && !lugarNombre && !detalleHecho && ubicacion) {
                 const partes = ubicacion.split(' - ').map((p: string) => p.trim()).filter(Boolean);
-                
+
                 if (partes.length > 0) {
                   // La primera parte generalmente es la Sede (puede incluir dirección)
                   sedeNombre = partes[0] || null;
-                  
+
                   // Extraer región de la sede si está incluida (buscar "Región" o nombres comunes)
                   if (sedeNombre) {
                     const regionMatch = sedeNombre.match(/Región\s+(?:de\s+)?(?:del\s+)?([^-()]+)|(?:Región\s+)?([IVX]+)\s+Región/i);
@@ -521,29 +536,32 @@ export default function DetalleDenuncia() {
                         'O\'Higgins', 'OHiggins',
                         'Aysén', 'Aysen', 'Magallanes'
                       ];
-                      
+
                       posiblesRegiones.forEach(reg => {
                         if (sedeNombre.toLowerCase().includes(reg.toLowerCase()) && !regionNombre) {
-                          regionNombre = sedeNombre.match(new RegExp(`[IVX]+\\s*Región\\s*(?:de\\s*)?(?:del\\s*)?${reg}`, 'i'))?.[0] || 
-                                         sedeNombre.match(new RegExp(reg, 'i'))?.[0] || 
-                                         null;
+                          regionNombre =
+                            sedeNombre.match(
+                              new RegExp(`[IVX]+\\s*Región\\s*(?:de\\s*)?(?:del\\s*)?${reg}`, 'i')
+                            )?.[0] ||
+                            sedeNombre.match(new RegExp(reg, 'i'))?.[0] ||
+                            null;
                         }
                       });
                     }
                   }
-                  
+
                   // Si hay más de una parte, la segunda generalmente es el Lugar Específico
                   if (partes.length > 1) {
                     lugarNombre = partes[1] || null;
                   }
-                  
+
                   // Si hay más de dos partes, las últimas partes pueden ser Detalles Adicionales
                   if (partes.length > 2) {
                     detalleHecho = partes.slice(2).join(' - ') || null;
                   }
                 }
               }
-              
+
               // Si aún no tenemos región, intentar buscar en el string completo
               if (!regionNombre && ubicacion) {
                 const regionMatch = ubicacion.match(/([IVX]+\s*Región\s*(?:de\s+)?(?:del\s+)?[^-()]+)/i);
@@ -557,7 +575,7 @@ export default function DetalleDenuncia() {
                     { pattern: /(XIII|13)\s*Región\s*(?:de\s+)?(?:del\s+)?(Metropolitana|Metropolitana de Santiago)/i, nombre: 'Región Metropolitana' },
                     { pattern: /(V|5)\s*Región\s*(?:de\s+)?(Valparaíso|Valparaiso)/i, nombre: 'V Región de Valparaíso' },
                   ];
-                  
+
                   for (const reg of posiblesRegiones) {
                     if (reg.pattern.test(ubicacion)) {
                       regionNombre = reg.nombre;
@@ -566,7 +584,7 @@ export default function DetalleDenuncia() {
                   }
                 }
               }
-              
+
               return (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📍 Ubicación</h3>
@@ -577,28 +595,28 @@ export default function DetalleDenuncia() {
                         <p className="text-sm font-medium text-gray-900 mt-1">{sedeNombre}</p>
                       </div>
                     )}
-                    
+
                     {regionNombre && (
                       <div>
                         <span className="text-xs text-gray-500 font-semibold">🗺️ Región:</span>
                         <p className="text-sm font-medium text-gray-900 mt-1">{regionNombre}</p>
                       </div>
                     )}
-                    
+
                     {lugarNombre && (
                       <div>
                         <span className="text-xs text-gray-500 font-semibold">📍 Lugar Específico:</span>
                         <p className="text-sm font-medium text-gray-900 mt-1">{lugarNombre}</p>
                       </div>
                     )}
-                    
+
                     {detalleHecho && (
                       <div>
                         <span className="text-xs text-gray-500 font-semibold">📝 Detalles Adicionales:</span>
                         <p className="text-sm font-medium text-gray-900 mt-1">{detalleHecho}</p>
                       </div>
                     )}
-                    
+
                     {/* Si después de parsear no hay nada, mostrar el string completo de ubicación */}
                     {!sedeNombre && !regionNombre && !lugarNombre && !detalleHecho && ubicacion && (
                       <div>
@@ -623,14 +641,14 @@ export default function DetalleDenuncia() {
               <div className="p-6">
                 <div className="grid grid-cols-1 gap-4">
                   {listaInvolucrados.map((inv: any, idx: number) => {
-                    const nombreCompleto = inv.persona?.Nombre 
+                    const nombreCompleto = inv.persona?.Nombre
                       ? inv.persona.Nombre.trim()
                       : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim();
                     const estaIdentificado = !!(inv.ID_Persona || inv.persona);
-                    
+
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm"
                       >
                         <div className="flex justify-between items-start">
@@ -650,7 +668,7 @@ export default function DetalleDenuncia() {
                                 </span>
                               )}
                             </div>
-                            
+
                             {estaIdentificado && inv.persona && (
                               <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
                                 <p><span className="font-semibold">RUT:</span> {inv.persona.Rut || 'N/A'}</p>
@@ -658,7 +676,7 @@ export default function DetalleDenuncia() {
                                 {inv.persona.Telefono && <p><span className="font-semibold">Teléfono:</span> {inv.persona.Telefono}</p>}
                               </div>
                             )}
-                            
+
                             {(inv.persona?.sexo || inv.persona?.genero) && (
                               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
                                 {inv.persona?.sexo && (
@@ -666,15 +684,15 @@ export default function DetalleDenuncia() {
                                 )}
                                 {inv.persona?.genero && (
                                   <p><span className="font-semibold">Género:</span> {
-                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' :
                                     inv.persona.genero === 'NoBinario' ? 'No Binario' :
                                     inv.persona.genero
                                   }</p>
                                 )}
                               </div>
                             )}
-                            
-                            {(inv.Descripcion || inv.descripcion) ? (
+
+                            {inv.Descripcion || inv.descripcion ? (
                               <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
                                 {inv.Descripcion || inv.descripcion}
                               </p>
@@ -702,11 +720,10 @@ export default function DetalleDenuncia() {
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">👀 Testigos</h3>
               <ul className="space-y-3">
                 {listaTestigos.map((t: any, idx: number) => (
-                  <li 
-                    key={idx} 
-                    className="text-sm border-b border-gray-100 last:border-0 pb-2"
-                  >
-                    <span className="font-bold text-gray-700 block">{t.Nombre_PD || t.Nombre || t.nombre}</span>
+                  <li key={idx} className="text-sm border-b border-gray-100 last:border-0 pb-2">
+                    <span className="font-bold text-gray-700 block">
+                      {t.Nombre_PD || t.Nombre || t.nombre}
+                    </span>
                     <span className="text-xs text-gray-500 block mt-0.5">
                       {t.Contacto ? `Contacto: ${t.Contacto}` : 'Participante registrado'}
                     </span>
@@ -738,7 +755,7 @@ export default function DetalleDenuncia() {
                 maxSizeMB={200}
                 disabled={uploading}
               />
-              
+
               {nuevosArchivos.length > 0 && (
                 <div className="mt-4 flex justify-end">
                   <button
@@ -771,7 +788,7 @@ export default function DetalleDenuncia() {
 
         {/* COLUMNA DERECHA (4) */}
         <div className="lg:col-span-4 space-y-6">
-          
+
           {/* CARD: DENUNCIANTE */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -940,7 +957,7 @@ export default function DetalleDenuncia() {
               )}
             </div>
           </div>
-          
+
           {/* SECCIÓN DE MEDIDAS - TEMPORALMENTE OCULTA */}
           {/* {(denuncia.solicitaMedidas || denuncia.SolicitaMedidas) && (
             <div className="bg-yellow-50 rounded-xl shadow-sm border border-yellow-200 overflow-hidden">
