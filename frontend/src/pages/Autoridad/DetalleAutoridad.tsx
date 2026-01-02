@@ -8,7 +8,6 @@ import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
-import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -51,12 +50,12 @@ export default function DetalleAutoridad() {
         try {
             setProcessing(true)
             const idDenuncia = denuncia.ID_Denuncia;
-            
+
             // Mapear destino a nuevoTipoId
             // 301 = VRA General, 302 = Casos Clínicos, 303 = Dirgegen
             let nuevoTipoId: number;
             let mensajeExito: string;
-            
+
             if (destino === 'Dirgegen') {
                 nuevoTipoId = 303; // Tipo para derivación a Dirgegen
                 mensajeExito = 'Denuncia derivada exitosamente a Dirgegen.';
@@ -67,7 +66,7 @@ export default function DetalleAutoridad() {
                 nuevoTipoId = 301; // VRA General (VRAE deriva a VRA)
                 mensajeExito = 'Denuncia derivada exitosamente a VRA.';
             }
-            
+
             // Usar la función gestionarDenuncia que ya existe
             const { gestionarDenuncia } = await import('@/services/denuncias.api');
             await gestionarDenuncia(idDenuncia, {
@@ -94,7 +93,7 @@ export default function DetalleAutoridad() {
 
     const formatDate = (dateString: string) => {
         if (!dateString) return 'No registrada';
-        return new Date(dateString).toLocaleDateString('es-CL', { 
+        return new Date(dateString).toLocaleDateString('es-CL', {
             year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
     };
@@ -104,7 +103,7 @@ export default function DetalleAutoridad() {
             Cargando información del caso...
         </div>
     )
-    
+
     if (!denuncia) return (
         <div className="p-10 text-center text-red-600 font-bold border border-red-200 bg-red-50 rounded-lg mx-auto max-w-lg mt-10">
             Error: Denuncia no encontrada.
@@ -113,31 +112,31 @@ export default function DetalleAutoridad() {
 
     // Leer datos de denunciados
     const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
-    
+
     // Testigos: filtrar participantes que NO están en datos_denunciados
     const todosParticipantes = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
     const nombresDenunciados = new Set(
-        listaInvolucrados.map((inv: any) => 
+        listaInvolucrados.map((inv: any) =>
             (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
         )
     );
-    
+
     // Filtrar: testigos son los que NO están en datos_denunciados
     const listaTestigos = todosParticipantes.filter((p: any) => {
         const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
         return !nombresDenunciados.has(nombreParticipante);
     });
-    
+
     // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
-    const archivosRaw = denuncia.archivos_denuncia || 
-      (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) => 
+    const archivosRaw = denuncia.archivos_denuncia ||
+      (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) =>
         pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
       ) || []) ||
-      denuncia.Evidencias || 
-      denuncia.evidencias || 
-      denuncia.Archivos || 
+      denuncia.Evidencias ||
+      denuncia.evidencias ||
+      denuncia.Archivos ||
       [];
-    
+
     // Filtrar duplicados por ID_Archivo
     const archivosUnicos = new Map();
     archivosRaw.forEach((arch: any) => {
@@ -147,7 +146,7 @@ export default function DetalleAutoridad() {
       }
     });
     const listaEvidencias = Array.from(archivosUnicos.values());
-    
+
     // Normalización de Datos Principales
     const idCaso = denuncia.ID_Denuncia || denuncia.id;
     const fechaIngreso = denuncia.Fecha_Ingreso || denuncia.fechaCreacion;
@@ -156,7 +155,7 @@ export default function DetalleAutoridad() {
     const esRangoFechas = !!fechaFinCaso;
     const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
     const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
-    
+
     // Datos Denunciante: Si existe denuncia.denunciante, usar esos datos (persona con RUT reconocido)
     const datosDenuncianteObj = denuncia.denunciante || denuncia;
     const nombreCompletoDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
@@ -169,12 +168,12 @@ export default function DetalleAutoridad() {
     const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
     const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
     const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
-    
+
 
     // Determinar si el denunciante es la víctima buscando en los hitos
     let esVictima = false;
     let victimaMenor = false;
-    
+
     if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
       for (const pc of denuncia.denunciante.participantes_caso) {
         if (pc.hitos && Array.isArray(pc.hitos)) {
@@ -194,11 +193,11 @@ export default function DetalleAutoridad() {
         }
       }
     }
-    
+
     // Si no es víctima, buscar víctima externa en participantes
     let victimaExterna: any = null;
     const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
-    
+
     if (!esVictima) {
       victimaExterna = todosParticipantes.find((p: any) => {
         return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
@@ -206,26 +205,26 @@ export default function DetalleAutoridad() {
     }
 
     // Datos finales para mostrar
-    const nombreVictima = esVictima 
+    const nombreVictima = esVictima
       ? nombreCompletoDenunciante
       : (victimaExterna?.persona?.Nombre || 'No identificado');
-    
+
     const rutVictima = esVictima
       ? rutDenunciante
       : (victimaExterna?.persona?.Rut || null);
-    
+
     const correoVictima = esVictima
       ? correoDenunciante
       : (victimaExterna?.persona?.Correo || null);
-    
+
     const telefonoVictima = esVictima
       ? telefonoDenunciante
       : (victimaExterna?.persona?.Telefono || null);
-    
+
     const sexoVictima = esVictima
       ? sexoDenunciante
       : (victimaExterna?.persona?.sexo || null);
-    
+
     const generoVictima = esVictima
       ? generoDenunciante
       : (victimaExterna?.persona?.genero || null);
@@ -282,7 +281,7 @@ export default function DetalleAutoridad() {
 
     return (
         <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
-            
+
             {/* --- BANNER DE OBSERVACIÓN DE DERIVACIÓN (si fue derivada) --- */}
             {fueDerivada && observacionDerivacion && (
                 <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
@@ -331,7 +330,7 @@ export default function DetalleAutoridad() {
 
                 {/* COLUMNA IZQUIERDA (8) */}
                 <div className="lg:col-span-8 space-y-6">
-                    
+
                     {/* 1. CLASIFICACIÓN Y RELATO */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <div className="mb-4 pb-4 border-b border-gray-100">
@@ -343,7 +342,7 @@ export default function DetalleAutoridad() {
                                 {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
                             </p>
                         </div>
-                        
+
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
                         <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
                             {relatoCaso}
@@ -363,14 +362,14 @@ export default function DetalleAutoridad() {
                                 <div className="grid grid-cols-1 gap-4">
                                     {listaInvolucrados.map((inv: any, idx: number) => {
                                         // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
-                                        const nombreCompleto = inv.persona?.Nombre 
+                                        const nombreCompleto = inv.persona?.Nombre
                                           ? inv.persona.Nombre.trim()
                                           : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
                                         const estaIdentificado = !!(inv.ID_Persona || inv.persona)
-                                        
+
                                         return (
-                                            <div 
-                                                key={idx} 
+                                            <div
+                                                key={idx}
                                                 className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-orange-50 hover:border-orange-300 transition-all"
                                                 onClick={() => {
                                                     setSelectedDenunciado(inv)
@@ -394,7 +393,7 @@ export default function DetalleAutoridad() {
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        
+
                                                         {/* Mostrar datos de persona si está identificado */}
                                                         {estaIdentificado && inv.persona && (
                                                             <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
@@ -403,7 +402,7 @@ export default function DetalleAutoridad() {
                                                                 {inv.persona.Telefono && <p><span className="font-semibold">Teléfono:</span> {inv.persona.Telefono}</p>}
                                                             </div>
                                                         )}
-                                                        
+
                                                         {/* Mostrar información de identidad de género si existe */}
                                                         {(inv.persona?.sexo || inv.persona?.genero) && (
                                                             <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
@@ -412,14 +411,14 @@ export default function DetalleAutoridad() {
                                                                 )}
                                                                 {inv.persona?.genero && (
                                                                     <p><span className="font-semibold">Género:</span> {
-                                                                        inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                                                        inv.persona.genero === 'NoLoSe' ? 'No lo sé' :
                                                                         inv.persona.genero === 'NoBinario' ? 'No Binario' :
                                                                         inv.persona.genero
                                                                     }</p>
                                                                 )}
                                                             </div>
                                                         )}
-                                                        
+
                                                         {/* Mostrar descripción completa */}
                                                         {(inv.Descripcion || inv.descripcion) ? (
                                                             <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
@@ -435,7 +434,7 @@ export default function DetalleAutoridad() {
                                                         Sindicado #{idx + 1}
                                                     </span>
                                                 </div>
-                                                
+
                                                 {/* Compatibilidad con campos antiguos si existieran */}
                                                 {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
                                                     <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
@@ -462,8 +461,8 @@ export default function DetalleAutoridad() {
                             {listaTestigos.length > 0 ? (
                                 <ul className="space-y-3">
                                     {listaTestigos.map((t: any, idx: number) => (
-                                        <li 
-                                            key={idx} 
+                                        <li
+                                            key={idx}
                                             className="text-sm border-b border-gray-100 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 hover:px-2 hover:-mx-2 rounded transition-all"
                                             onClick={() => {
                                                 setSelectedTestigo(t)
@@ -503,7 +502,7 @@ export default function DetalleAutoridad() {
 
                 {/* COLUMNA DERECHA (4) */}
                 <div className="lg:col-span-4 space-y-6">
-                    
+
                     {/* CARD: DENUNCIANTE */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -753,7 +752,7 @@ export default function DetalleAutoridad() {
                     </div>
                 </div>
 
-            <div className="flex justify-start pt-2"> 
+            <div className="flex justify-start pt-2">
                 <button onClick={() => navigate('/autoridad/bandeja')} className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">
                     ← Volver a la Bandeja
                 </button>

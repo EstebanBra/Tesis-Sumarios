@@ -5,12 +5,11 @@ import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunc
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
-import { useAuth } from '@/context/AuthContext'
 
 export default function DetalleRevisor() {
   const { id } = useParams()
   const navigate = useNavigate()
-  
+
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [showIdentificarModal, setShowIdentificarModal] = useState(false)
@@ -43,7 +42,7 @@ export default function DetalleRevisor() {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'No registrada';
-    return new Date(dateString).toLocaleDateString('es-CL', { 
+    return new Date(dateString).toLocaleDateString('es-CL', {
         year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   };
@@ -53,7 +52,7 @@ export default function DetalleRevisor() {
       Cargando información del caso...
     </div>
   )
-  
+
   if (!denuncia) return (
     <div className="p-10 text-center text-red-600 font-bold border border-red-200 bg-red-50 rounded-lg mx-auto max-w-lg mt-10">
       Error: Denuncia no encontrada.
@@ -62,31 +61,31 @@ export default function DetalleRevisor() {
 
   // Leer datos de denunciados
   const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
-  
+
   // Testigos: filtrar participantes que NO están en datos_denunciados
   const todosParticipantes = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
   const nombresDenunciados = new Set(
-    listaInvolucrados.map((inv: any) => 
+    listaInvolucrados.map((inv: any) =>
       (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
     )
   );
-  
+
   // Filtrar: testigos son los que NO están en datos_denunciados
   const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
     return !nombresDenunciados.has(nombreParticipante);
   });
-  
+
   // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
-  const archivosRaw = denuncia.archivos_denuncia || 
-    (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) => 
+  const archivosRaw = denuncia.archivos_denuncia ||
+    (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) =>
       pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
     ) || []) ||
-    denuncia.Evidencias || 
-    denuncia.evidencias || 
-    denuncia.Archivos || 
+    denuncia.Evidencias ||
+    denuncia.evidencias ||
+    denuncia.Archivos ||
     [];
-  
+
   // Filtrar duplicados por ID_Archivo
   const archivosUnicos = new Map();
   archivosRaw.forEach((arch: any) => {
@@ -96,7 +95,7 @@ export default function DetalleRevisor() {
     }
   });
   const listaEvidencias = Array.from(archivosUnicos.values());
-  
+
   // Normalización de Datos Principales
   const idCaso = denuncia.ID_Denuncia || denuncia.id;
   const fechaIngreso = denuncia.Fecha_Ingreso || denuncia.fechaCreacion;
@@ -105,7 +104,7 @@ export default function DetalleRevisor() {
   const esRangoFechas = !!fechaFinCaso;
   const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
   const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
-  
+
   // Datos Denunciante: Si existe denuncia.denunciante, usar esos datos (persona con RUT reconocido)
   const datosDenuncianteObj = denuncia.denunciante || denuncia;
   const nombreCompletoDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
@@ -118,12 +117,12 @@ export default function DetalleRevisor() {
   const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
   const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
-  
+
 
     // Determinar si el denunciante es la víctima buscando en los hitos
     let esVictima = false;
     let victimaMenor = false;
-    
+
     if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
       for (const pc of denuncia.denunciante.participantes_caso) {
         if (pc.hitos && Array.isArray(pc.hitos)) {
@@ -143,11 +142,11 @@ export default function DetalleRevisor() {
         }
       }
     }
-    
+
     // Si no es víctima, buscar víctima externa en participantes
     let victimaExterna: any = null;
     const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
-    
+
     if (!esVictima) {
       victimaExterna = todosParticipantes.find((p: any) => {
         return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
@@ -155,26 +154,26 @@ export default function DetalleRevisor() {
     }
 
     // Datos finales para mostrar
-    const nombreVictima = esVictima 
+    const nombreVictima = esVictima
       ? nombreCompletoDenunciante
       : (victimaExterna?.persona?.Nombre || 'No identificado');
-    
+
     const rutVictima = esVictima
       ? rutDenunciante
       : (victimaExterna?.persona?.Rut || null);
-    
+
     const correoVictima = esVictima
       ? correoDenunciante
       : (victimaExterna?.persona?.Correo || null);
-    
+
     const telefonoVictima = esVictima
       ? telefonoDenunciante
       : (victimaExterna?.persona?.Telefono || null);
-    
+
     const generoVictima = esVictima
       ? generoDenunciante
       : (victimaExterna?.persona?.genero || null);
-    
+
     const sexoVictima = esVictima
       ? null
       : (victimaExterna?.persona?.sexo || null);
@@ -185,7 +184,7 @@ export default function DetalleRevisor() {
 
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
-      
+
       {/* --- BANNER DE OBSERVACIÓN DE DERIVACIÓN (si fue derivada) --- */}
       {fueDerivada && observacionDerivacion && (
         <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
@@ -234,7 +233,7 @@ export default function DetalleRevisor() {
 
         {/* COLUMNA IZQUIERDA (8) */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           {/* 1. CLASIFICACIÓN Y RELATO */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="mb-4 pb-4 border-b border-gray-100">
@@ -246,7 +245,7 @@ export default function DetalleRevisor() {
                 {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
               </p>
             </div>
-            
+
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
             <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
               {relatoCaso}
@@ -266,14 +265,14 @@ export default function DetalleRevisor() {
                 <div className="grid grid-cols-1 gap-4">
                   {listaInvolucrados.map((inv: any, idx: number) => {
                     // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
-                    const nombreCompleto = inv.persona?.Nombre 
+                    const nombreCompleto = inv.persona?.Nombre
                       ? inv.persona.Nombre.trim()
                       : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim()
                     const estaIdentificado = !!(inv.ID_Persona || inv.persona)
-                    
+
                     return (
-                      <div 
-                        key={idx} 
+                      <div
+                        key={idx}
                         className="border border-orange-100 bg-white p-4 rounded-lg shadow-sm cursor-pointer hover:bg-orange-50 hover:border-orange-300 transition-all"
                         onClick={() => {
                           setSelectedDenunciado(inv)
@@ -297,7 +296,7 @@ export default function DetalleRevisor() {
                                 </span>
                               )}
                             </div>
-                            
+
                             {/* Mostrar datos de persona si está identificado */}
                             {estaIdentificado && inv.persona && (
                               <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
@@ -306,7 +305,7 @@ export default function DetalleRevisor() {
                                 {inv.persona.Telefono && <p><span className="font-semibold">Teléfono:</span> {inv.persona.Telefono}</p>}
                               </div>
                             )}
-                            
+
                             {/* Mostrar información de identidad de género si existe */}
                             {(inv.persona?.sexo || inv.persona?.genero) && (
                               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
@@ -315,14 +314,14 @@ export default function DetalleRevisor() {
                                 )}
                                 {inv.persona?.genero && (
                                   <p><span className="font-semibold">Género:</span> {
-                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                    inv.persona.genero === 'NoLoSe' ? 'No lo sé' :
                                     inv.persona.genero === 'NoBinario' ? 'No Binario' :
                                     inv.persona.genero
                                   }</p>
                                 )}
                               </div>
                             )}
-                            
+
                             {/* Mostrar descripción completa */}
                             {(inv.Descripcion || inv.descripcion) ? (
                               <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
@@ -338,7 +337,7 @@ export default function DetalleRevisor() {
                             Sindicado #{idx + 1}
                           </span>
                         </div>
-                        
+
                         {/* Botón para identificar si no está identificado */}
                         {!estaIdentificado && (
                           <div className="mt-3 pt-3 border-t border-orange-100">
@@ -354,7 +353,7 @@ export default function DetalleRevisor() {
                             </button>
                           </div>
                         )}
-                        
+
                         {/* Compatibilidad con campos antiguos si existieran */}
                         {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
                           <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
@@ -381,8 +380,8 @@ export default function DetalleRevisor() {
               {listaTestigos.length > 0 ? (
                 <ul className="space-y-3">
                   {listaTestigos.map((t: any, idx: number) => (
-                    <li 
-                      key={idx} 
+                    <li
+                      key={idx}
                       className="text-sm border-b border-gray-100 last:border-0 pb-2 cursor-pointer hover:bg-gray-50 hover:px-2 hover:-mx-2 rounded transition-all"
                       onClick={() => {
                         setSelectedTestigo(t)
@@ -419,7 +418,7 @@ export default function DetalleRevisor() {
 
         {/* COLUMNA DERECHA (4) */}
         <div className="lg:col-span-4 space-y-6">
-          
+
           {/* CARD: DENUNCIANTE */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -598,13 +597,13 @@ export default function DetalleRevisor() {
             const tipoId = denuncia?.ID_TipoDe || denuncia?.tipo_denuncia?.ID_TipoDe;
             const tipoNombre = denuncia?.tipo_denuncia?.Nombre || '';
             const detalleCampoClinico = denuncia?.detalle_campo_clinico || denuncia?.detalleCampoClinico;
-            
+
             // Es campo clínico si: tipoId === 3, o existe detalle_campo_clinico, o el nombre incluye "Campos Clínicos"
-            const esCampoClinico = tipoId === 3 || 
-                                   !!detalleCampoClinico || 
+            const esCampoClinico = tipoId === 3 ||
+                                   !!detalleCampoClinico ||
                                    tipoNombre.toLowerCase().includes('campos clínicos') ||
                                    tipoNombre.toLowerCase().includes('campo clínico');
-            
+
             // Si no hay ubicación para mostrar, no renderizar nada
             if (!ubicacion && !detalleCampoClinico) {
               return null;
@@ -625,11 +624,11 @@ export default function DetalleRevisor() {
                 const partes = ubicacion.split(' - ').map((p: string) => p.trim()).filter(Boolean);
                 if (partes.length > 0) {
                   nombreEstablecimiento = partes[0] || null;
-                  
+
                   for (let i = 1; i < partes.length; i++) {
                     const parte = partes[i];
                     const parteLower = parte.toLowerCase();
-                    
+
                     if ((parteLower.includes('región') || parteLower.includes('region')) && !regionEstablecimiento) {
                       regionEstablecimiento = parte;
                     }
@@ -657,7 +656,7 @@ export default function DetalleRevisor() {
                       detalleAdicional = parte;
                     }
                   }
-                  
+
                   if (!comunaEstablecimiento && partes.length > 2) {
                     for (let i = 1; i < partes.length - 1; i++) {
                       const parte = partes[i];
@@ -708,7 +707,7 @@ export default function DetalleRevisor() {
                         <p className="text-sm font-medium text-gray-900 mt-1">{detalleAdicional}</p>
                       </div>
                     )}
-                    {!nombreEstablecimiento && !direccionEstablecimiento && !regionEstablecimiento && 
+                    {!nombreEstablecimiento && !direccionEstablecimiento && !regionEstablecimiento &&
                      !comunaEstablecimiento && !unidadServicio && !detalleAdicional && ubicacion && (
                       <div>
                         <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
@@ -723,14 +722,14 @@ export default function DetalleRevisor() {
               let regionNombre = denuncia?.regionHecho || denuncia?.Region_Hecho;
               let lugarNombre = denuncia?.lugarHecho || denuncia?.Lugar_Hecho;
               let detalleHecho = denuncia?.detalleHecho || denuncia?.Detalle_Hecho;
-              
+
               // Si no hay campos desagregados pero sí hay string de ubicación, parsearlo
               if (!sedeNombre && !lugarNombre && !detalleHecho && ubicacion) {
                 const partes = ubicacion.split(' - ').map((p: string) => p.trim()).filter(Boolean);
-                
+
                 if (partes.length > 0) {
                   sedeNombre = partes[0] || null;
-                  
+
                   // Extraer región de la sede si está incluida
                   if (sedeNombre) {
                     const regionMatch = sedeNombre.match(/Región\s+(?:de\s+)?(?:del\s+)?([^-()]+)|(?:Región\s+)?([IVX]+)\s+Región/i);
@@ -747,27 +746,27 @@ export default function DetalleRevisor() {
                         'O\'Higgins', 'OHiggins',
                         'Aysén', 'Aysen', 'Magallanes'
                       ];
-                      
+
                       posiblesRegiones.forEach(reg => {
                         if (sedeNombre.toLowerCase().includes(reg.toLowerCase()) && !regionNombre) {
-                          regionNombre = sedeNombre.match(new RegExp(`[IVX]+\\s*Región\\s*(?:de\\s*)?(?:del\\s*)?${reg}`, 'i'))?.[0] || 
-                                         sedeNombre.match(new RegExp(reg, 'i'))?.[0] || 
+                          regionNombre = sedeNombre.match(new RegExp(`[IVX]+\\s*Región\\s*(?:de\\s*)?(?:del\\s*)?${reg}`, 'i'))?.[0] ||
+                                         sedeNombre.match(new RegExp(reg, 'i'))?.[0] ||
                                          null;
                         }
                       });
                     }
                   }
-                  
+
                   if (partes.length > 1) {
                     lugarNombre = partes[1] || null;
                   }
-                  
+
                   if (partes.length > 2) {
                     detalleHecho = partes.slice(2).join(' - ') || null;
                   }
                 }
               }
-              
+
               // Si aún no tenemos región, intentar buscar en el string completo
               if (!regionNombre && ubicacion) {
                 const regionMatch = ubicacion.match(/([IVX]+\s*Región\s*(?:de\s+)?(?:del\s+)?[^-()]+)/i);
@@ -780,7 +779,7 @@ export default function DetalleRevisor() {
                     { pattern: /(XIII|13)\s*Región\s*(?:de\s+)?(?:del\s+)?(Metropolitana|Metropolitana de Santiago)/i, nombre: 'Región Metropolitana' },
                     { pattern: /(V|5)\s*Región\s*(?:de\s+)?(Valparaíso|Valparaiso)/i, nombre: 'V Región de Valparaíso' },
                   ];
-                  
+
                   for (const reg of posiblesRegiones) {
                     if (reg.pattern.test(ubicacion)) {
                       regionNombre = reg.nombre;
@@ -789,7 +788,7 @@ export default function DetalleRevisor() {
                   }
                 }
               }
-              
+
               return (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📍 Ubicación</h3>
@@ -830,7 +829,7 @@ export default function DetalleRevisor() {
           })()}
         </div>
       </div>
-      
+
       {/* --- FOOTER --- */}
       <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-end items-center gap-4 rounded-b-xl mt-6">
         <div className="text-xs text-gray-500 font-medium">
@@ -838,7 +837,7 @@ export default function DetalleRevisor() {
         </div>
       </div>
 
-      <div className="flex justify-start pt-2"> 
+      <div className="flex justify-start pt-2">
         <button onClick={() => navigate('/revisor/bandeja')} className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors">
           ← Volver a la Bandeja
         </button>

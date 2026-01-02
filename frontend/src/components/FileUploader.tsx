@@ -1,5 +1,4 @@
 import { useState, useRef, type ChangeEvent, type DragEvent } from 'react';
-import { http } from '@/services/api';
 
 export interface FileMetadata {
   objectKey: string;
