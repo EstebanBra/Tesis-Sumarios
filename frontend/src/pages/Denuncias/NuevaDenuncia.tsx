@@ -254,13 +254,35 @@ export default function NuevaDenuncia() {
     }));
     setNuevoTestigo({ nombreCompleto: "", rut: "", contacto: "" });
     setMostrarFormTestigo(false);
+    // Limpiar error de testigos al agregar uno válido
+    if (errors.testigos) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.testigos;
+        return newErrors;
+      });
+    }
   }
 
   function handleEliminarTestigo(index: number) {
-    setForm((prev) => ({
-      ...prev,
-      testigos: prev.testigos.filter((_, i) => i !== index),
-    }));
+    setForm((prev) => {
+      const nuevosTestigos = prev.testigos.filter((_, i) => i !== index);
+      // Limpiar error si ya no hay testigos sin contacto
+      const tieneTestigoSinContacto = nuevosTestigos.some(t => !t.contacto || !t.contacto.trim());
+      if (!tieneTestigoSinContacto && errors.testigos) {
+        setTimeout(() => {
+          setErrors(prevErrors => {
+            const newErrors = { ...prevErrors };
+            delete newErrors.testigos;
+            return newErrors;
+          });
+        }, 0);
+      }
+      return {
+        ...prev,
+        testigos: nuevosTestigos,
+      };
+    });
   }
 
   /**
@@ -391,31 +413,38 @@ export default function NuevaDenuncia() {
         });
         
         // Validar testigos: todos deben tener contacto válido
-        form.testigos.forEach((test, index) => {
-          // Validar nombre si se ingresó
-          if (test.nombreCompleto && test.nombreCompleto.trim()) {
-            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
-            if (!nombreRegex.test(test.nombreCompleto.trim())) {
-              newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+        if (form.testigos.length > 0) {
+          let tieneTestigoSinContacto = false;
+          form.testigos.forEach((test, index) => {
+            // Validar nombre si se ingresó
+            if (test.nombreCompleto && test.nombreCompleto.trim()) {
+              const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+              if (!nombreRegex.test(test.nombreCompleto.trim())) {
+                newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+              }
             }
-          }
-          // Validar RUT si se ingresó
-          if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
-            newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
-          }
-          // Contacto es obligatorio para todos los testigos
-          if (!test.contacto || !test.contacto.trim()) {
-            newErrors.testigos = "Todos los testigos deben tener información de contacto";
-          } else {
-            // Si tiene contacto, validarlo
-            const esEmail = test.contacto.includes('@');
-            if (esEmail && !validarEmail(test.contacto)) {
-              newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
-            } else if (!esEmail && !validarTelefono(test.contacto)) {
-              newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+            // Validar RUT si se ingresó
+            if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
+              newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
             }
+            // Contacto es obligatorio para todos los testigos
+            if (!test.contacto || !test.contacto.trim()) {
+              tieneTestigoSinContacto = true;
+            } else {
+              // Si tiene contacto, validarlo
+              const esEmail = test.contacto.includes('@');
+              if (esEmail && !validarEmail(test.contacto)) {
+                newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
+              } else if (!esEmail && !validarTelefono(test.contacto)) {
+                newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+              }
+            }
+          });
+          // Asignar error general si hay testigos sin contacto
+          if (tieneTestigoSinContacto) {
+            newErrors.testigos = "Debes ingresar un medio de contacto para cada testigo o eliminarlo de la lista.";
           }
-        });
+        }
         break;
         
       case 3: // Paso 3: Revisión (no requiere validación adicional)
@@ -579,33 +608,40 @@ export default function NuevaDenuncia() {
           }
         });
         // Validar testigos
-        form.testigos.forEach((test, index) => {
-          if (test.nombreCompleto && test.nombreCompleto.trim()) {
-            const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
-            if (!nombreRegex.test(test.nombreCompleto.trim())) {
-              newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+        if (form.testigos.length > 0) {
+          let tieneTestigoSinContacto = false;
+          form.testigos.forEach((test, index) => {
+            if (test.nombreCompleto && test.nombreCompleto.trim()) {
+              const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+              if (!nombreRegex.test(test.nombreCompleto.trim())) {
+                newErrors[`testigo_${index}_nombre`] = "El nombre solo puede contener letras";
+                tieneErrores = true;
+              }
+            }
+            if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
+              newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
               tieneErrores = true;
             }
-          }
-          if (test.rut && test.rut.trim() && !validarRut(test.rut)) {
-            newErrors[`testigo_${index}_rut`] = "RUT del testigo inválido";
-            tieneErrores = true;
-          }
-          // Contacto es obligatorio
-          if (!test.contacto || !test.contacto.trim()) {
-            newErrors.testigos = "Todos los testigos deben tener información de contacto";
-            tieneErrores = true;
-          } else {
-            const esEmail = test.contacto.includes('@');
-            if (esEmail && !validarEmail(test.contacto)) {
-              newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
-              tieneErrores = true;
-            } else if (!esEmail && !validarTelefono(test.contacto)) {
-              newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
-              tieneErrores = true;
+            // Contacto es obligatorio
+            if (!test.contacto || !test.contacto.trim()) {
+              tieneTestigoSinContacto = true;
+            } else {
+              const esEmail = test.contacto.includes('@');
+              if (esEmail && !validarEmail(test.contacto)) {
+                newErrors[`testigo_${index}_contacto`] = "Correo electrónico del testigo inválido";
+                tieneErrores = true;
+              } else if (!esEmail && !validarTelefono(test.contacto)) {
+                newErrors[`testigo_${index}_contacto`] = "Teléfono del testigo inválido";
+                tieneErrores = true;
+              }
             }
+          });
+          // Asignar error general si hay testigos sin contacto
+          if (tieneTestigoSinContacto) {
+            newErrors.testigos = "Debes ingresar un medio de contacto para cada testigo o eliminarlo de la lista.";
+            tieneErrores = true;
           }
-        });
+        }
         break;
     }
     
@@ -2261,17 +2297,9 @@ export default function NuevaDenuncia() {
               {/* Sección de Testigos */}
               <div className="pt-4 border-t border-gray-300">
                 <div className="flex justify-between items-center mb-3">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-700">
-                      Testigos
-                    </label>
-                    {errors.testigos && intentoAvanzar && (
-                      <p className="mt-1 text-xs text-red-500">{errors.testigos}</p>
-                    )}
-                  </div>
-                  {errors.testigos && intentoAvanzar && (
-                    <p className="text-xs text-red-500">{errors.testigos}</p>
-                  )}
+                  <label className="text-sm font-medium text-gray-700">
+                    Testigos
+                  </label>
                   <button
                     type="button"
                     onClick={() => setMostrarFormTestigo(!mostrarFormTestigo)}
@@ -2380,18 +2408,35 @@ export default function NuevaDenuncia() {
                           </p>
                           <div className="flex gap-4 mt-1 text-xs text-gray-500">
                             {testigo.rut && <span>RUT: {testigo.rut}</span>}
-                            <span>Contacto: {testigo.contacto}</span>
+                            <span>Contacto: {testigo.contacto || <span className="text-red-500 italic">Sin contacto</span>}</span>
                           </div>
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleEliminarTestigo(index)}
+                          onClick={() => {
+                            handleEliminarTestigo(index);
+                            // Limpiar error de testigos al eliminar
+                            if (errors.testigos) {
+                              setErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.testigos;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           className="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
                         >
                           Eliminar
                         </button>
                       </div>
                     ))}
+                    {/* Mensaje de error visible después de la lista */}
+                    {errors.testigos && (
+                      <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>{errors.testigos}</span>
+                      </div>
+                    )}
                   </div>
                 )}
                 {form.testigos.length === 0 && (
