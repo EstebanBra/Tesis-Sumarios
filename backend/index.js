@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { createServer } from "http";
@@ -10,8 +9,6 @@ import authRoutes from "./src/routes/auth.routes.js";
 import { runInitialSetup } from "./prisma/seed.js";
 import { initializeSocket } from "./src/socket/socket.js";
 import { initializeBucket } from "./src/services/storage.service.js";
-
-dotenv.config();
 
 const app = express();
 const server = createServer(app);
