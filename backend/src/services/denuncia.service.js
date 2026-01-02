@@ -91,8 +91,9 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     // El denunciante SIEMPRE debe tener RUT (es quien hace la denuncia)
     // Actualizar Carrera_Cargo si viene en el payload (para cualquier tipo de denuncia)
     const updateData = {
-        // Si la persona ya existe, actualizamos su género y datos geográficos con el dato nuevo
-        genero: payload.genero,
+        // Si la persona ya existe, actualizamos su sexo, género y datos geográficos con el dato nuevo
+        sexo: payload.sexo || undefined,
+        genero: payload.genero || undefined,
         region: payload.regionDenunciante || undefined,
         comuna: payload.comunaDenunciante || undefined,
         direccion: payload.direccionDenunciante || undefined
@@ -112,7 +113,8 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         Nombre: payload.nombreDenunciante || '',
         Correo: payload.correoDenunciante || '',
         Telefono: payload.telefonoDenunciante || '',
-        genero: payload.genero,
+        sexo: payload.sexo || null,
+        genero: payload.genero || null,
         region: payload.regionDenunciante || null,
         comuna: payload.comunaDenunciante || null,
         direccion: payload.direccionDenunciante || null,
@@ -202,6 +204,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           Nombre: payload.victima.nombre || undefined,
           Correo: payload.victima.correo || undefined,
           Telefono: payload.victima.telefono || undefined,
+          sexo: payload.victima.sexo || undefined,
           genero: payload.victima.genero || undefined,
         },
         create: {
@@ -209,6 +212,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           Nombre: payload.victima.nombre || "Sin nombre",
           Correo: payload.victima.correo || "",
           Telefono: payload.victima.telefono || "",
+          sexo: payload.victima.sexo || null,
           genero: payload.victima.genero || null,
         }
       });

@@ -17,6 +17,7 @@ interface DenunciadoData {
     Nombre?: string
     Correo?: string | null
     Telefono?: string | null
+    sexo?: string | null
     genero?: string | null
     region?: string | null
     comuna?: string | null
@@ -139,12 +140,25 @@ export default function ModalDetalleDenunciado({
                 </div>
               )}
 
+              {persona.sexo && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+                    Sexo
+                  </label>
+                  <p className="text-sm text-gray-700">{persona.sexo}</p>
+                </div>
+              )}
+
               {persona.genero && (
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
                     Género
                   </label>
-                  <p className="text-sm text-gray-700">{persona.genero}</p>
+                  <p className="text-sm text-gray-700">{
+                    persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                    persona.genero === 'NoBinario' ? 'No Binario' :
+                    persona.genero
+                  }</p>
                 </div>
               )}
             </div>

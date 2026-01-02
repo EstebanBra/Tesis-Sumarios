@@ -7,6 +7,8 @@ import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
 import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
+import EvidenciaViewer from '@/components/EvidenciaViewer'
+import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()
@@ -126,7 +128,25 @@ export default function DetalleAutoridad() {
         return !nombresDenunciados.has(nombreParticipante);
     });
     
-    const listaEvidencias = denuncia.Evidencias || denuncia.evidencias || denuncia.Archivos || [];
+    // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
+    const archivosRaw = denuncia.archivos_denuncia || 
+      (denuncia.denunciante?.participantes_caso?.flatMap((pc: any) => 
+        pc.hitos?.flatMap((hito: any) => hito.archivos || []) || []
+      ) || []) ||
+      denuncia.Evidencias || 
+      denuncia.evidencias || 
+      denuncia.Archivos || 
+      [];
+    
+    // Filtrar duplicados por ID_Archivo
+    const archivosUnicos = new Map();
+    archivosRaw.forEach((arch: any) => {
+      const id = arch.ID_Archivo || arch.id;
+      if (id && !archivosUnicos.has(id)) {
+        archivosUnicos.set(id, arch);
+      }
+    });
+    const listaEvidencias = Array.from(archivosUnicos.values());
     
     // Normalización de Datos Principales
     const idCaso = denuncia.ID_Denuncia || denuncia.id;
@@ -143,7 +163,9 @@ export default function DetalleAutoridad() {
     const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
     const correoDenunciante = getProp(datosDenuncianteObj, 'Correo', 'correo');
     const telefonoDenunciante = getProp(datosDenuncianteObj, 'Telefono', 'telefono');
+    const sexoDenunciante = getProp(datosDenuncianteObj, 'sexo', 'sexo');
     const generoDenunciante = getProp(datosDenuncianteObj, 'genero', 'genero');
+    const carreraCargoDenunciante = getProp(datosDenuncianteObj, 'carreraCargo', 'Carrera_Cargo') || getProp(datosDenuncianteObj, 'Carrera_Cargo', 'carreraCargo');
     const regionDenunciante = getProp(datosDenuncianteObj, 'region', 'region');
     const comunaDenunciante = getProp(datosDenuncianteObj, 'comuna', 'comuna');
     const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
@@ -200,13 +222,13 @@ export default function DetalleAutoridad() {
       ? telefonoDenunciante
       : (victimaExterna?.persona?.Telefono || null);
     
+    const sexoVictima = esVictima
+      ? sexoDenunciante
+      : (victimaExterna?.persona?.sexo || null);
+    
     const generoVictima = esVictima
       ? generoDenunciante
       : (victimaExterna?.persona?.genero || null);
-    
-    const sexoVictima = esVictima
-      ? null
-      : (victimaExterna?.persona?.sexo || null);
 
     // Verificar si la denuncia fue derivada y tiene observación
     const observacionDerivacion = denuncia.observacionDirgegen;
@@ -382,6 +404,22 @@ export default function DetalleAutoridad() {
                                                             </div>
                                                         )}
                                                         
+                                                        {/* Mostrar información de identidad de género si existe */}
+                                                        {(inv.persona?.sexo || inv.persona?.genero) && (
+                                                            <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
+                                                                {inv.persona?.sexo && (
+                                                                    <p><span className="font-semibold">Sexo:</span> {inv.persona.sexo}</p>
+                                                                )}
+                                                                {inv.persona?.genero && (
+                                                                    <p><span className="font-semibold">Género:</span> {
+                                                                        inv.persona.genero === 'NoLoSe' ? 'No lo sé' : 
+                                                                        inv.persona.genero === 'NoBinario' ? 'No Binario' :
+                                                                        inv.persona.genero
+                                                                    }</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        
                                                         {/* Mostrar descripción completa */}
                                                         {(inv.Descripcion || inv.descripcion) ? (
                                                             <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
@@ -491,6 +529,10 @@ export default function DetalleAutoridad() {
                                         )}
                                     </div>
                                     <div className="pt-2 border-t border-gray-100">
+                                        <label className="text-xs text-gray-400 uppercase font-bold block mb-1">RUT</label>
+                                        <p className="font-mono text-sm font-medium text-gray-900">{rutDenunciante || 'No especificado'}</p>
+                                    </div>
+                                    <div className="pt-2 border-t border-gray-100">
                                         <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Contacto</label>
                                         {correoDenunciante && (
                                             <p className="text-gray-700 break-words">{correoDenunciante}</p>
@@ -502,19 +544,34 @@ export default function DetalleAutoridad() {
                                             <p className="text-gray-400 italic text-xs">No disponible</p>
                                         )}
                                     </div>
-                                    {(generoDenunciante || regionDenunciante || comunaDenunciante || direccionDenunciante) && (
+                                    {(sexoDenunciante || generoDenunciante) && (
                                         <div className="pt-2 border-t border-gray-100">
-                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Información Adicional</label>
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo y Género</label>
+                                            {sexoDenunciante && (
+                                                <p className="text-gray-700 text-xs">Sexo: {sexoDenunciante}</p>
+                                            )}
                                             {generoDenunciante && (
                                                 <p className="text-gray-700 text-xs">Género: {generoDenunciante}</p>
                                             )}
+                                        </div>
+                                    )}
+                                    {carreraCargoDenunciante && (
+                                        <div className="pt-2 border-t border-gray-100">
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Carrera o Cargo</label>
+                                            <p className="text-gray-700 text-xs">{carreraCargoDenunciante}</p>
+                                        </div>
+                                    )}
+                                    {(regionDenunciante || comunaDenunciante || direccionDenunciante) && (
+                                        <div className="pt-2 border-t border-gray-100">
+                                            <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Ubicación</label>
                                             {(regionDenunciante || comunaDenunciante) && (
                                                 <p className="text-gray-700 text-xs">
-                                                    {regionDenunciante}{comunaDenunciante ? `, ${comunaDenunciante}` : ''}
+                                                    <strong>Región:</strong> {regionDenunciante || 'No especificada'}
+                                                    {comunaDenunciante && <>, <strong>Comuna:</strong> {comunaDenunciante}</>}
                                                 </p>
                                             )}
                                             {direccionDenunciante && (
-                                                <p className="text-gray-700 text-xs">{direccionDenunciante}</p>
+                                                <p className="text-gray-700 text-xs"><strong>Domicilio:</strong> {direccionDenunciante}</p>
                                             )}
                                         </div>
                                     )}
@@ -625,6 +682,20 @@ export default function DetalleAutoridad() {
                             <p className="text-sm text-gray-700">{denuncia.Ubicacion}</p>
                         </div>
                     )}
+
+                    {/* Archivos y Evidencias */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📎 Archivos y Evidencias</h3>
+                        {listaEvidencias.length > 0 ? (
+                            <div className="space-y-4">
+                                {listaEvidencias.map((arch: any, i: number) => (
+                                    <EvidenciaViewer key={arch.ID_Archivo || i} archivo={arch} />
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
+                        )}
+                    </div>
                 </div>
             </div>
 

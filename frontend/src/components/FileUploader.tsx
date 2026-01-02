@@ -81,42 +81,17 @@ export default function FileUploader({
     return null;
   };
 
-  const uploadFileToMinIO = async (file: File): Promise<FileMetadata> => {
-    // 1. Solicitar presigned URL al backend
-    const response = await http('/storage/presigned-upload', {
-      method: 'POST',
-      body: {
-        fileName: file.name,
-        mimeType: file.type,
-        size: file.size,
-      },
-    });
-
-    if (!response || !response.data) {
-      throw new Error('No se pudo obtener la URL de carga');
-    }
-
-    const { uploadUrl, objectKey, fileName: originalName, mimeType, size } = response.data;
-
-    // 2. Subir archivo directamente a MinIO usando PUT
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': file.type,
-      },
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error('Error al subir el archivo a MinIO');
-    }
-
-    // 3. Retornar metadata
+  // Ya no subimos directamente a MinIO - el backend se encargará de eso
+  // Solo preparamos los metadatos del archivo
+  const prepareFileMetadata = (file: File): FileMetadata => {
+    // Generar un ID temporal para el archivo (el backend generará el objectKey real)
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     return {
-      objectKey,
-      fileName: originalName,
-      mimeType,
-      size,
+      objectKey: tempId, // Temporal, el backend generará el real
+      fileName: file.name,
+      mimeType: file.type,
+      size: file.size,
       file,
     };
   };
@@ -145,15 +120,15 @@ export default function FileUploader({
       }
 
       try {
-        // Subir archivo
+        // Preparar metadata del archivo (sin subir a MinIO - el backend lo hará)
         setUploadProgress(prev => ({ ...prev, [file.name]: 0 }));
         
-        const metadata = await uploadFileToMinIO(file);
+        const metadata = prepareFileMetadata(file);
         newFiles.push(metadata);
         
         setUploadProgress(prev => ({ ...prev, [file.name]: 100 }));
       } catch (error: any) {
-        newErrors[file.name] = error.message || 'Error al subir el archivo';
+        newErrors[file.name] = error.message || 'Error al procesar el archivo';
       }
     }
 
@@ -274,10 +249,10 @@ export default function FileUploader({
           </svg>
           <p className="text-sm text-gray-600 font-medium">
             {uploading
-              ? 'Subiendo archivos...'
+              ? 'Procesando archivos...'
               : files.length >= maxFiles
               ? `Máximo ${maxFiles} archivos alcanzado`
-              : 'Haz clic para subir archivos o arrástralos aquí'}
+              : 'Haz clic para seleccionar archivos o arrástralos aquí'}
           </p>
           <p className="text-xs text-gray-500 mt-1">
             Formatos permitidos: Imágenes, Videos, Audio, PDF, Documentos (Máx. {maxSizeMB}MB)
