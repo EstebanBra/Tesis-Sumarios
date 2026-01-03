@@ -45,5 +45,10 @@ export interface Paso2Props extends StepProps {
 export interface Paso3Props {
   formulario: FormularioDenuncia;
   tipoSeleccionado: { id: number; nombre: string } | null;
+  involucrados: Involucrado[];
+  testigos: Testigo[];
   archivosEvidencia: FileMetadata[];
+  enviando: boolean;
+  onBack: () => void;
+  onSubmit: () => void;
 }

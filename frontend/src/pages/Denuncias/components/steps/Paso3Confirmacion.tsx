@@ -1,104 +1,341 @@
-import type { Paso3Props } from "@/types/step-props";
+import type { Paso3Props } from '@/types/step-props';
+import {
+  FaUser,
+  FaCalendarAlt,
+  FaMapMarkerAlt,
+  FaFileAlt,
+  FaUsers,
+  FaEye,
+  FaArrowLeft,
+} from 'react-icons/fa';
+import { useState } from 'react';
 
 export default function Paso3Confirmacion({
   formulario,
   tipoSeleccionado,
+  involucrados,
+  testigos,
   archivosEvidencia,
+  enviando,
+  onBack,
+  onSubmit,
 }: Paso3Props) {
-  const getFileIcon = (mimeType: string): string => {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType.startsWith('video/')) return '🎥';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    if (mimeType === 'application/pdf') return '📄';
-    if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
-    if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return '📊';
-    return '📎';
-  };
+  const [relatoExpandido, setRelatoExpandido] = useState(false);
+  const MAX_RELATO_LENGTH = 300;
 
+  // Función para formatear el tamaño de archivos
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
+  // Formatear fecha
+  const formatearFecha = (fecha: string | undefined): string => {
+    if (!fecha) return 'No indicada';
+    try {
+      const date = new Date(fecha);
+      return date.toLocaleDateString('es-CL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return fecha;
+    }
+  };
+
+  // Determinar ubicación según tipo de denuncia
+  const esCampoClinico = formulario.tipoId === 3;
+  const ubicacionTexto = esCampoClinico
+    ? [
+        formulario.nombreEstablecimiento,
+        formulario.regionEstablecimiento,
+        formulario.comunaEstablecimiento,
+        formulario.unidadServicio,
+      ]
+        .filter(Boolean)
+        .join(', ') || 'No especificada'
+    : [formulario.sedeHecho, formulario.lugarHecho, formulario.detalleHecho]
+        .filter(Boolean)
+        .join(' - ') || 'No especificada';
+
+  const relatoTruncado =
+    formulario.relato && formulario.relato.length > MAX_RELATO_LENGTH
+      ? formulario.relato.substring(0, MAX_RELATO_LENGTH) + '...'
+      : formulario.relato;
+
   return (
-    <div className="space-y-6">
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <h3 className="text-ubb-blue font-bold uppercase text-xs tracking-wider mb-4">
-          Resumen General
-        </h3>
-        <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-4 text-sm">
-          <div>
-            <dt className="text-gray-500 text-xs uppercase font-bold">
-              Tipo de Denuncia
-            </dt>
-            <dd>
-              {tipoSeleccionado?.nombre}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-gray-500 text-xs uppercase font-bold">
-              Víctima
-            </dt>
-            <dd>{formulario.victimaNombre || "No especificado"}</dd>
-          </div>
-
-          <div className="md:col-span-2">
-            <dt className="text-gray-500 text-xs uppercase font-bold mb-1">
-              Personas Denunciadas
-            </dt>
-            {formulario.involucrados.length > 0 ? (
-              <ul className="list-disc pl-4 text-gray-700">
-                {formulario.involucrados.map((inv, idx) => (
-                  <li key={idx}>
-                    {inv.nombre} ({inv.vinculacion})
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <dd className="text-gray-500 italic">
-                No se agregaron personas específicas
-              </dd>
-            )}
-          </div>
-
-          <div className="md:col-span-2">
-            <dt className="text-gray-500 text-xs uppercase font-bold mb-1">
-              Relato
-            </dt>
-            <dd className="bg-white p-3 rounded border text-gray-700 whitespace-pre-wrap">
-              {formulario.relato}
-            </dd>
-          </div>
-
-          <div className="md:col-span-2">
-            <dt className="text-gray-500 text-xs uppercase font-bold mb-1">
-              Evidencias Adjuntas
-            </dt>
-            {archivosEvidencia.length > 0 ? (
-              <dd className="bg-white p-3 rounded border">
-                <ul className="space-y-2">
-                  {archivosEvidencia.map((archivo, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                      <span>{getFileIcon(archivo.mimeType)}</span>
-                      <span className="font-medium">{archivo.fileName}</span>
-                      <span className="text-gray-500">({formatFileSize(archivo.size)})</span>
-                    </li>
-                  ))}
-                </ul>
-              </dd>
-            ) : (
-              <dd className="text-gray-500 italic">No se adjuntaron archivos</dd>
-            )}
-          </div>
-        </dl>
+    <div className="space-y-4">
+      {/* HEADER CON TÍTULO Y BOTÓN */}
+      <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Resumen de la Denuncia</h2>
+          <p className="text-xs text-gray-500 mt-1">Revisa toda la información antes de enviar</p>
+        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <FaArrowLeft className="h-4 w-4" />
+          Editar
+        </button>
       </div>
-      <div className="text-sm text-gray-500 text-center">
-        <p>Al enviar, confirmas que los datos entregados son verídicos.</p>
+
+      {/* FILA 1: Grid 2 columnas - Denunciante y Tipo/Contexto */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* TARJETA: Datos del Denunciante */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaUser className="h-4 w-4 text-ubb-blue" />
+            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">Denunciante</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="text-xs text-gray-500 block">Nombre</span>
+              <span className="font-medium text-gray-900">
+                {formulario.nombre || 'No indicado'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+              <div>
+                <span className="text-xs text-gray-500 block">RUT</span>
+                <span className="font-medium text-gray-900">{formulario.rut || '—'}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 block">Carrera/Cargo</span>
+                <span className="font-medium text-gray-900">{formulario.carreraCargo || '—'}</span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 block">Correo</span>
+                <span className="font-medium text-gray-900 text-xs break-all">
+                  {formulario.correo || '—'}
+                </span>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 block">Teléfono</span>
+                <span className="font-medium text-gray-900">{formulario.telefono || '—'}</span>
+              </div>
+            </div>
+            {formulario.reservaIdentidad && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">
+                  🔒 Solicita reserva de identidad
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* TARJETA: Tipo de Denuncia y Contexto */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaMapMarkerAlt className="h-4 w-4 text-ubb-blue" />
+            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">Contexto</h3>
+          </div>
+          <div className="space-y-3 text-sm">
+            <div>
+              <span className="text-xs text-gray-500 block">Tipo de Denuncia</span>
+              <span className="font-semibold text-ubb-blue text-sm">
+                {tipoSeleccionado?.nombre || 'No seleccionado'}
+              </span>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 block">Ubicación</span>
+              <span className="font-medium text-gray-900 text-xs">{ubicacionTexto}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <FaCalendarAlt className="h-3.5 w-3.5 text-gray-400" />
+                <span className="text-xs text-gray-500">Fecha del hecho</span>
+              </div>
+              <span className="font-medium text-gray-900 text-xs ml-5 block">
+                {formulario.tipoFecha === 'rango' && formulario.fechaHechoFin
+                  ? `${formatearFecha(formulario.fechaHecho)} - ${formatearFecha(
+                      formulario.fechaHechoFin
+                    )}`
+                  : formatearFecha(formulario.fechaHecho)}
+              </span>
+            </div>
+            {formulario.esVictima === 'no' && formulario.victimaNombre && (
+              <div className="pt-2 border-t border-gray-200">
+                <span className="text-xs text-gray-500 block">Víctima</span>
+                <span className="font-medium text-gray-900 text-xs">
+                  {formulario.victimaNombre}
+                  {formulario.victimaRut && ` (${formulario.victimaRut})`}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* FILA 2: Relato de los Hechos (Full Width) */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <FaFileAlt className="h-4 w-4 text-ubb-blue" />
+          <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">
+            Relato de los Hechos
+          </h3>
+        </div>
+        <div className="text-sm">
+          {formulario.relato ? (
+            <>
+              <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
+                {relatoExpandido ? formulario.relato : relatoTruncado}
+              </p>
+              {formulario.relato.length > MAX_RELATO_LENGTH && (
+                <button
+                  type="button"
+                  onClick={() => setRelatoExpandido(!relatoExpandido)}
+                  className="mt-2 text-xs text-ubb-blue hover:underline font-medium"
+                >
+                  {relatoExpandido ? 'Ver menos' : 'Ver más'}
+                </button>
+              )}
+            </>
+          ) : (
+            <p className="text-gray-500 italic">No se ha ingresado un relato.</p>
+          )}
+        </div>
+      </div>
+
+      {/* FILA 3: Grid 2 columnas - Denunciados y Testigos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* COLUMNA IZQ: Denunciados */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaUsers className="h-4 w-4 text-ubb-blue" />
+            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">
+              Denunciados ({involucrados.length})
+            </h3>
+          </div>
+          {involucrados.length > 0 ? (
+            <div className="space-y-2">
+              {involucrados.map((inv, idx) => (
+                <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-xs">
+                  <div className="font-medium text-gray-900">{inv.nombre || 'Sin nombre'}</div>
+                  <div className="mt-1 space-y-0.5 text-gray-600">
+                    {inv.vinculacion && (
+                      <div>
+                        <span className="text-gray-500">Vinculación:</span> {inv.vinculacion}
+                      </div>
+                    )}
+                    {inv.rut && (
+                      <div>
+                        <span className="text-gray-500">RUT:</span> {inv.rut}
+                      </div>
+                    )}
+                    {inv.unidadCarrera && (
+                      <div>
+                        <span className="text-gray-500">Unidad:</span> {inv.unidadCarrera}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 italic">No se registraron denunciados.</p>
+          )}
+        </div>
+
+        {/* COLUMNA DER: Testigos */}
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaEye className="h-4 w-4 text-ubb-blue" />
+            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">
+              Testigos ({testigos.length})
+            </h3>
+          </div>
+          {testigos.length > 0 ? (
+            <div className="space-y-2">
+              {testigos.map((testigo, idx) => (
+                <div key={idx} className="bg-white border border-gray-200 rounded p-2 text-xs">
+                  <div className="font-medium text-gray-900">
+                    {testigo.nombreCompleto || 'Sin nombre'}
+                  </div>
+                  <div className="mt-1 space-y-0.5 text-gray-600">
+                    {testigo.contacto && (
+                      <div>
+                        <span className="text-gray-500">Contacto:</span> {testigo.contacto}
+                      </div>
+                    )}
+                    {testigo.rut && (
+                      <div>
+                        <span className="text-gray-500">RUT:</span> {testigo.rut}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 italic">No hay testigos registrados.</p>
+          )}
+        </div>
+      </div>
+
+      {/* FILA 4: Archivos Adjuntos */}
+      {archivosEvidencia.length > 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FaFileAlt className="h-4 w-4 text-ubb-blue" />
+            <h3 className="text-xs font-bold uppercase text-gray-500 tracking-wide">
+              Archivos Adjuntos ({archivosEvidencia.length})
+            </h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {archivosEvidencia.map((archivo, idx) => (
+              <div
+                key={idx}
+                className="bg-white border border-gray-200 rounded p-2 text-xs flex items-start gap-2"
+              >
+                <span className="text-gray-400 mt-0.5">📎</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 truncate" title={archivo.fileName}>
+                    {archivo.fileName}
+                  </div>
+                  <div className="text-gray-500 text-[10px] mt-0.5">
+                    {formatFileSize(archivo.size)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* DECLARACIÓN Y BOTÓN DE ENVIAR */}
+      <div className="border-t border-gray-200 pt-4 space-y-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-xs text-justify text-gray-700 leading-relaxed">
+            <strong className="font-semibold">Declaración:</strong> Declaro que la información
+            entregada en este formulario es verídica y entiendo que será utilizada para iniciar un
+            proceso de investigación según la normativa universitaria vigente.
+          </p>
+        </div>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={enviando}
+            className="rounded-md bg-ubb-blue px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {enviando ? (
+              <>
+                <span className="animate-spin">⏳</span>
+                Enviando...
+              </>
+            ) : (
+              'Enviar Denuncia'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-

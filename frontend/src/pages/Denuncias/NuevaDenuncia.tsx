@@ -1163,7 +1163,12 @@ export default function NuevaDenuncia() {
         <Paso3Confirmacion
           formulario={form}
           tipoSeleccionado={tipoSeleccionado}
+          involucrados={form.involucrados}
+          testigos={form.testigos}
           archivosEvidencia={archivosEvidencia}
+          enviando={enviando}
+          onBack={() => setStep(2)}
+          onSubmit={enviarDenuncia}
         />
       )}
     </FormularioLayout>

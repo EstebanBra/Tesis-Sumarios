@@ -253,7 +253,7 @@ export default function Paso1Identificacion({
       <section className="space-y-4">
         <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
           Dirección del denunciante{' '}
-          <span className="text-sm font-normal text-red-500">(Todos los campos obligatorios)</span>
+          <span className="text-sm font-normal text-red-500"></span>
         </h2>
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <div className="grid gap-4 md:grid-cols-2">
