@@ -1,4 +1,5 @@
 import { http } from './api'
+import { apiClient } from './api.client'
 
 // --- TIPOS ---
 
@@ -198,29 +199,15 @@ export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File
       formData.append('archivos', archivo);
     });
 
-    // Usar fetch directamente para FormData (sin Content-Type header para que el navegador lo establezca automáticamente con boundary)
-    //const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
-    const API_URL = '/api';
-
-    const res = await fetch(`${API_URL}/denuncias`, {
-      method: 'POST',
-      credentials: 'include', // Incluye cookies automáticamente
-      body: formData,
+    // Usar el cliente Axios centralizado para FormData
+    // Axios detecta FormData y ajusta automáticamente el Content-Type con boundary
+    const response = await apiClient.post('/denuncias', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
 
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
-
-    if (!res.ok) {
-      const mensaje = (data && (data.message || data.error)) || `HTTP ${res.status}`;
-      const detalles = (data && (data.details || data.errors)) || null;
-      const err = new Error(mensaje) as Error & { detalles?: unknown; status?: number };
-      err.detalles = detalles;
-      err.status = res.status;
-      throw err;
-    }
-
-    return data;
+    return response.data;
   } else {
     // Sin archivos, usar el método normal
     return http('/denuncias', { method: 'POST', body: payload });

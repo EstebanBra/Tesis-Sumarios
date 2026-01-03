@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 //import { http } from '@/services/api';
 
 export interface FileMetadata {
@@ -145,11 +145,13 @@ export default function FileUploader({
   };
 
   const handleFileSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
+    const fileList = event.target.files;
+    if (!fileList) return;
+    const selectedFiles = Array.from(fileList) as File[];
     await processFiles(selectedFiles);
   };
 
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     if (!disabled && !uploading && files.length < maxFiles) {
@@ -157,13 +159,13 @@ export default function FileUploader({
     }
   };
 
-  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
   };
 
-  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -172,7 +174,7 @@ export default function FileUploader({
       return;
     }
 
-    const droppedFiles = Array.from(e.dataTransfer.files);
+    const droppedFiles = Array.from(e.dataTransfer.files) as File[];
     await processFiles(droppedFiles);
   };
 

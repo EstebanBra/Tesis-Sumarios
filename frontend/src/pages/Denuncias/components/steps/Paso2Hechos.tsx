@@ -1,7 +1,7 @@
 import InfoTooltip from "@/components/ui/InfoTooltip";
 import FileUploader from "@/components/FileUploader";
 import { formatearRut } from "@/utils/validation.utils";
-import { SEDES, LUGARES_SEDE, VINCULACIONES, VINCULACIONES_CAMPO_CLINICO } from "@/data/denuncias.data";
+import { SEDES, VINCULACIONES, VINCULACIONES_CAMPO_CLINICO } from "@/data/denuncias.data";
 import type { Paso2Props } from "@/types/step-props";
 
 export default function Paso2Hechos({
@@ -23,7 +23,7 @@ export default function Paso2Hechos({
   setMostrarFormTestigo,
   handleAgregarTestigo,
   handleEliminarTestigo,
-  archivosEvidencia,
+  archivosEvidencia: _archivosEvidencia,
   setArchivosEvidencia,
   enviando,
   allRegions,

@@ -10,6 +10,7 @@ let ioInstance = null;
  */
 export function initializeSocket(server) {
   ioInstance = new Server(server, {
+    path: '/api/socket.io', // Path para que WebSocket atraviese el proxy de Nginx (/api)
     cors: {
       origin: process.env.FRONTEND_URL || "http://localhost:5173",
       credentials: true,
@@ -20,9 +21,9 @@ export function initializeSocket(server) {
   // Middleware de autenticación para Socket.io
   ioInstance.use((socket, next) => {
     // Intentar obtener token de diferentes fuentes
-    let token = socket.handshake.auth.token || 
+    let token = socket.handshake.auth.token ||
                 socket.handshake.headers.authorization?.replace("Bearer ", "");
-    
+
     // Si no está en auth, buscar en cookies
     if (!token && socket.handshake.headers.cookie) {
       const cookies = socket.handshake.headers.cookie.split(';');

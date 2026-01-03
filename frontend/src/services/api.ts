@@ -1,4 +1,4 @@
-const API_URL = '/api'
+import { apiClient } from './api.client'
 
 type Options = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
@@ -6,31 +6,26 @@ type Options = {
   headers?: Record<string, string>
 }
 
+/**
+ * Función helper para realizar peticiones HTTP usando el cliente Axios centralizado.
+ * Mantiene compatibilidad con la API anterior basada en fetch.
+ *
+ * @param path - Ruta relativa (sin '/api', se añade automáticamente)
+ * @param options - Opciones de la petición
+ * @returns Los datos de la respuesta (response.data)
+ */
 export async function http(path: string, options: Options = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? 'GET',
-    //lo que agregue
-    credentials: 'include',
+  const { method = 'GET', body, headers } = options
 
+  const response = await apiClient.request({
+    url: path,
+    method,
+    data: body,
     headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {}),
+      ...headers,
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
   })
 
-  // intenta parsear JSON siempre
-  const text = await res.text()
-  const data = text ? JSON.parse(text) : null
-
-  if (!res.ok) {
-    const mensaje = (data && (data.message || data.error)) || `HTTP ${res.status}`
-    const detalles = (data && (data.details || data.errors)) || null
-    const err = new Error(mensaje) as Error & { detalles?: unknown; status?: number }
-    err.detalles = detalles
-    err.status = res.status
-    throw err
-  }
-
-  return data
+  // Axios ya parsea JSON automáticamente y maneja errores a través del interceptor
+  return response.data
 }
