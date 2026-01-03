@@ -194,7 +194,10 @@ export default function Paso2Hechos({
                 }`}
                 value={formulario.victimaTelefono}
                 onChange={e => {
-                  handleChange('victimaTelefono', e.target.value);
+                  const valor = e.target.value;
+                  // Solo permitir números, espacios, + y guiones
+                  const soloNumeros = valor.replace(/[^\d+\-\s]/g, '');
+                  handleChange('victimaTelefono', soloNumeros);
                   if (errors.victimaTelefono) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
