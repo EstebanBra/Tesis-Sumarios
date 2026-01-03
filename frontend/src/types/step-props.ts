@@ -1,12 +1,9 @@
-import type { FormularioDenuncia, Involucrado, Testigo } from "./denuncia.types";
-import type { FileMetadata } from "@/components/FileUploader";
+import type { FormularioDenuncia, Involucrado, Testigo } from './denuncia.types';
+import type { FileMetadata } from '@/components/FileUploader';
 
 export interface StepProps {
   formulario: FormularioDenuncia;
-  handleChange: <K extends keyof FormularioDenuncia>(
-    key: K,
-    value: FormularioDenuncia[K]
-  ) => void;
+  handleChange: <K extends keyof FormularioDenuncia>(key: K, value: FormularioDenuncia[K]) => void;
   errors: Record<string, string>;
   intentoAvanzar: boolean;
   setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
@@ -20,7 +17,7 @@ export interface Paso1Props extends StepProps {
 }
 
 export interface Paso2Props extends StepProps {
-  handleEsVictimaChange: (esVictima: "si" | "no") => void;
+  handleEsVictimaChange: (esVictima: 'si' | 'no') => void;
   involucrados: Involucrado[];
   handleAddInvolucrado: () => void;
   handleRemoveInvolucrado: (index: number) => void;
@@ -39,6 +36,10 @@ export interface Paso2Props extends StepProps {
   allRegions: Array<{ id: string; name: string; provinces?: any }>;
   lugaresDisponibles: string[];
   setForm: React.Dispatch<React.SetStateAction<FormularioDenuncia>>;
+  errorDenunciado: string;
+  errorTestigo: string;
+  setErrorDenunciado: React.Dispatch<React.SetStateAction<string>>;
+  setErrorTestigo: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export interface Paso3Props {
@@ -46,4 +47,3 @@ export interface Paso3Props {
   tipoSeleccionado: { id: number; nombre: string } | null;
   archivosEvidencia: FileMetadata[];
 }
-
