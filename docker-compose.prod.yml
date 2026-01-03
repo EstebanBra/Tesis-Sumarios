@@ -62,6 +62,51 @@ services:
     networks:
       - app-network
 
+  # Servicio de base de datos SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: app-sqlserver
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+      - MSSQL_PID=Express
+    volumes:
+      - sql_data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -Q 'SELECT 1' || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: app-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_HOST: sqlserver
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-denuncias}
+    command: >
+      /bin/bash -c "
+      echo 'Esperando a SQL Server...' &&
+      /opt/mssql-tools/bin/sqlcmd -S $$MSSQL_HOST -U $$MSSQL_USER -P $$MSSQL_PASSWORD -Q 'SELECT 1' &&
+      echo 'Creando base de datos $$DB_NAME si no existe...' &&
+      /opt/mssql-tools/bin/sqlcmd -S $$MSSQL_HOST -U $$MSSQL_USER -P $$MSSQL_PASSWORD -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '$$DB_NAME') BEGIN CREATE DATABASE [$$DB_NAME]; END\"
+      "
+    networks:
+      - app-network
+
   # Servicio para ejecutar migraciones de base de datos antes de iniciar el backend
   # Usa el primer stage del Dockerfile del backend para tener todas las dependencias de desarrollo
   # necesarias para ejecutar las migraciones de Prisma.
@@ -77,6 +122,9 @@ services:
     command: npx prisma migrate deploy
     networks:
       - app-network
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
 
   # Servicio del backend de la aplicación
   # En el que debemos tener mas cuidado, ya que maneja los datos sensibles y tiene las claves de acceso a MinIO, base de datos, etc.
@@ -170,3 +218,4 @@ networks:
 
 volumes:
   minio_data:
+  sql_data:
