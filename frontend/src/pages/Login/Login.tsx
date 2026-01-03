@@ -86,10 +86,10 @@ export default function Login() {
                         <p className="text-xs text-gray-500 mt-6 text-center">
                             ¿Necesitas ayuda? comunícate con{' '}
                             <a
-                                href="mailto:Desarrolloface@ubiobio.cl"
+                                href="mailto:desarrolloface@ubiobio.cl"
                                 className="text-ubb-blue hover:underline font-semibold transition-colors"
                             >
-                                Desarrolloface@ubiobio.cl
+                                desarrolloface@ubiobio.cl
                             </a>
                         </p>
                     </div>
