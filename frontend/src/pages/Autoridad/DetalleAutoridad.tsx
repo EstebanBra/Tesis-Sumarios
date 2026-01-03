@@ -8,7 +8,7 @@ import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
-import { formatearFechaCorta } from '@/utils/date.utils'
+//import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()

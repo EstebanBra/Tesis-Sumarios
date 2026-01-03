@@ -79,7 +79,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -Q 'SELECT 1' || exit 1",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1',
         ]
       interval: 10s
       timeout: 5s
@@ -87,7 +87,7 @@ services:
       start_period: 10s
 
   sqlserver-init:
-    image: mcr.microsoft.com/mssql-tools
+    image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: app-sqlserver-init
     depends_on:
       sqlserver:
@@ -97,12 +97,14 @@ services:
       MSSQL_USER: sa
       MSSQL_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-denuncias}
+    entrypoint: []
     command: >
       /bin/bash -c "
       echo 'Esperando a SQL Server...' &&
-      /opt/mssql-tools/bin/sqlcmd -S $$MSSQL_HOST -U $$MSSQL_USER -P $$MSSQL_PASSWORD -Q 'SELECT 1' &&
+      /opt/mssql-tools18/bin/sqlcmd -S \"$$MSSQL_HOST\" -U \"$$MSSQL_USER\" -P \"$$MSSQL_PASSWORD\" -C -Q 'SELECT 1' &&
+
       echo 'Creando base de datos $$DB_NAME si no existe...' &&
-      /opt/mssql-tools/bin/sqlcmd -S $$MSSQL_HOST -U $$MSSQL_USER -P $$MSSQL_PASSWORD -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '$$DB_NAME') BEGIN CREATE DATABASE [$$DB_NAME]; END\"
+      /opt/mssql-tools18/bin/sqlcmd -S \"$$MSSQL_HOST\" -U \"$$MSSQL_USER\" -P \"$$MSSQL_PASSWORD\" -C -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '$$DB_NAME') BEGIN CREATE DATABASE [$$DB_NAME]; END\"
       "
     networks:
       - app-network
@@ -190,8 +192,10 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
     restart: unless-stopped
-    ports:
-      - "80:8080"
+    # ports:
+    #   - "80:8080"
+    expose:
+      - "8080"
     depends_on:
       backend:
         condition: service_healthy
@@ -207,6 +211,12 @@ services:
       driver: "json-file"
       options:
         max-size: "10m"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.seutils.rule=Host(`denuncias.ubiobio.dev`)"
+      - "traefik.http.routers.seutils.entrypoints=websecure"
+      - "traefik.http.routers.seutils.tls.certresolver=cfresolver"
+      - "traefik.http.services.seutils.loadbalancer.server.port=8080"
 
 # Se utiliza una red de tipo bridge para la comunicacion entre los servicios
 # TODO: Lo ideal en esta arquitectura seria usar una base de datos gestionada aqui adentro, asi podriamos tener distintas
