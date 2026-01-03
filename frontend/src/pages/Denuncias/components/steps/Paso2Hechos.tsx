@@ -29,6 +29,10 @@ export default function Paso2Hechos({
   allRegions,
   lugaresDisponibles,
   setForm,
+  errorDenunciado,
+  errorTestigo,
+  setErrorDenunciado,
+  setErrorTestigo,
 }: Paso2Props) {
   return (
     <div className="space-y-8">
@@ -250,12 +254,14 @@ export default function Paso2Hechos({
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700 flex items-center">
-                  Nombre Completo <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                  Nombre Completo <span className="text-red-500">*</span>
                   <InfoTooltip text="Si no conoces el nombre legal, usa su nombre social o apodo." />
                 </label>
                 <input
                   type="text"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none ${
+                    errors.nuevoInvolucrado_nombre ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Nombre completo del denunciado (opcional)"
                   value={formulario.nuevoInvolucrado.nombre}
                   onChange={(e) => {
@@ -266,16 +272,33 @@ export default function Paso2Hechos({
                         nombre: e.target.value,
                       },
                     }));
+                    // Limpiar error al escribir
+                    if (errors.nuevoInvolucrado_nombre) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.nuevoInvolucrado_nombre;
+                        return newErrors;
+                      });
+                    }
+                    // Limpiar el error temporal de denunciado
+                    if (errorDenunciado) {
+                      setErrorDenunciado("");
+                    }
                   }}
                 />
+                {errors.nuevoInvolucrado_nombre && (
+                  <p className="mt-1 text-xs text-red-500">{errors.nuevoInvolucrado_nombre}</p>
+                )}
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Vinculación <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                  Vinculación <span className="text-red-500">*</span>
                 </label>
                 <select
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${
+                    errors.nuevoInvolucrado_vinculacion ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   value={formulario.nuevoInvolucrado.vinculacion}
                   onChange={(e) => {
                     const valor = e.target.value;
@@ -286,6 +309,18 @@ export default function Paso2Hechos({
                         vinculacion: valor,
                       },
                     }));
+                    // Limpiar error al cambiar
+                    if (errors.nuevoInvolucrado_vinculacion) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.nuevoInvolucrado_vinculacion;
+                        return newErrors;
+                      });
+                    }
+                    // Limpiar el error temporal de denunciado
+                    if (errorDenunciado) {
+                      setErrorDenunciado("");
+                    }
                     if (formulario.tipoId === 3 && valor === 'TUTOR_HOSPITAL') {
                       alert('Importante: Si el denunciado es Personal Colaboración Docente (Tutor Hospital), esta denuncia podría ser derivada a las autoridades correspondientes del establecimiento de salud.');
                     }
@@ -297,9 +332,12 @@ export default function Paso2Hechos({
                       {v === 'DOCENTE_IES' ? 'Docente Institución de Educación Superior' :
                        v === 'TUTOR_HOSPITAL' ? 'Personal colaborador docente (Tutor Hospital)' :
                        v}
-                    </option>
-                  ))}
+                  </option>
+                ))}
                 </select>
+                {errors.nuevoInvolucrado_vinculacion && (
+                  <p className="mt-1 text-xs text-red-500">{errors.nuevoInvolucrado_vinculacion}</p>
+                )}
               </div>
             </div>
 
@@ -382,7 +420,9 @@ export default function Paso2Hechos({
                     <input
                       type="text"
                       placeholder="12.345.678-9 (opcional)"
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                      className={`mt-1 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                        errors.nuevoInvolucrado_rut ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       value={formulario.nuevoInvolucrado.rut || ""}
                       onChange={(e) => {
                         const valor = e.target.value;
@@ -394,8 +434,23 @@ export default function Paso2Hechos({
                             rut: formateado,
                           },
                         }));
+                        // Limpiar error al escribir
+                        if (errors.nuevoInvolucrado_rut) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.nuevoInvolucrado_rut;
+                            return newErrors;
+                          });
+                        }
+                        // Limpiar el error temporal de denunciado
+                        if (errorDenunciado) {
+                          setErrorDenunciado("");
+                        }
                       }}
                     />
+                    {errors.nuevoInvolucrado_rut && (
+                      <p className="mt-1 text-xs text-red-500">{errors.nuevoInvolucrado_rut}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">
@@ -423,6 +478,11 @@ export default function Paso2Hechos({
           </div>
 
           <div className="mt-6">
+            {errorDenunciado && (
+              <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm flex items-center gap-2">
+                ⚠️ {errorDenunciado}
+              </div>
+            )}
             <button
               type="button"
               onClick={handleAddInvolucrado}
@@ -907,16 +967,33 @@ export default function Paso2Hechos({
                     </label>
                     <input
                       type="text"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none ${
+                        errors.nuevoTestigo_nombre ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="Nombre del testigo"
                       value={nuevoTestigo.nombreCompleto}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setNuevoTestigo({
                           ...nuevoTestigo,
                           nombreCompleto: e.target.value,
-                        })
-                      }
+                        });
+                        // Limpiar error al escribir
+                        if (errors.nuevoTestigo_nombre) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.nuevoTestigo_nombre;
+                            return newErrors;
+                          });
+                        }
+                        // Limpiar el error temporal de testigo
+                        if (errorTestigo) {
+                          setErrorTestigo("");
+                        }
+                      }}
                     />
+                    {errors.nuevoTestigo_nombre && (
+                      <p className="mt-1 text-xs text-red-500">{errors.nuevoTestigo_nombre}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1">
@@ -924,7 +1001,9 @@ export default function Paso2Hechos({
                     </label>
                     <input
                       type="text"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none ${
+                        errors.nuevoTestigo_rut ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="12.345.678-9"
                       value={nuevoTestigo.rut}
                       onChange={(e) => {
@@ -934,8 +1013,23 @@ export default function Paso2Hechos({
                           ...nuevoTestigo,
                           rut: formateado,
                         });
+                        // Limpiar error al escribir
+                        if (errors.nuevoTestigo_rut) {
+                          setErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.nuevoTestigo_rut;
+                            return newErrors;
+                          });
+                        }
+                        // Limpiar el error temporal de testigo
+                        if (errorTestigo) {
+                          setErrorTestigo("");
+                        }
                       }}
                     />
+                    {errors.nuevoTestigo_rut && (
+                      <p className="mt-1 text-xs text-red-500">{errors.nuevoTestigo_rut}</p>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -944,18 +1038,40 @@ export default function Paso2Hechos({
                   </label>
                   <input
                     type="text"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
+                    className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none ${
+                      errors.nuevoTestigo_contacto ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="Correo o teléfono"
                     value={nuevoTestigo.contacto}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setNuevoTestigo({
                         ...nuevoTestigo,
                         contacto: e.target.value,
-                      })
-                    }
+                      });
+                      // Limpiar error al escribir
+                      if (errors.nuevoTestigo_contacto) {
+                        setErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.nuevoTestigo_contacto;
+                          return newErrors;
+                        });
+                      }
+                      // Limpiar el error temporal de testigo
+                      if (errorTestigo) {
+                        setErrorTestigo("");
+                      }
+                    }}
                   />
+                  {errors.nuevoTestigo_contacto && (
+                    <p className="mt-1 text-xs text-red-500">{errors.nuevoTestigo_contacto}</p>
+                  )}
                 </div>
-                <div className="flex justify-end">
+                <div className="flex flex-col items-end gap-2">
+                  {errorTestigo && (
+                    <div className="w-full p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm flex items-center gap-2">
+                      ⚠️ {errorTestigo}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={handleAgregarTestigo}

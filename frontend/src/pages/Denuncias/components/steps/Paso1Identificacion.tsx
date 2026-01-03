@@ -1,6 +1,6 @@
-import InfoTooltip from "@/components/ui/InfoTooltip";
-import { formatearRut } from "@/utils/validation.utils";
-import type { Paso1Props } from "@/types/step-props";
+import InfoTooltip from '@/components/ui/InfoTooltip';
+import { formatearRut } from '@/utils/validation.utils';
+import type { Paso1Props } from '@/types/step-props';
 
 export default function Paso1Identificacion({
   formulario,
@@ -42,16 +42,24 @@ export default function Paso1Identificacion({
         </div>
       </div>
 
+      {/* Mensaje de error general si falta información obligatoria */}
+      {errors.infoDenunciante && intentoAvanzar && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2">
+          ⚠️ {errors.infoDenunciante}
+        </div>
+      )}
+
       <section className="space-y-4">
         <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
-          Datos del denunciante <span className="text-sm font-normal text-gray-500">(Opcional)</span>
+          Datos del denunciante{' '}
+          <span className="text-sm font-normal text-gray-500">
+            (Algunos campos son obligatorios)
+          </span>
         </h2>
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-gray-700">
-                RUT
-              </label>
+              <label className="text-sm font-medium text-gray-700">RUT</label>
               <input
                 data-field="rut"
                 className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
@@ -59,10 +67,10 @@ export default function Paso1Identificacion({
                 }`}
                 placeholder="12.345.678-9"
                 value={formulario.rut}
-                onChange={(e) => {
+                onChange={e => {
                   const valor = e.target.value;
                   const formateado = formatearRut(valor);
-                  handleChange("rut", formateado);
+                  handleChange('rut', formateado);
                   if (errors.rut) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -88,8 +96,8 @@ export default function Paso1Identificacion({
                 }`}
                 placeholder="Tu nombre"
                 value={formulario.nombre}
-                onChange={(e) => {
-                  handleChange("nombre", e.target.value);
+                onChange={e => {
+                  handleChange('nombre', e.target.value);
                   if (errors.nombre) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -113,8 +121,8 @@ export default function Paso1Identificacion({
               </label>
               <select
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
-                value={formulario.sexo || ""}
-                onChange={(e) => handleChange("sexo", e.target.value)}
+                value={formulario.sexo || ''}
+                onChange={e => handleChange('sexo', e.target.value)}
               >
                 <option value="">Seleccionar</option>
                 <option value="Femenino">Femenino</option>
@@ -129,12 +137,16 @@ export default function Paso1Identificacion({
               </label>
               <select
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
-                value={formulario.genero || ""}
-                onChange={(e) => handleChange("genero", e.target.value)}
+                value={formulario.genero || ''}
+                onChange={e => handleChange('genero', e.target.value)}
               >
                 <option value="">Seleccionar</option>
-                <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
-                <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
+                <option value="Femenino (Mujer Cis / Mujer Trans)">
+                  Femenino (Mujer Cis / Mujer Trans)
+                </option>
+                <option value="Masculino (Hombre Cis / Hombre Trans)">
+                  Masculino (Hombre Cis / Hombre Trans)
+                </option>
                 <option value="NoBinario">No Binario</option>
                 <option value="Fluido">Fluido</option>
                 <option value="Otro">Otro</option>
@@ -143,20 +155,35 @@ export default function Paso1Identificacion({
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            Esta información ayuda a activar los protocolos de protección
-            adecuados.
+            Esta información ayuda a activar los protocolos de protección adecuados.
           </p>
 
           <div className="mt-4">
             <label className="text-sm font-medium text-gray-700">
-              Carrera o Cargo
+              Carrera o Cargo <span className="text-red-500">*</span>
             </label>
             <input
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              data-field="carreraCargo"
+              className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                errors.carreraCargo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Ej: Enfermería, Medicina, Funcionario Administrativo..."
               value={formulario.carreraCargo}
-              onChange={(e) => handleChange("carreraCargo", e.target.value)}
+              onChange={e => {
+                handleChange('carreraCargo', e.target.value);
+                if (errors.carreraCargo) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.carreraCargo;
+                    delete newErrors.infoDenunciante;
+                    return newErrors;
+                  });
+                }
+              }}
             />
+            {errors.carreraCargo && intentoAvanzar && (
+              <p className="mt-1 text-xs text-red-500">{errors.carreraCargo}</p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
               Indica tu carrera (si eres estudiante) o tu cargo (si eres funcionario/académico).
             </p>
@@ -171,9 +198,7 @@ export default function Paso1Identificacion({
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="text-sm font-medium text-gray-700">
-                Teléfono
-              </label>
+              <label className="text-sm font-medium text-gray-700">Teléfono</label>
               <input
                 data-field="telefono"
                 className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
@@ -181,8 +206,8 @@ export default function Paso1Identificacion({
                 }`}
                 placeholder="+56 9 ..."
                 value={formulario.telefono}
-                onChange={(e) => {
-                  handleChange("telefono", e.target.value);
+                onChange={e => {
+                  handleChange('telefono', e.target.value);
                   if (errors.telefono) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -197,9 +222,7 @@ export default function Paso1Identificacion({
               )}
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700">
-                Correo
-              </label>
+              <label className="text-sm font-medium text-gray-700">Correo</label>
               <input
                 data-field="correo"
                 type="email"
@@ -208,8 +231,8 @@ export default function Paso1Identificacion({
                 }`}
                 placeholder="correo@ubb.cl"
                 value={formulario.correo}
-                onChange={(e) => {
-                  handleChange("correo", e.target.value);
+                onChange={e => {
+                  handleChange('correo', e.target.value);
                   if (errors.correo) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -229,59 +252,106 @@ export default function Paso1Identificacion({
 
       <section className="space-y-4">
         <h2 className="font-condensed text-lg font-semibold text-gray-900 border-b pb-2">
-          Dirección del denunciante
+          Dirección del denunciante{' '}
+          <span className="text-sm font-normal text-red-500">(Todos los campos obligatorios)</span>
         </h2>
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Región
+                Región <span className="text-red-500">*</span>
               </label>
               <select
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                data-field="regionDenunciante"
+                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                  errors.regionDenunciante && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formulario.regionDenunciante}
-                onChange={(e) => {
-                  handleChange("regionDenunciante", e.target.value);
-                  handleChange("comunaDenunciante", "");
+                onChange={e => {
+                  handleChange('regionDenunciante', e.target.value);
+                  handleChange('comunaDenunciante', '');
+                  if (errors.regionDenunciante) {
+                    setErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.regionDenunciante;
+                      delete newErrors.infoDenunciante;
+                      return newErrors;
+                    });
+                  }
                 }}
               >
                 <option value="">Seleccionar</option>
-                {allRegions.map((r) => (
+                {allRegions.map(r => (
                   <option key={r.id} value={r.name}>
                     {r.name}
                   </option>
                 ))}
               </select>
+              {errors.regionDenunciante && intentoAvanzar && (
+                <p className="mt-1 text-xs text-red-500">{errors.regionDenunciante}</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700">
-                Comuna
+                Comuna <span className="text-red-500">*</span>
               </label>
               <select
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                data-field="comunaDenunciante"
+                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                  errors.comunaDenunciante && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                }`}
                 value={formulario.comunaDenunciante}
-                onChange={(e) => handleChange("comunaDenunciante", e.target.value)}
+                onChange={e => {
+                  handleChange('comunaDenunciante', e.target.value);
+                  if (errors.comunaDenunciante) {
+                    setErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.comunaDenunciante;
+                      delete newErrors.infoDenunciante;
+                      return newErrors;
+                    });
+                  }
+                }}
                 disabled={!formulario.regionDenunciante}
               >
                 <option value="">Seleccionar</option>
-                {communesDenunciante.map((c) => (
+                {communesDenunciante.map(c => (
                   <option key={c.id} value={c.name}>
                     {c.name}
                   </option>
                 ))}
               </select>
+              {errors.comunaDenunciante && intentoAvanzar && (
+                <p className="mt-1 text-xs text-red-500">{errors.comunaDenunciante}</p>
+              )}
             </div>
           </div>
           <div className="mt-4">
             <label className="text-sm font-medium text-gray-700">
-              Dirección domicilio
+              Dirección domicilio <span className="text-red-500">*</span>
             </label>
             <input
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              data-field="direccionDenunciante"
+              className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                errors.direccionDenunciante && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Calle / número"
               value={formulario.direccionDenunciante}
-              onChange={(e) => handleChange("direccionDenunciante", e.target.value)}
+              onChange={e => {
+                handleChange('direccionDenunciante', e.target.value);
+                if (errors.direccionDenunciante) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.direccionDenunciante;
+                    delete newErrors.infoDenunciante;
+                    return newErrors;
+                  });
+                }
+              }}
             />
+            {errors.direccionDenunciante && intentoAvanzar && (
+              <p className="mt-1 text-xs text-red-500">{errors.direccionDenunciante}</p>
+            )}
           </div>
         </div>
       </section>
@@ -300,8 +370,8 @@ export default function Paso1Identificacion({
                   type="radio"
                   name="reserva"
                   checked={formulario.reservaIdentidad}
-                  onChange={() => handleChange("reservaIdentidad", true)}
-                />{" "}
+                  onChange={() => handleChange('reservaIdentidad', true)}
+                />{' '}
                 Sí
               </label>
               <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -309,8 +379,8 @@ export default function Paso1Identificacion({
                   type="radio"
                   name="reserva"
                   checked={!formulario.reservaIdentidad}
-                  onChange={() => handleChange("reservaIdentidad", false)}
-                />{" "}
+                  onChange={() => handleChange('reservaIdentidad', false)}
+                />{' '}
                 No
               </label>
             </div>
@@ -332,10 +402,9 @@ export default function Paso1Identificacion({
                   />
                 </svg>
                 <p className="text-xs text-yellow-800">
-                  <strong>Importante:</strong> La reserva de identidad no es
-                  absoluta, ya que el(la) fiscal o instructor(a) de la
-                  investigación sumaria deberá conocer tu identidad para
-                  llevar a cabo el proceso.
+                  <strong>Importante:</strong> La reserva de identidad no es absoluta, ya que el(la)
+                  fiscal o instructor(a) de la investigación sumaria deberá conocer tu identidad
+                  para llevar a cabo el proceso.
                 </p>
               </div>
             </div>
@@ -345,4 +414,3 @@ export default function Paso1Identificacion({
     </div>
   );
 }
-
