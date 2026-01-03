@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react'
-import { useAuth } from '@/context/AuthContext'
+import { useState } from 'react'
+import { useAuth } from '@/hooks/useAuth'
+
 
 export default function Login() {
     const { login } = useAuth()
@@ -8,7 +9,7 @@ export default function Login() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
-    const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
         setLoading(true)
@@ -26,18 +27,17 @@ export default function Login() {
             {/* Tarjeta principal */}
             <div className="w-full max-w-[480px] bg-white shadow-lg border border-gray-300">
                 {/* Encabezado con barra de colores (opcional, para dar toque institucional) */}
-                <div className="h-1.5 w-full bg-gradient-to-r from-ubb-blue to-ubb-red"></div>
+                <div className="h-1.5 w-full bg-ubb-blue"></div>
 
                 <div className="p-10">
                     {/* Logo / Título */}
                     <div className="mb-8 text-center">
                         <div className="mb-4 flex justify-center">
                             {/* Aquí podría ir el logo si se desea, por ahora solo texto estilizado */}
-                            <span className="font-condensed text-3xl font-bold text-gray-800 tracking-tight">
+                            <span className="font-condensed text-3xl font-bold text-gray-800 tracking-tight h-16">
                                 Portal de Denuncias UBB
                             </span>
                         </div>
-                        <h2 className="text-xl font-serif text-gray-600 font-bold">ClaveÚnica</h2>
                     </div>
 
                     {/* Mensaje de error */}
@@ -65,16 +65,11 @@ export default function Login() {
                             <input
                                 type="password"
                                 className="w-full rounded-none border border-gray-400 px-4 py-3 text-gray-700 placeholder-gray-500 focus:border-ubb-blue focus:outline-none focus:ring-1 focus:ring-ubb-blue"
-                                placeholder="Ingresa tu ClaveÚnica"
+                                placeholder="Ingresa tu contraseña"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                             />
-                        </div>
-
-                        {/* Enlaces de ayuda */}
-                        <div className="flex flex-col gap-1 text-sm">
-                            <a href="#" className="text-ubb-blue hover:underline font-medium w-fit">Recupera tu ClaveÚnica</a>
                         </div>
 
                         {/* Botón Ingresar */}
@@ -88,7 +83,15 @@ export default function Login() {
                     </form>
 
                     <div className="mt-8 text-center">
-                        <a href="#" className="text-xs text-gray-500 hover:underline">¿Necesitas ayuda?</a>
+                        <p className="text-xs text-gray-500 mt-6 text-center">
+                            ¿Necesitas ayuda? comunícate con{' '}
+                            <a
+                                href="mailto:soportedenunciasubb@gmail.com"
+                                className="text-ubb-blue hover:underline font-semibold transition-colors"
+                            >
+                                soportedenunciasubb@gmail.com
+                            </a>
+                        </p>
                     </div>
                 </div>
             </div>

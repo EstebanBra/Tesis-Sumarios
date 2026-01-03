@@ -62,6 +62,53 @@ services:
     networks:
       - app-network
 
+  # Servicio de base de datos SQL Server
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: app-sqlserver
+    restart: unless-stopped
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+      - MSSQL_PID=Express
+    volumes:
+      - sql_data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: app-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_HOST: sqlserver
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-denuncias}
+    entrypoint: []
+    command: >
+      /bin/bash -c "
+      echo 'Esperando a SQL Server...' &&
+      /opt/mssql-tools18/bin/sqlcmd -S \"$$MSSQL_HOST\" -U \"$$MSSQL_USER\" -P \"$$MSSQL_PASSWORD\" -C -Q 'SELECT 1' &&
+
+      echo 'Creando base de datos $$DB_NAME si no existe...' &&
+      /opt/mssql-tools18/bin/sqlcmd -S \"$$MSSQL_HOST\" -U \"$$MSSQL_USER\" -P \"$$MSSQL_PASSWORD\" -C -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '$$DB_NAME') BEGIN CREATE DATABASE [$$DB_NAME]; END\"
+      "
+    networks:
+      - app-network
+
   # Servicio para ejecutar migraciones de base de datos antes de iniciar el backend
   # Usa el primer stage del Dockerfile del backend para tener todas las dependencias de desarrollo
   # necesarias para ejecutar las migraciones de Prisma.
@@ -77,6 +124,9 @@ services:
     command: npx prisma migrate deploy
     networks:
       - app-network
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
 
   # Servicio del backend de la aplicación
   # En el que debemos tener mas cuidado, ya que maneja los datos sensibles y tiene las claves de acceso a MinIO, base de datos, etc.
@@ -142,13 +192,16 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
     restart: unless-stopped
-    ports:
-      - "80:8080"
+    # ports:
+    #   - "80:8080"
+    expose:
+      - "8080"
     depends_on:
       backend:
         condition: service_healthy
     networks:
       - app-network
+      - web-proxy-net
     cap_drop:
       - ALL
     cap_add:
@@ -159,6 +212,12 @@ services:
       driver: "json-file"
       options:
         max-size: "10m"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.denuncias.rule=Host(`denuncias.ubiobio.dev`)"
+      - "traefik.http.routers.denuncias.entrypoints=websecure"
+      - "traefik.http.routers.denuncias.tls.certresolver=cfresolver"
+      - "traefik.http.services.denuncias.loadbalancer.server.port=8080"
 
 # Se utiliza una red de tipo bridge para la comunicacion entre los servicios
 # TODO: Lo ideal en esta arquitectura seria usar una base de datos gestionada aqui adentro, asi podriamos tener distintas
@@ -167,6 +226,9 @@ services:
 networks:
   app-network:
     driver: bridge
+  web-proxy-net:
+    external: true
 
 volumes:
   minio_data:
+  sql_data:

@@ -29,7 +29,8 @@ export default function EvidenciaViewer({ archivo }: EvidenciaViewerProps) {
     }
 
     // Solo obtener la URL cuando se necesite (para descargar o previsualizar)
-    if (showPreview || downloadUrl) {
+    // Si ya tenemos la URL, no la obtenemos de nuevo
+    if (showPreview && !downloadUrl) {
       const fetchDownloadUrl = async () => {
         try {
           const response = await http(`/storage/presigned-download/${encodeURIComponent(objectKey)}`, {
@@ -50,10 +51,10 @@ export default function EvidenciaViewer({ archivo }: EvidenciaViewerProps) {
       };
 
       fetchDownloadUrl();
-    } else {
+    } else if (!showPreview) {
       setLoading(false);
     }
-  }, [objectKey, showPreview]);
+  }, [objectKey, showPreview, downloadUrl]);
 
   const formatFileSize = (bytes: bigint | number | string | undefined): string => {
     if (!bytes) return 'Tamaño desconocido';

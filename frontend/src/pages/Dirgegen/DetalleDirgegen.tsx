@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById, gestionarDenuncia, type SolicitudMedida } from '@/services/denuncias.api'
 import DerivacionModal, { type TipoDerivacionVRA } from "@/pages/Denuncias/components/Derivacion"
@@ -6,7 +6,7 @@ import InformeTecnicoModal from './components/InformeTecnicoModal'
 import IdentificarDenunciadoModal from './components/IdentificarDenunciadoModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { formatearFechaLarga } from '@/utils/date.utils'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
 
@@ -27,12 +27,8 @@ export default function DetalleDirgegen() {
   const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
   const [showModalTestigo, setShowModalTestigo] = useState(false)
 
-  useEffect(() => {
+  const cargarDatos = useCallback(async () => {
     if (!id) return
-    cargarDatos()
-  }, [id])
-
-  async function cargarDatos() {
     try {
       const data = await getDenunciaById(Number(id))
       console.log("Datos recibidos:", data)
@@ -44,7 +40,11 @@ export default function DetalleDirgegen() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    cargarDatos()
+  }, [cargarDatos])
 
   const handleDerivacionConfirm = async (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => {
     if (!denuncia) return
@@ -736,7 +736,7 @@ export default function DetalleDirgegen() {
             onClose={() => setShowInformeModal(false)}
             onSuccess={() => cargarDatos()}
             idDenuncia={idCaso}
-            // @ts-ignore
+            // @ts-expect-error - user?.id puede ser undefined pero se maneja con || 0
             idAutor={user?.id || 0}
             denunciaData={denuncia}
         />

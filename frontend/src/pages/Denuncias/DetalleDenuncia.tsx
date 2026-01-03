@@ -202,22 +202,24 @@ export default function DetalleDenuncia() {
   //   (s: any) => s.Estado === 'Pendiente Informe' || s.Estado === 'En Revisión'
   // );
 
-  // Línea de tiempo
-  const pasosProceso = [
-    { id: 1, nombre: 'Recepción', plazo: 'Día 0', desc: 'Ingreso inmediato', claves: ['pendiente', 'recibida', 'ingresada'] },
-    { id: 2, nombre: 'Admisibilidad', plazo: '3-5 días hábiles', desc: 'Análisis de forma', claves: ['revisión', 'admisibilidad', 'análisis'] },
-    { id: 3, nombre: 'Investigación', plazo: 'Hasta 20 días hábiles', desc: 'Indagatoria y Fiscal', claves: ['investigación', 'fiscal', 'sumario'] },
-    { id: 4, nombre: 'Resolución', plazo: '5-10 días hábiles', desc: 'Sanción o Cierre', claves: ['resuelta', 'cerrada', 'sanción', 'finalizada'] }
-  ];
+  // Línea de tiempo (actualmente comentado)
+  // const pasosProceso = [
+  //   { id: 1, nombre: 'Recepción', plazo: 'Día 0', desc: 'Ingreso inmediato', claves: ['pendiente', 'recibida', 'ingresada'] },
+  //   { id: 2, nombre: 'Admisibilidad', plazo: '3-5 días hábiles', desc: 'Análisis de forma', claves: ['revisión', 'admisibilidad', 'análisis'] },
+  //   { id: 3, nombre: 'Investigación', plazo: 'Hasta 20 días hábiles', desc: 'Indagatoria y Fiscal', claves: ['investigación', 'fiscal', 'sumario'] },
+  //   { id: 4, nombre: 'Resolución', plazo: '5-10 días hábiles', desc: 'Sanción o Cierre', claves: ['resuelta', 'cerrada', 'sanción', 'finalizada'] }
+  // ];
 
-  const getPasoActual = (estado: string) => {
-    if (!estado) return 0;
-    const index = pasosProceso.findIndex(p => p.claves.some(k => estado.toLowerCase().includes(k)));
-    return index !== -1 ? index : 0;
-  };
+  // Función para el componente de estado del proceso (actualmente comentado)
+  // const getPasoActual = (estado: string) => {
+  //   if (!estado) return 0;
+  //   const index = pasosProceso.findIndex(p => p.claves.some(k => estado.toLowerCase().includes(k)));
+  //   return index !== -1 ? index : 0;
+  // };
 
-  const activeStep = getPasoActual(estadoCaso);
-  const diasTranscurridos = fechaIngreso ? Math.floor((new Date().getTime() - new Date(fechaIngreso).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  // Variables para el componente de estado del proceso (actualmente comentado)
+  // const activeStep = getPasoActual(estadoCaso);
+  // const diasTranscurridos = fechaIngreso ? Math.floor((new Date().getTime() - new Date(fechaIngreso).getTime()) / (1000 * 60 * 60 * 24)) : 0;
 
   if (loading) {
     return (

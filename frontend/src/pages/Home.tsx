@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { routes } from '@/services/routes'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Home() {
   const { hasRole } = useAuth()
@@ -38,7 +38,7 @@ export default function Home() {
           <div className="flex justify-center">
             <Link
               to={
-                isDirgegen ? '/dirgegen/bandeja' 
+                isDirgegen ? '/dirgegen/bandeja'
                 : isRevisor ? '/revisor/bandeja'
                 : '/autoridad/bandeja'
               }

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById } from '@/services/denuncias.api'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import DerivacionAutoridadModal, { type DestinoDerivacion } from './components/DerivacionAutoridadModal'
 import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal'
 import InstruirInvestigacionModal from './components/InstruirInvestigacionModal'
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado'
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo'
 import EvidenciaViewer from '@/components/EvidenciaViewer'
+//import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function DetalleAutoridad() {
     const { id } = useParams()

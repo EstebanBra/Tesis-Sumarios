@@ -28,7 +28,7 @@ export default function Paso2Hechos({
   setMostrarFormTestigo,
   handleAgregarTestigo,
   handleEliminarTestigo,
-  archivosEvidencia,
+  archivosEvidencia: _archivosEvidencia,
   setArchivosEvidencia,
   enviando,
   allRegions,

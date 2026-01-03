@@ -1,21 +1,16 @@
-import axios from 'axios'
-
-const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-    withCredentials: true
-})
+import { apiClient } from './api.client'
 
 export const login = async (rut: string, password: string) => {
-    const response = await api.post('/auth/login', { rut, password })
+    const response = await apiClient.post('/auth/login', { rut, password })
     return response.data
 }
 
 export const logout = async () => {
-    const response = await api.post('/auth/logout')
+    const response = await apiClient.post('/auth/logout')
     return response.data
 }
 
 export const getMe = async () => {
-    const response = await api.get('/auth/me')
+    const response = await apiClient.get('/auth/me')
     return response.data
 }

@@ -1,10 +1,23 @@
 // src/hooks/useSocket.ts
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { useAuth } from '@/context/AuthContext'
-import { getMe } from '@/services/auth.api'
+import { useAuth } from '@/hooks/useAuth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+/**
+ * Obtiene el token de autenticación desde las cookies
+ */
+function getTokenFromCookies(): string | null {
+  const getCookie = (name: string): string | null => {
+    const value = `; ${document.cookie}`
+    const parts = value.split(`; ${name}=`)
+    if (parts.length === 2) {
+      const token = parts.pop()?.split(';').shift()
+      return token || null
+    }
+    return null
+  }
+  return getCookie('token')
+}
 
 export function useSocket() {
   const { user, isAuthenticated } = useAuth()
@@ -13,8 +26,12 @@ export function useSocket() {
   const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated || !user) {
-      // Desconectar si no está autenticado
+    // Obtener token de las cookies
+    const token = getTokenFromCookies()
+
+    // No conectar si no hay autenticación o token
+    if (!isAuthenticated || !user || !token) {
+      // Desconectar si ya existe una conexión
       if (socketRef.current) {
         socketRef.current.disconnect()
         socketRef.current = null
@@ -24,54 +41,38 @@ export function useSocket() {
       return
     }
 
-    // Obtener token de las cookies
-    const connectSocket = async () => {
-      try {
-        // Verificar que el usuario esté autenticado
-        await getMe()
-        
-        // Obtener token de las cookies
-        const getCookie = (name: string) => {
-          const value = `; ${document.cookie}`;
-          const parts = value.split(`; ${name}=`);
-          if (parts.length === 2) return parts.pop()?.split(';').shift();
-          return null;
-        }
-        
-        const token = getCookie('token')
-        
-        const newSocket = io(API_URL.replace('/api', ''), {
-          auth: {
-            token: token || '',
-          },
-          withCredentials: true,
-          transports: ['websocket', 'polling'],
-        })
+    // WebSocket a través de /api para cumplir con restricciones de Nginx:
+    // - En desarrollo: Vite proxy maneja /api (con ws: true) -> localhost:3000
+    // - En producción: Nginx solo permite tráfico que comience con /api
+    // El path '/api/socket.io' permite que el WebSocket atraviese el proxy
+    const newSocket = io({
+      path: '/api/socket.io',
+      auth: {
+        token: token, // Token explícitamente pasado en auth
+      },
+      withCredentials: true, // Asegura que las cookies se envíen
+      transports: ['websocket', 'polling'],
+    })
 
-        newSocket.on('connect', () => {
-          console.log('🔌 Conectado a WebSocket')
-          setConnected(true)
-        })
+    newSocket.on('connect', () => {
+      console.log('🔌 Conectado a WebSocket')
+      setConnected(true)
+    })
 
-        newSocket.on('disconnect', () => {
-          console.log('🔌 Desconectado de WebSocket')
-          setConnected(false)
-        })
+    newSocket.on('disconnect', () => {
+      console.log('🔌 Desconectado de WebSocket')
+      setConnected(false)
+    })
 
-        newSocket.on('connect_error', (error) => {
-          console.error('Error conectando WebSocket:', error)
-          setConnected(false)
-        })
+    newSocket.on('connect_error', (error) => {
+      console.error('Error conectando WebSocket:', error)
+      setConnected(false)
+    })
 
-        socketRef.current = newSocket
-        setSocket(newSocket)
-      } catch (error) {
-        console.error('Error inicializando socket:', error)
-      }
-    }
+    socketRef.current = newSocket
+    setSocket(newSocket)
 
-    connectSocket()
-
+    // Cleanup: desconectar cuando el componente se desmonte o cambien las dependencias
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect()
@@ -80,7 +81,7 @@ export function useSocket() {
         setConnected(false)
       }
     }
-  }, [isAuthenticated, user])
+  }, [isAuthenticated, user]) // Se reconecta cuando cambia la autenticación o el usuario
 
   return { socket, connected }
 }
