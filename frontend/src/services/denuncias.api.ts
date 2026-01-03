@@ -199,7 +199,8 @@ export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File
     });
 
     // Usar fetch directamente para FormData (sin Content-Type header para que el navegador lo establezca automáticamente con boundary)
-    const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+    //const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
+    const API_URL = '/api';
 
     const res = await fetch(`${API_URL}/denuncias`, {
       method: 'POST',
