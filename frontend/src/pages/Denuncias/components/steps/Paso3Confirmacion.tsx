@@ -1,13 +1,5 @@
 import type { Paso3Props } from '@/types/step-props';
-import {
-  FaUser,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaFileAlt,
-  FaUsers,
-  FaEye,
-  FaArrowLeft,
-} from 'react-icons/fa';
+import { FaUser, FaCalendarAlt, FaMapMarkerAlt, FaFileAlt, FaUsers, FaEye } from 'react-icons/fa';
 import { useState } from 'react';
 
 export default function Paso3Confirmacion({
@@ -16,9 +8,6 @@ export default function Paso3Confirmacion({
   involucrados,
   testigos,
   archivosEvidencia,
-  enviando,
-  onBack,
-  onSubmit,
 }: Paso3Props) {
   const [relatoExpandido, setRelatoExpandido] = useState(false);
   const MAX_RELATO_LENGTH = 300;
@@ -69,20 +58,10 @@ export default function Paso3Confirmacion({
 
   return (
     <div className="space-y-4">
-      {/* HEADER CON TÍTULO Y BOTÓN */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">Resumen de la Denuncia</h2>
-          <p className="text-xs text-gray-500 mt-1">Revisa toda la información antes de enviar</p>
-        </div>
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          <FaArrowLeft className="h-4 w-4" />
-          Editar
-        </button>
+      {/* HEADER CON TÍTULO */}
+      <div className="border-b border-gray-200 pb-3">
+        <h2 className="text-lg font-bold text-gray-900">Resumen de la Denuncia</h2>
+        <p className="text-xs text-gray-500 mt-1">Revisa toda la información antes de enviar</p>
       </div>
 
       {/* FILA 1: Grid 2 columnas - Denunciante y Tipo/Contexto */}
@@ -309,31 +288,14 @@ export default function Paso3Confirmacion({
         </div>
       )}
 
-      {/* DECLARACIÓN Y BOTÓN DE ENVIAR */}
-      <div className="border-t border-gray-200 pt-4 space-y-4">
+      {/* DECLARACIÓN */}
+      <div className="border-t border-gray-200 pt-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-xs text-justify text-gray-700 leading-relaxed">
             <strong className="font-semibold">Declaración:</strong> Declaro que la información
             entregada en este formulario es verídica y entiendo que será utilizada para iniciar un
             proceso de investigación según la normativa universitaria vigente.
           </p>
-        </div>
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={enviando}
-            className="rounded-md bg-ubb-blue px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {enviando ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                Enviando...
-              </>
-            ) : (
-              'Enviar Denuncia'
-            )}
-          </button>
         </div>
       </div>
     </div>

@@ -478,29 +478,51 @@ export default function NuevaDenuncia() {
           }
         }
 
-        // VALIDACIÓN DE FECHAS - Normalizando horas para comparación correcta
+        // VALIDACIÓN DE FECHAS - Protección doble: robusta y sin problemas de zona horaria
         if (form.fechaHecho) {
-          const fechaHecho = new Date(form.fechaHecho);
-          fechaHecho.setHours(0, 0, 0, 0); // Normalizar a inicio del día
-
+          // Obtener fecha actual normalizada (medianoche local)
           const hoy = new Date();
-          hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día actual
+          hoy.setHours(0, 0, 0, 0);
 
-          if (fechaHecho > hoy) {
+          // Crear fecha del usuario desde string ISO (YYYY-MM-DD)
+          // Usar UTC para evitar problemas de zona horaria que pueden mostrar "día anterior"
+          const fechaIngresada = new Date(form.fechaHecho);
+          const fechaUsuario = new Date(
+            fechaIngresada.getUTCFullYear(),
+            fechaIngresada.getUTCMonth(),
+            fechaIngresada.getUTCDate()
+          );
+          fechaUsuario.setHours(0, 0, 0, 0);
+
+          // Comparar solo las fechas, ignorando horas
+          if (fechaUsuario > hoy) {
             newErrors.fechaHecho = 'La fecha de los hechos no puede ser futura';
           }
         }
 
         // Validar rango de fechas
         if (form.tipoFecha === 'rango' && form.fechaHecho && form.fechaHechoFin) {
-          const fechaInicio = new Date(form.fechaHecho);
-          fechaInicio.setHours(0, 0, 0, 0); // Normalizar a inicio del día
-
-          const fechaFin = new Date(form.fechaHechoFin);
-          fechaFin.setHours(0, 0, 0, 0); // Normalizar a inicio del día
-
+          // Obtener fecha actual normalizada
           const hoy = new Date();
-          hoy.setHours(0, 0, 0, 0); // Normalizar a inicio del día actual
+          hoy.setHours(0, 0, 0, 0);
+
+          // Fecha de inicio
+          const fechaInicioStr = new Date(form.fechaHecho);
+          const fechaInicio = new Date(
+            fechaInicioStr.getUTCFullYear(),
+            fechaInicioStr.getUTCMonth(),
+            fechaInicioStr.getUTCDate()
+          );
+          fechaInicio.setHours(0, 0, 0, 0);
+
+          // Fecha de término
+          const fechaFinStr = new Date(form.fechaHechoFin);
+          const fechaFin = new Date(
+            fechaFinStr.getUTCFullYear(),
+            fechaFinStr.getUTCMonth(),
+            fechaFinStr.getUTCDate()
+          );
+          fechaFin.setHours(0, 0, 0, 0);
 
           // La fecha de término no puede ser futura
           if (fechaFin > hoy) {
@@ -1166,9 +1188,6 @@ export default function NuevaDenuncia() {
           involucrados={form.involucrados}
           testigos={form.testigos}
           archivosEvidencia={archivosEvidencia}
-          enviando={enviando}
-          onBack={() => setStep(2)}
-          onSubmit={enviarDenuncia}
         />
       )}
     </FormularioLayout>

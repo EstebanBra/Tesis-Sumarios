@@ -1,8 +1,13 @@
-import InfoTooltip from "@/components/ui/InfoTooltip";
-import FileUploader from "@/components/FileUploader";
-import { formatearRut } from "@/utils/validation.utils";
-import { SEDES, LUGARES_SEDE, VINCULACIONES, VINCULACIONES_CAMPO_CLINICO } from "@/data/denuncias.data";
-import type { Paso2Props } from "@/types/step-props";
+import InfoTooltip from '@/components/ui/InfoTooltip';
+import FileUploader from '@/components/FileUploader';
+import { formatearRut } from '@/utils/validation.utils';
+import {
+  SEDES,
+  LUGARES_SEDE,
+  VINCULACIONES,
+  VINCULACIONES_CAMPO_CLINICO,
+} from '@/data/denuncias.data';
+import type { Paso2Props } from '@/types/step-props';
 
 export default function Paso2Hechos({
   formulario,
@@ -52,44 +57,42 @@ export default function Paso2Hechos({
                   <input
                     type="radio"
                     name="menor"
-                    checked={formulario.victimaMenor === "si"}
-                    onChange={() => handleChange("victimaMenor", "si")}
-                  />{" "}
+                    checked={formulario.victimaMenor === 'si'}
+                    onChange={() => handleChange('victimaMenor', 'si')}
+                  />{' '}
                   Sí
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="radio"
                     name="menor"
-                    checked={formulario.victimaMenor === "no"}
-                    onChange={() => handleChange("victimaMenor", "no")}
-                  />{" "}
+                    checked={formulario.victimaMenor === 'no'}
+                    onChange={() => handleChange('victimaMenor', 'no')}
+                  />{' '}
                   No
                 </label>
               </div>
             </div>
 
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">
-                ¿Eres tú la víctima?
-              </p>
+              <p className="text-sm font-medium text-gray-700 mb-2">¿Eres tú la víctima?</p>
               <div className="flex gap-4">
                 <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="radio"
                     name="esVictima"
-                    checked={formulario.esVictima === "si"}
-                    onChange={() => handleEsVictimaChange("si")}
-                  />{" "}
+                    checked={formulario.esVictima === 'si'}
+                    onChange={() => handleEsVictimaChange('si')}
+                  />{' '}
                   Sí
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                   <input
                     type="radio"
                     name="esVictima"
-                    checked={formulario.esVictima === "no"}
-                    onChange={() => handleEsVictimaChange("no")}
-                  />{" "}
+                    checked={formulario.esVictima === 'no'}
+                    onChange={() => handleEsVictimaChange('no')}
+                  />{' '}
                   No
                 </label>
               </div>
@@ -99,7 +102,7 @@ export default function Paso2Hechos({
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="text-sm font-medium text-gray-700">
-                RUT {formulario.esVictima === "no" && "*"}
+                RUT {formulario.esVictima === 'no' && '*'}
               </label>
               <input
                 data-field="victimaRut"
@@ -107,10 +110,10 @@ export default function Paso2Hechos({
                   errors.victimaRut && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaRut}
-                onChange={(e) => {
+                onChange={e => {
                   const valor = e.target.value;
                   const formateado = formatearRut(valor);
-                  handleChange("victimaRut", formateado);
+                  handleChange('victimaRut', formateado);
                   if (errors.victimaRut) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -119,9 +122,9 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === "si"}
+                disabled={formulario.esVictima === 'si'}
               />
-              {errors.victimaRut && intentoAvanzar && formulario.esVictima === "no" && (
+              {errors.victimaRut && intentoAvanzar && formulario.esVictima === 'no' && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaRut}</p>
               )}
             </div>
@@ -136,8 +139,8 @@ export default function Paso2Hechos({
                   errors.victimaNombre && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaNombre}
-                onChange={(e) => {
-                  handleChange("victimaNombre", e.target.value);
+                onChange={e => {
+                  handleChange('victimaNombre', e.target.value);
                   if (errors.victimaNombre) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -146,7 +149,7 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === "si"}
+                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaNombre && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaNombre}</p>
@@ -163,8 +166,8 @@ export default function Paso2Hechos({
                   errors.victimaCorreo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaCorreo}
-                onChange={(e) => {
-                  handleChange("victimaCorreo", e.target.value);
+                onChange={e => {
+                  handleChange('victimaCorreo', e.target.value);
                   if (errors.victimaCorreo) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -173,7 +176,7 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === "si"}
+                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaCorreo && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaCorreo}</p>
@@ -190,8 +193,8 @@ export default function Paso2Hechos({
                   errors.victimaTelefono && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaTelefono}
-                onChange={(e) => {
-                  handleChange("victimaTelefono", e.target.value);
+                onChange={e => {
+                  handleChange('victimaTelefono', e.target.value);
                   if (errors.victimaTelefono) {
                     setErrors(prev => {
                       const newErrors = { ...prev };
@@ -200,7 +203,7 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === "si"}
+                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaTelefono && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaTelefono}</p>
@@ -213,8 +216,8 @@ export default function Paso2Hechos({
               </label>
               <select
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
-                value={formulario.victimaSexo || ""}
-                onChange={(e) => handleChange("victimaSexo", e.target.value)}
+                value={formulario.victimaSexo || ''}
+                onChange={e => handleChange('victimaSexo', e.target.value)}
               >
                 <option value="">Seleccionar</option>
                 <option value="Femenino">Femenino</option>
@@ -229,12 +232,16 @@ export default function Paso2Hechos({
               </label>
               <select
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
-                value={formulario.victimaGenero || ""}
-                onChange={(e) => handleChange("victimaGenero", e.target.value)}
+                value={formulario.victimaGenero || ''}
+                onChange={e => handleChange('victimaGenero', e.target.value)}
               >
                 <option value="">Seleccionar</option>
-                <option value="Femenino (Mujer Cis / Mujer Trans)">Femenino (Mujer Cis / Mujer Trans)</option>
-                <option value="Masculino (Hombre Cis / Hombre Trans)">Masculino (Hombre Cis / Hombre Trans)</option>
+                <option value="Femenino (Mujer Cis / Mujer Trans)">
+                  Femenino (Mujer Cis / Mujer Trans)
+                </option>
+                <option value="Masculino (Hombre Cis / Hombre Trans)">
+                  Masculino (Hombre Cis / Hombre Trans)
+                </option>
                 <option value="NoBinario">No Binario</option>
                 <option value="Fluido">Fluido</option>
                 <option value="Otro">Otro</option>
@@ -264,8 +271,8 @@ export default function Paso2Hechos({
                   }`}
                   placeholder="Nombre completo del denunciado (opcional)"
                   value={formulario.nuevoInvolucrado.nombre}
-                  onChange={(e) => {
-                    setForm((p) => ({
+                  onChange={e => {
+                    setForm(p => ({
                       ...p,
                       nuevoInvolucrado: {
                         ...p.nuevoInvolucrado,
@@ -282,7 +289,7 @@ export default function Paso2Hechos({
                     }
                     // Limpiar el error temporal de denunciado
                     if (errorDenunciado) {
-                      setErrorDenunciado("");
+                      setErrorDenunciado('');
                     }
                   }}
                 />
@@ -300,9 +307,9 @@ export default function Paso2Hechos({
                     errors.nuevoInvolucrado_vinculacion ? 'border-red-500' : 'border-gray-300'
                   }`}
                   value={formulario.nuevoInvolucrado.vinculacion}
-                  onChange={(e) => {
+                  onChange={e => {
                     const valor = e.target.value;
-                    setForm((p) => ({
+                    setForm(p => ({
                       ...p,
                       nuevoInvolucrado: {
                         ...p.nuevoInvolucrado,
@@ -319,21 +326,27 @@ export default function Paso2Hechos({
                     }
                     // Limpiar el error temporal de denunciado
                     if (errorDenunciado) {
-                      setErrorDenunciado("");
+                      setErrorDenunciado('');
                     }
                     if (formulario.tipoId === 3 && valor === 'TUTOR_HOSPITAL') {
-                      alert('Importante: Si el denunciado es Personal Colaboración Docente (Tutor Hospital), esta denuncia podría ser derivada a las autoridades correspondientes del establecimiento de salud.');
+                      alert(
+                        'Importante: Si el denunciado es Personal Colaboración Docente (Tutor Hospital), esta denuncia podría ser derivada a las autoridades correspondientes del establecimiento de salud.'
+                      );
                     }
                   }}
                 >
                   <option value="">Seleccionar Vinculación</option>
-                  {(formulario.tipoId === 3 ? VINCULACIONES_CAMPO_CLINICO : VINCULACIONES).map((v) => (
-                    <option key={v} value={v}>
-                      {v === 'DOCENTE_IES' ? 'Docente Institución de Educación Superior' :
-                       v === 'TUTOR_HOSPITAL' ? 'Personal colaborador docente (Tutor Hospital)' :
-                       v}
-                  </option>
-                ))}
+                  {(formulario.tipoId === 3 ? VINCULACIONES_CAMPO_CLINICO : VINCULACIONES).map(
+                    v => (
+                      <option key={v} value={v}>
+                        {v === 'DOCENTE_IES'
+                          ? 'Docente Institución de Educación Superior'
+                          : v === 'TUTOR_HOSPITAL'
+                            ? 'Personal colaborador docente (Tutor Hospital)'
+                            : v}
+                      </option>
+                    )
+                  )}
                 </select>
                 {errors.nuevoInvolucrado_vinculacion && (
                   <p className="mt-1 text-xs text-red-500">{errors.nuevoInvolucrado_vinculacion}</p>
@@ -343,15 +356,16 @@ export default function Paso2Hechos({
 
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center">
-                Descripción del denunciado <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                Descripción del denunciado{' '}
+                <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                 <InfoTooltip text="Al no tener el nombre, detalla características físicas, tatuajes, ropa o acento. Es vital para la identificación." />
               </label>
               <textarea
                 placeholder="Descripción física, ropa, edad, etc., cualquier información adicional (opcional)"
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm h-24 resize-none focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400"
                 value={formulario.nuevoInvolucrado.descripcionDenunciado}
-                onChange={(e) =>
-                  setForm((p) => ({
+                onChange={e =>
+                  setForm(p => ({
                     ...p,
                     nuevoInvolucrado: {
                       ...p.nuevoInvolucrado,
@@ -367,20 +381,13 @@ export default function Paso2Hechos({
             <button
               type="button"
               onClick={() =>
-                setMostrarCamposAdicionalesDenunciado(
-                  !mostrarCamposAdicionalesDenunciado
-                )
+                setMostrarCamposAdicionalesDenunciado(!mostrarCamposAdicionalesDenunciado)
               }
               className="text-sm text-ubb-blue hover:text-blue-800 font-medium flex items-center gap-2 transition-colors"
             >
               {mostrarCamposAdicionalesDenunciado ? (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -392,12 +399,7 @@ export default function Paso2Hechos({
                 </>
               ) : (
                 <>
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -423,11 +425,11 @@ export default function Paso2Hechos({
                       className={`mt-1 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
                         errors.nuevoInvolucrado_rut ? 'border-red-500' : 'border-gray-300'
                       }`}
-                      value={formulario.nuevoInvolucrado.rut || ""}
-                      onChange={(e) => {
+                      value={formulario.nuevoInvolucrado.rut || ''}
+                      onChange={e => {
                         const valor = e.target.value;
                         const formateado = formatearRut(valor);
-                        setForm((p) => ({
+                        setForm(p => ({
                           ...p,
                           nuevoInvolucrado: {
                             ...p.nuevoInvolucrado,
@@ -444,7 +446,7 @@ export default function Paso2Hechos({
                         }
                         // Limpiar el error temporal de denunciado
                         if (errorDenunciado) {
-                          setErrorDenunciado("");
+                          setErrorDenunciado('');
                         }
                       }}
                     />
@@ -454,15 +456,16 @@ export default function Paso2Hechos({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      Unidad o Carrera <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                      Unidad o Carrera{' '}
+                      <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Ej: Enfermería, Medicina, Unidad de Urgencias... (opcional)"
                       className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                      value={formulario.nuevoInvolucrado.unidadCarrera || ""}
-                      onChange={(e) =>
-                        setForm((p) => ({
+                      value={formulario.nuevoInvolucrado.unidadCarrera || ''}
+                      onChange={e =>
+                        setForm(p => ({
                           ...p,
                           nuevoInvolucrado: {
                             ...p.nuevoInvolucrado,
@@ -501,7 +504,7 @@ export default function Paso2Hechos({
                 >
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">
-                      {inv.nombre || "Sin nombre"}
+                      {inv.nombre || 'Sin nombre'}
                     </p>
                     <div className="flex gap-4 mt-1 text-xs text-gray-500">
                       {inv.rut && <span>RUT: {inv.rut}</span>}
@@ -509,9 +512,7 @@ export default function Paso2Hechos({
                       {inv.unidadCarrera && <span>Unidad/Carrera: {inv.unidadCarrera}</span>}
                     </div>
                     {inv.descripcionDenunciado && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {inv.descripcionDenunciado}
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">{inv.descripcionDenunciado}</p>
                     )}
                   </div>
                   <button
@@ -526,9 +527,7 @@ export default function Paso2Hechos({
             </div>
           )}
           {involucrados.length === 0 && (
-            <p className="text-sm text-gray-500 italic mt-3">
-              No se han agregado denunciados aún
-            </p>
+            <p className="text-sm text-gray-500 italic mt-3">No se han agregado denunciados aún</p>
           )}
         </div>
       </section>
@@ -548,18 +547,18 @@ export default function Paso2Hechos({
                 <input
                   type="radio"
                   name="tipoFecha"
-                  checked={formulario.tipoFecha === "unica"}
-                  onChange={() => handleChange("tipoFecha", "unica")}
-                />{" "}
+                  checked={formulario.tipoFecha === 'unica'}
+                  onChange={() => handleChange('tipoFecha', 'unica')}
+                />{' '}
                 Fecha única
               </label>
               <label className="inline-flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="radio"
                   name="tipoFecha"
-                  checked={formulario.tipoFecha === "rango"}
-                  onChange={() => handleChange("tipoFecha", "rango")}
-                />{" "}
+                  checked={formulario.tipoFecha === 'rango'}
+                  onChange={() => handleChange('tipoFecha', 'rango')}
+                />{' '}
                 Rango de fechas
               </label>
             </div>
@@ -567,19 +566,18 @@ export default function Paso2Hechos({
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">
-                  {formulario.tipoFecha === "unica"
-                    ? "Fecha de los hechos"
-                    : "Fecha de inicio"}
+                  {formulario.tipoFecha === 'unica' ? 'Fecha de los hechos' : 'Fecha de inicio'}
                 </label>
                 <input
                   data-field="fechaHecho"
                   type="date"
+                  max={new Date().toISOString().split('T')[0]}
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                     errors.fechaHecho && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                   }`}
                   value={formulario.fechaHecho}
-                  onChange={(e) => {
-                    handleChange("fechaHecho", e.target.value);
+                  onChange={e => {
+                    handleChange('fechaHecho', e.target.value);
                     if (errors.fechaHecho) {
                       setErrors(prev => {
                         const newErrors = { ...prev };
@@ -593,7 +591,7 @@ export default function Paso2Hechos({
                   <p className="mt-1 text-xs text-red-500">{errors.fechaHecho}</p>
                 )}
               </div>
-              {formulario.tipoFecha === "rango" && (
+              {formulario.tipoFecha === 'rango' && (
                 <div>
                   <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">
                     Fecha de término
@@ -601,12 +599,14 @@ export default function Paso2Hechos({
                   <input
                     data-field="fechaHechoFin"
                     type="date"
+                    max={new Date().toISOString().split('T')[0]}
+                    min={formulario.fechaHecho || undefined}
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                       errors.fechaHechoFin && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     value={formulario.fechaHechoFin}
-                    onChange={(e) => {
-                      handleChange("fechaHechoFin", e.target.value);
+                    onChange={e => {
+                      handleChange('fechaHechoFin', e.target.value);
                       if (errors.fechaHechoFin) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -623,8 +623,7 @@ export default function Paso2Hechos({
               )}
             </div>
             <p className="text-[10px] text-gray-500 mt-1 italic">
-              Si no recuerdas la fecha exacta, por favor indica un rango
-              aproximado.
+              Si no recuerdas la fecha exacta, por favor indica un rango aproximado.
             </p>
           </div>
 
@@ -632,17 +631,20 @@ export default function Paso2Hechos({
             <>
               <div className="border-t border-gray-200 pt-4 mt-4">
                 <label className="text-sm font-medium text-gray-700">
-                  Establecimiento de Salud * <span className="text-xs text-gray-500">(Hospital/CESFAM/Centro de Salud)</span>
+                  Establecimiento de Salud *{' '}
+                  <span className="text-xs text-gray-500">(Hospital/CESFAM/Centro de Salud)</span>
                 </label>
                 <input
                   data-field="nombreEstablecimiento"
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                    errors.nombreEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                    errors.nombreEstablecimiento && intentoAvanzar
+                      ? 'border-red-500'
+                      : 'border-gray-300'
                   }`}
                   placeholder="Ej: Hospital Regional de Concepción, CESFAM Las Higueras..."
                   value={formulario.nombreEstablecimiento}
-                  onChange={(e) => {
-                    handleChange("nombreEstablecimiento", e.target.value);
+                  onChange={e => {
+                    handleChange('nombreEstablecimiento', e.target.value);
                     if (errors.nombreEstablecimiento) {
                       setErrors(prev => {
                         const newErrors = { ...prev };
@@ -666,12 +668,14 @@ export default function Paso2Hechos({
                   <select
                     data-field="regionEstablecimiento"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                      errors.regionEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                      errors.regionEstablecimiento && intentoAvanzar
+                        ? 'border-red-500'
+                        : 'border-gray-300'
                     }`}
                     value={formulario.regionEstablecimiento}
-                    onChange={(e) => {
-                      handleChange("regionEstablecimiento", e.target.value);
-                      handleChange("comunaEstablecimiento", "");
+                    onChange={e => {
+                      handleChange('regionEstablecimiento', e.target.value);
+                      handleChange('comunaEstablecimiento', '');
                       if (errors.regionEstablecimiento) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -683,7 +687,7 @@ export default function Paso2Hechos({
                     required
                   >
                     <option value="">Seleccionar</option>
-                    {allRegions.map((r) => (
+                    {allRegions.map(r => (
                       <option key={r.id} value={r.name}>
                         {r.name}
                       </option>
@@ -700,11 +704,13 @@ export default function Paso2Hechos({
                   <select
                     data-field="comunaEstablecimiento"
                     className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                      errors.comunaEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                      errors.comunaEstablecimiento && intentoAvanzar
+                        ? 'border-red-500'
+                        : 'border-gray-300'
                     }`}
                     value={formulario.comunaEstablecimiento}
-                    onChange={(e) => {
-                      handleChange("comunaEstablecimiento", e.target.value);
+                    onChange={e => {
+                      handleChange('comunaEstablecimiento', e.target.value);
                       if (errors.comunaEstablecimiento) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -719,7 +725,9 @@ export default function Paso2Hechos({
                     <option value="">Seleccionar</option>
                     {(() => {
                       if (!formulario.regionEstablecimiento) return [];
-                      const region = allRegions.find((r) => r.name === formulario.regionEstablecimiento);
+                      const region = allRegions.find(
+                        r => r.name === formulario.regionEstablecimiento
+                      );
                       if (!region) return [];
                       const allCommunes: any[] = [];
                       Object.values(region.provinces || {}).forEach((province: any) => {
@@ -728,7 +736,7 @@ export default function Paso2Hechos({
                         });
                       });
                       return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
-                    })().map((c) => (
+                    })().map(c => (
                       <option key={c.id} value={c.name}>
                         {c.name}
                       </option>
@@ -747,12 +755,14 @@ export default function Paso2Hechos({
                 <input
                   data-field="direccionEstablecimiento"
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
-                    errors.direccionEstablecimiento && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                    errors.direccionEstablecimiento && intentoAvanzar
+                      ? 'border-red-500'
+                      : 'border-gray-300'
                   }`}
                   placeholder="Ej: Av. O'Higgins 1234, Concepción..."
                   value={formulario.direccionEstablecimiento}
-                  onChange={(e) => {
-                    handleChange("direccionEstablecimiento", e.target.value);
+                  onChange={e => {
+                    handleChange('direccionEstablecimiento', e.target.value);
                     if (errors.direccionEstablecimiento) {
                       setErrors(prev => {
                         const newErrors = { ...prev };
@@ -771,7 +781,8 @@ export default function Paso2Hechos({
               <div className="grid gap-4 md:grid-cols-2 pt-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">
-                    Unidad o Servicio * <span className="text-xs text-gray-500">(Donde ocurrió el hecho)</span>
+                    Unidad o Servicio *{' '}
+                    <span className="text-xs text-gray-500">(Donde ocurrió el hecho)</span>
                   </label>
                   <input
                     data-field="unidadServicio"
@@ -780,8 +791,8 @@ export default function Paso2Hechos({
                     }`}
                     placeholder="Ej: Urgencias, Pediatría, Medicina Interna..."
                     value={formulario.unidadServicio}
-                    onChange={(e) => {
-                      handleChange("unidadServicio", e.target.value);
+                    onChange={e => {
+                      handleChange('unidadServicio', e.target.value);
                       if (errors.unidadServicio) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -797,14 +808,12 @@ export default function Paso2Hechos({
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Detalles adicionales
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Detalles adicionales</label>
                   <input
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     placeholder="Ej: Sala 204, 2° piso, pasillo norte frente a la biblioteca..."
                     value={formulario.detalleHecho}
-                    onChange={(e) => handleChange("detalleHecho", e.target.value)}
+                    onChange={e => handleChange('detalleHecho', e.target.value)}
                   />
                 </div>
               </div>
@@ -823,11 +832,11 @@ export default function Paso2Hechos({
                       errors.sedeHecho && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                     }`}
                     value={formulario.sedeHecho}
-                    onChange={(e) => {
-                      const sede = SEDES.find((s) => s.id === e.target.value);
-                      handleChange("sedeHecho", e.target.value);
-                      handleChange("regionHecho", sede?.region || "");
-                      handleChange("lugarHecho", "");
+                    onChange={e => {
+                      const sede = SEDES.find(s => s.id === e.target.value);
+                      handleChange('sedeHecho', e.target.value);
+                      handleChange('regionHecho', sede?.region || '');
+                      handleChange('lugarHecho', '');
                       if (errors.sedeHecho) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -838,7 +847,7 @@ export default function Paso2Hechos({
                     }}
                   >
                     <option value="">Seleccionar Sede</option>
-                    {SEDES.map((s) => (
+                    {SEDES.map(s => (
                       <option key={s.id} value={s.id}>
                         {s.nombre}
                       </option>
@@ -849,27 +858,23 @@ export default function Paso2Hechos({
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Región
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Región</label>
                   <div className="mt-1 w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-600 font-medium h-[38px] flex items-center">
-                    {formulario.regionHecho || "Selecciona una sede"}
+                    {formulario.regionHecho || 'Selecciona una sede'}
                   </div>
                 </div>
               </div>
               <div className="grid gap-4 md:grid-cols-2 pt-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700">
-                    Lugar Específico
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Lugar Específico</label>
                   <select
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     value={formulario.lugarHecho}
-                    onChange={(e) => handleChange("lugarHecho", e.target.value)}
+                    onChange={e => handleChange('lugarHecho', e.target.value)}
                     disabled={!formulario.sedeHecho}
                   >
                     <option value="">Seleccionar Lugar</option>
-                    {lugaresDisponibles.map((l) => (
+                    {lugaresDisponibles.map(l => (
                       <option key={l} value={l}>
                         {l}
                       </option>
@@ -885,7 +890,7 @@ export default function Paso2Hechos({
                     className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     placeholder="Ej: Sala 204, 2° piso, pasillo norte frente a la biblioteca..."
                     value={formulario.detalleHecho}
-                    onChange={(e) => handleChange("detalleHecho", e.target.value)}
+                    onChange={e => handleChange('detalleHecho', e.target.value)}
                   />
                 </div>
               </div>
@@ -909,12 +914,12 @@ export default function Paso2Hechos({
               }`}
               placeholder={
                 formulario.tipoId === 3
-                  ? "Describe los hechos detalladamente. Menciona: Unidad/Servicio, si ocurrió durante la atención de un paciente, si el denunciado es personal del hospital o de la universidad, y si hubo testigos..."
-                  : "Describe qué pasó, indicando fecha, hora, lugar específico, palabras utilizadas, si hubo contacto físico y quiénes estaban presentes..."
+                  ? 'Describe los hechos detalladamente. Menciona: Unidad/Servicio, si ocurrió durante la atención de un paciente, si el denunciado es personal del hospital o de la universidad, y si hubo testigos...'
+                  : 'Describe qué pasó, indicando fecha, hora, lugar específico, palabras utilizadas, si hubo contacto físico y quiénes estaban presentes...'
               }
               value={formulario.relato}
-              onChange={(e) => {
-                handleChange("relato", e.target.value);
+              onChange={e => {
+                handleChange('relato', e.target.value);
                 if (errors.relato) {
                   setErrors(prev => {
                     const newErrors = { ...prev };
@@ -931,9 +936,7 @@ export default function Paso2Hechos({
 
           <div className="pt-4 border-t border-gray-300">
             <div className="flex justify-between items-center mb-3">
-              <label className="text-sm font-medium text-gray-700">
-                Testigos
-              </label>
+              <label className="text-sm font-medium text-gray-700">Testigos</label>
               <button
                 type="button"
                 onClick={() => setMostrarFormTestigo(!mostrarFormTestigo)}
@@ -941,7 +944,7 @@ export default function Paso2Hechos({
               >
                 <svg
                   className={`w-4 h-4 transition-transform ${
-                    mostrarFormTestigo ? "rotate-45" : ""
+                    mostrarFormTestigo ? 'rotate-45' : ''
                   }`}
                   fill="none"
                   stroke="currentColor"
@@ -954,7 +957,7 @@ export default function Paso2Hechos({
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                {mostrarFormTestigo ? "Cancelar" : "Agregar Testigo"}
+                {mostrarFormTestigo ? 'Cancelar' : 'Agregar Testigo'}
               </button>
             </div>
 
@@ -972,7 +975,7 @@ export default function Paso2Hechos({
                       }`}
                       placeholder="Nombre del testigo"
                       value={nuevoTestigo.nombreCompleto}
-                      onChange={(e) => {
+                      onChange={e => {
                         setNuevoTestigo({
                           ...nuevoTestigo,
                           nombreCompleto: e.target.value,
@@ -987,7 +990,7 @@ export default function Paso2Hechos({
                         }
                         // Limpiar el error temporal de testigo
                         if (errorTestigo) {
-                          setErrorTestigo("");
+                          setErrorTestigo('');
                         }
                       }}
                     />
@@ -1006,7 +1009,7 @@ export default function Paso2Hechos({
                       }`}
                       placeholder="12.345.678-9"
                       value={nuevoTestigo.rut}
-                      onChange={(e) => {
+                      onChange={e => {
                         const valor = e.target.value;
                         const formateado = formatearRut(valor);
                         setNuevoTestigo({
@@ -1023,7 +1026,7 @@ export default function Paso2Hechos({
                         }
                         // Limpiar el error temporal de testigo
                         if (errorTestigo) {
-                          setErrorTestigo("");
+                          setErrorTestigo('');
                         }
                       }}
                     />
@@ -1043,7 +1046,7 @@ export default function Paso2Hechos({
                     }`}
                     placeholder="Correo o teléfono"
                     value={nuevoTestigo.contacto}
-                    onChange={(e) => {
+                    onChange={e => {
                       setNuevoTestigo({
                         ...nuevoTestigo,
                         contacto: e.target.value,
@@ -1058,7 +1061,7 @@ export default function Paso2Hechos({
                       }
                       // Limpiar el error temporal de testigo
                       if (errorTestigo) {
-                        setErrorTestigo("");
+                        setErrorTestigo('');
                       }
                     }}
                   />
@@ -1091,12 +1094,15 @@ export default function Paso2Hechos({
                     className="flex items-center justify-between bg-white border border-gray-200 rounded-md p-3"
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                        {testigo.nombreCompleto}
-                      </p>
+                      <p className="text-sm font-medium text-gray-900">{testigo.nombreCompleto}</p>
                       <div className="flex gap-4 mt-1 text-xs text-gray-500">
                         {testigo.rut && <span>RUT: {testigo.rut}</span>}
-                        <span>Contacto: {testigo.contacto || <span className="text-red-500 italic">Sin contacto</span>}</span>
+                        <span>
+                          Contacto:{' '}
+                          {testigo.contacto || (
+                            <span className="text-red-500 italic">Sin contacto</span>
+                          )}
+                        </span>
                       </div>
                     </div>
                     <button
@@ -1126,9 +1132,7 @@ export default function Paso2Hechos({
               </div>
             )}
             {testigos.length === 0 && (
-              <p className="text-sm text-gray-500 italic">
-                No se han agregado testigos aún
-              </p>
+              <p className="text-sm text-gray-500 italic">No se han agregado testigos aún</p>
             )}
           </div>
         </div>
@@ -1148,4 +1152,3 @@ export default function Paso2Hechos({
     </div>
   );
 }
-

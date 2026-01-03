@@ -48,7 +48,4 @@ export interface Paso3Props {
   involucrados: Involucrado[];
   testigos: Testigo[];
   archivosEvidencia: FileMetadata[];
-  enviando: boolean;
-  onBack: () => void;
-  onSubmit: () => void;
 }
