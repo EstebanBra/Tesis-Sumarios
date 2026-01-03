@@ -7,7 +7,7 @@ import {
   type DenunciaListado,
   type SolicitudMedida,
 } from '@/services/denuncias.api';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { formatearFechaCorta } from '@/utils/date.utils';
 
 export default function BandejaDirgegen() {

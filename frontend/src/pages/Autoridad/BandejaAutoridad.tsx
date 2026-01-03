@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { formatearFechaCorta } from '@/utils/date.utils'
 
 export default function BandejaAutoridad() {
@@ -19,19 +19,19 @@ export default function BandejaAutoridad() {
     // Función helper para obtener el área generalizada
     const obtenerAreaGeneralizada = (tipoDenuncia: any): string => {
         if (!tipoDenuncia) return 'N/A'
-        
+
         const idTipo = tipoDenuncia.ID_TipoDe || 0
-        
+
         // ID 100: Género y Equidad (y derivación 303 a Dirgegen)
         if (idTipo === 100 || idTipo === 303) {
             return 'Género y Equidad'
         }
-        
+
         // ID 200: Convivencia Estudiantil (y derivaciones 301-302 a VRA)
         if (idTipo === 200 || idTipo === 301 || idTipo === 302) {
             return 'Convivencia Estudiantil'
         }
-        
+
         return tipoDenuncia.Area || 'N/A'
     }
 

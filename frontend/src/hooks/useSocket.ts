@@ -1,7 +1,7 @@
 // src/hooks/useSocket.ts
 import { useEffect, useRef, useState } from 'react'
 import { io, Socket } from 'socket.io-client'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 import { getMe } from '@/services/auth.api'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
@@ -29,7 +29,7 @@ export function useSocket() {
       try {
         // Verificar que el usuario esté autenticado
         await getMe()
-        
+
         // Obtener token de las cookies
         const getCookie = (name: string) => {
           const value = `; ${document.cookie}`;
@@ -37,9 +37,9 @@ export function useSocket() {
           if (parts.length === 2) return parts.pop()?.split(';').shift();
           return null;
         }
-        
+
         const token = getCookie('token')
-        
+
         const newSocket = io(API_URL.replace('/api', ''), {
           auth: {
             token: token || '',

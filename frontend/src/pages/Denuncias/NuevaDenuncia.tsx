@@ -6,7 +6,7 @@ import { Cards } from "@/components/ui/Cards";
 import {TIPOS_DENUNCIA, SEDES, LUGARES_SEDE} from "@/data/denuncias.data";
 import type {FormularioDenuncia,Involucrado,FaseRegistro,Testigo,} from "@/types/denuncia.types";
 import FormularioLayout from "./components/FormularioLayout";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { clRegions } from "@clregions/data";
 import { type FileMetadata } from "@/components/FileUploader";
 import { validarRut, validarEmail, validarTelefono } from "@/utils/validation.utils";

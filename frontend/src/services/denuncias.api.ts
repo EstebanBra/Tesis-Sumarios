@@ -48,7 +48,7 @@ export type CrearDenunciaInput = {
   comunaDenunciante?: string | null
   direccionDenunciante?: string | null
   carreraCargo?: string | null // Carrera o Cargo del denunciante
-  
+
   ID_TipoDe: number
   Fecha_Inicio: string // ISO
   Fecha_Fin?: string | null // ISO - Fecha fin del rango (opcional, solo si es rango)
@@ -69,7 +69,7 @@ export type CrearDenunciaInput = {
   }
   evidencias?: EvidenciaInput[]
   caracteristicasDenunciado?: string | null
-  
+
   // Datos específicos para denuncias de campo clínico
   detalleCampoClinico?: {
     nombreEstablecimiento: string
@@ -89,9 +89,9 @@ export async function crearSolicitudMedida(payload: {
 }) {
   // Esta ruta debe coincidir con la que definiste en el backend (/api/solicitudes/medidas)
   // El helper 'http' añade el prefijo base si está configurado, o usa la ruta relativa.
-  return http('/solicitudes/medidas', { 
-    method: 'POST', 
-    body: payload 
+  return http('/solicitudes/medidas', {
+    method: 'POST',
+    body: payload
   })
 }
 
@@ -102,13 +102,13 @@ export type SolicitudMedida = {
   Rut_Solicitante: string
   Fecha_Solicitud: string // ISO
   Tipo_Medida: string
-  
+
   // Estados manejados en el flujo:
-  Estado: 'Pendiente Informe' | 'En Revisión' | 'Aprobada' | 'Rechazada' 
-  
+  Estado: 'Pendiente Informe' | 'En Revisión' | 'Aprobada' | 'Rechazada'
+
   Observacion: string | null
   Informe_Tecnico: string | null // Path/contenido del informe (simulado por ahora)
-  Archivo_Resolucion: string | null 
+  Archivo_Resolucion: string | null
 }
 
 export async function listarMedidasPendientes() {
@@ -124,8 +124,8 @@ export type DenunciaListado = {
   Fecha_Fin?: string | null // Fecha fin del rango (opcional)
   Relato_Hechos: string
   Ubicacion: string | null
-  
-  observacionDirgegen?: string | null 
+
+  observacionDirgegen?: string | null
 
   denunciante?: {
     Rut?: string | null
@@ -143,13 +143,13 @@ export type DenunciaListado = {
   tipo_denuncia?: {
     ID_TipoDe: number
     Nombre: string
-    Area?: string 
+    Area?: string
   }
   estado_denuncia?: {
     ID_EstadoDe: number
     Tipo_Estado: string
   }
-  
+
   solicitudes_medidas?: SolicitudMedida[]
 
   // Listas usadas en el detalle
@@ -188,28 +188,28 @@ export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File
   // Si hay archivos, usar FormData; si no, JSON normal
   if (archivos && archivos.length > 0) {
     const formData = new FormData();
-    
+
     // Agregar todos los campos del payload como JSON string
     // (multer no parsea JSON automáticamente, así que lo enviamos como string)
     formData.append('data', JSON.stringify(payload));
-    
+
     // Agregar archivos
     archivos.forEach((archivo) => {
       formData.append('archivos', archivo);
     });
-    
+
     // Usar fetch directamente para FormData (sin Content-Type header para que el navegador lo establezca automáticamente con boundary)
     const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api';
-    
+
     const res = await fetch(`${API_URL}/denuncias`, {
       method: 'POST',
       credentials: 'include', // Incluye cookies automáticamente
       body: formData,
     });
-    
+
     const text = await res.text();
     const data = text ? JSON.parse(text) : null;
-    
+
     if (!res.ok) {
       const mensaje = (data && (data.message || data.error)) || `HTTP ${res.status}`;
       const detalles = (data && (data.details || data.errors)) || null;
@@ -218,7 +218,7 @@ export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File
       err.status = res.status;
       throw err;
     }
-    
+
     return data;
   } else {
     // Sin archivos, usar el método normal

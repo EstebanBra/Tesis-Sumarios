@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
-import { useAuth } from '@/context/AuthContext'
+import { useAuth } from '@/hooks/useAuth'
 
 type FiltroTipo = 'todas' | 'convivencia' | 'genero' | 'camposClinicos'
 
@@ -33,24 +33,24 @@ export default function BandejaRevisor() {
   // Función helper para obtener el área generalizada
   const obtenerAreaGeneralizada = (tipoDenuncia: any): string => {
     if (!tipoDenuncia) return 'N/A'
-    
+
     const idTipo = tipoDenuncia.ID_TipoDe || 0
-    
+
     // ID 300: Campos Clínicos
     if (idTipo === 300) {
       return 'Campos Clínicos'
     }
-    
+
     // ID 100: Género y Equidad (y derivación 303 a Dirgegen)
     if (idTipo === 100 || idTipo === 303) {
       return 'Género y Equidad'
     }
-    
+
     // ID 200: Convivencia Estudiantil (y derivaciones 301-302 a VRA)
     if (idTipo === 200 || idTipo === 301 || idTipo === 302) {
       return 'Convivencia Estudiantil'
     }
-    
+
     return tipoDenuncia.Area || 'N/A'
   }
 
@@ -105,8 +105,8 @@ export default function BandejaRevisor() {
           </span>
           <div className="bg-ubb-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
             {denuncias.length} Casos {filtroTipo !== 'todas' && `(${
-              filtroTipo === 'convivencia' ? 'Convivencia' : 
-              filtroTipo === 'genero' ? 'Género' : 
+              filtroTipo === 'convivencia' ? 'Convivencia' :
+              filtroTipo === 'genero' ? 'Género' :
               filtroTipo === 'camposClinicos' ? 'Campos Clínicos' : ''
             })`}
           </div>
@@ -184,7 +184,7 @@ export default function BandejaRevisor() {
                 const areaGeneralizada = obtenerAreaGeneralizada(d.tipo_denuncia)
                 const esGenero = areaGeneralizada === 'Género y Equidad'
                 const esCamposClinicos = areaGeneralizada === 'Campos Clínicos'
-                
+
                 return (
                   <tr key={d.ID_Denuncia} className={`group transition-colors ${
                     esCamposClinicos ? 'hover:bg-purple-50/50' : 'hover:bg-blue-50/50'
@@ -221,8 +221,8 @@ export default function BandejaRevisor() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => navigate(`/revisor/denuncia/${d.ID_Denuncia}`)} 
+                      <button
+                        onClick={() => navigate(`/revisor/denuncia/${d.ID_Denuncia}`)}
                         className="text-ubb-blue font-bold text-xs hover:underline"
                       >
                         REVISAR

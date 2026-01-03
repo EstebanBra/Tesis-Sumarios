@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getDenunciaById } from '@/services/denuncias.api'
 import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunciadoModal'
@@ -19,12 +19,8 @@ export default function DetalleRevisor() {
   const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
   const [showModalTestigo, setShowModalTestigo] = useState(false)
 
-  useEffect(() => {
+  const cargarDatos = useCallback(async () => {
     if (!id) return
-    cargarDatos()
-  }, [id])
-
-  async function cargarDatos() {
     try {
       const data = await getDenunciaById(Number(id))
       setDenuncia(data)
@@ -33,7 +29,11 @@ export default function DetalleRevisor() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
+
+  useEffect(() => {
+    cargarDatos()
+  }, [cargarDatos])
 
   const getProp = (obj: any, keyCap: string, keyLow: string) => {
     if (!obj) return '';
