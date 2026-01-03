@@ -214,10 +214,10 @@ services:
         max-size: "10m"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.seutils.rule=Host(`denuncias.ubiobio.dev`)"
-      - "traefik.http.routers.seutils.entrypoints=websecure"
-      - "traefik.http.routers.seutils.tls.certresolver=cfresolver"
-      - "traefik.http.services.seutils.loadbalancer.server.port=8080"
+      - "traefik.http.routers.denuncias.rule=Host(`denuncias.ubiobio.dev`)"
+      - "traefik.http.routers.denuncias.entrypoints=websecure"
+      - "traefik.http.routers.denuncias.tls.certresolver=cfresolver"
+      - "traefik.http.services.denuncias.loadbalancer.server.port=8080"
 
 # Se utiliza una red de tipo bridge para la comunicacion entre los servicios
 # TODO: Lo ideal en esta arquitectura seria usar una base de datos gestionada aqui adentro, asi podriamos tener distintas
