@@ -4,7 +4,8 @@ import { io, Socket } from 'socket.io-client'
 import { useAuth } from '@/context/AuthContext'
 import { getMe } from '@/services/auth.api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+//const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+const API_URL = '/api'
 
 export function useSocket() {
   const { user, isAuthenticated } = useAuth()
