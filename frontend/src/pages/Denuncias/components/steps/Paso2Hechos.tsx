@@ -3,7 +3,6 @@ import FileUploader from '@/components/FileUploader';
 import { formatearRut } from '@/utils/validation.utils';
 import {
   SEDES,
-  LUGARES_SEDE,
   VINCULACIONES,
   VINCULACIONES_CAMPO_CLINICO,
 } from '@/data/denuncias.data';
