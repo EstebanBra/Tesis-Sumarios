@@ -75,7 +75,7 @@ export type CrearDenunciaInput = {
   detalleCampoClinico?: {
     nombreEstablecimiento: string
     unidadServicio: string
-    tipoVinculacionDenunciado: string
+    tipoVinculacionDenunciado?: string | null
     region?: string
     comuna?: string
     direccionEstablecimiento?: string
