@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDenunciaById, gestionarDenuncia, type SolicitudMedida } from '@/services/denuncias.api';
-import DerivacionModal, { type TipoDerivacionVRA } from '@/pages/Denuncias/components/Derivacion';
+import DerivacionModal from '@/pages/Denuncias/components/Derivacion';
 import InformeTecnicoModal from './components/InformeTecnicoModal';
 import IdentificarDenunciadoModal from './components/IdentificarDenunciadoModal';
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado';
@@ -55,7 +55,6 @@ export default function DetalleDirgegen() {
 
   const handleDerivacionConfirm = async (
     observacion: string,
-    tipoDerivacion?: TipoDerivacionVRA
   ) => {
     if (!denuncia) return;
     try {
