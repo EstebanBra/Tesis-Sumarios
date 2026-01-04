@@ -220,7 +220,7 @@ export default function Paso2Hechos({
                 <option value="">Seleccionar</option>
                 <option value="Femenino">Femenino</option>
                 <option value="Masculino">Masculino</option>
-                <option value="Desconocido">Desconocido</option>
+                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
               </select>
             </div>
             <div>
@@ -244,6 +244,7 @@ export default function Paso2Hechos({
                 <option value="Fluido">Fluido</option>
                 <option value="Otro">Otro</option>
                 <option value="NoLoSe">No lo sé</option>
+                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
               </select>
             </div>
           </div>
@@ -298,7 +299,7 @@ export default function Paso2Hechos({
 
               <div>
                 <label className="text-sm font-medium text-gray-700">
-                  Vinculación <span className="text-red-500">*</span>
+                  Vinculación <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
                 </label>
                 <select
                   className={`mt-1 w-full rounded-md border px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${
