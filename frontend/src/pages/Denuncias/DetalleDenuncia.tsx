@@ -261,7 +261,7 @@ export default function DetalleDenuncia() {
           <span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full uppercase">
             {estadoCaso}
           </span>
-          <button
+           <button
             onClick={() => navigate(-1)}
             className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
           >
@@ -269,51 +269,51 @@ export default function DetalleDenuncia() {
           </button>
           {/* BOTÓN SOLICITUD MEDIDA DE RESGUARDO - TEMPORALMENTE OCULTO */}
           {/* <button
-            onClick={() => setShowSolicitudModal(true)}
-            disabled={tieneSolicitudPendiente}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            {tieneSolicitudPendiente ? '⚠️ Solicitud en Proceso' : 'Solicitar Medida de Resguardo'}
+             onClick={() => setShowSolicitudModal(true)}
+             disabled={tieneSolicitudPendiente}
+             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+           >
+             {tieneSolicitudPendiente ? '⚠️ Solicitud en Proceso' : 'Solicitar Medida de Resguardo'}
           </button> */}
         </div>
       </div>
 
       {/* --- LÍNEA DE TIEMPO --- */}
       {/* <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
-        <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
-          <div>
-            <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Estado del Proceso</h3>
-            <p className="text-xs text-gray-500 mt-1">Tiempo transcurrido: <span className="font-semibold text-indigo-600">{diasTranscurridos} días</span></p>
-          </div>
-          <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-200">Reglamento DUE 4560 / 5415</span>
-        </div>
+         <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+             <div>
+                <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide">Estado del Proceso</h3>
+                <p className="text-xs text-gray-500 mt-1">Tiempo transcurrido: <span className="font-semibold text-indigo-600">{diasTranscurridos} días</span></p>
+             </div>
+             <span className="text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded border border-gray-200">Reglamento DUE 4560 / 5415</span>
+         </div>
 
-        <div className="relative mx-4">
-          <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 -z-0 rounded"></div>
-          <div className="absolute top-5 left-0 h-1 bg-indigo-600 -z-0 rounded transition-all duration-700" style={{ width: `${(activeStep / (pasosProceso.length - 1)) * 100}%` }}></div>
+         <div className="relative mx-4">
+            <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 -z-0 rounded"></div>
+            <div className="absolute top-5 left-0 h-1 bg-indigo-600 -z-0 rounded transition-all duration-700" style={{ width: `${(activeStep / (pasosProceso.length - 1)) * 100}%` }}></div>
 
-          <div className="flex justify-between relative z-10">
-            {pasosProceso.map((paso, idx) => {
-              const isActive = idx === activeStep;
-              const isCompleted = idx < activeStep;
-              return (
-                <div key={paso.id} className="flex flex-col items-center w-32 text-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white transition-all
-                    ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : ''}
-                    ${isActive ? 'border-indigo-600 text-indigo-600 ring-4 ring-indigo-50 scale-110' : 'border-gray-300 text-gray-400'}
-                  `}>{isCompleted ? '✓' : idx + 1}</div>
-                  <div className="mt-3">
-                    <span className={`text-sm font-bold block ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{paso.nombre}</span>
-                    <span className="text-xs font-semibold text-indigo-600 block">{paso.plazo}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="mt-6 bg-blue-50 p-3 rounded text-xs text-blue-800 flex gap-2">
-          <span>ℹ️</span> <p>Plazos en días hábiles administrativos. La etapa de investigación puede prorrogarse según complejidad.</p>
-        </div>
+            <div className="flex justify-between relative z-10">
+                {pasosProceso.map((paso, idx) => {
+                   const isActive = idx === activeStep;
+                   const isCompleted = idx < activeStep;
+                   return (
+                   <div key={paso.id} className="flex flex-col items-center w-32 text-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 bg-white transition-all
+                         ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : ''}
+                         ${isActive ? 'border-indigo-600 text-indigo-600 ring-4 ring-indigo-50 scale-110' : 'border-gray-300 text-gray-400'}
+                      `}>{isCompleted ? '✓' : idx + 1}</div>
+                      <div className="mt-3">
+                          <span className={`text-sm font-bold block ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>{paso.nombre}</span>
+                          <span className="text-xs font-semibold text-indigo-600 block">{paso.plazo}</span>
+                      </div>
+                   </div>
+                   );
+                })}
+            </div>
+         </div>
+         <div className="mt-6 bg-blue-50 p-3 rounded text-xs text-blue-800 flex gap-2">
+            <span>ℹ️</span> <p>Plazos en días hábiles administrativos. La etapa de investigación puede prorrogarse según complejidad.</p>
+         </div>
       </div> */}
 
       {/* --- DETALLE --- */}
@@ -332,13 +332,13 @@ export default function DetalleDenuncia() {
               <p className="text-gray-600 text-sm mt-1">
                 {denuncia.tipo_denuncia?.Area || denuncia.subtipo?.nombre || 'Sin detalle de área'}
               </p>
-            </div>
+      </div>
 
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Relato de los Hechos</h3>
             <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap break-words leading-relaxed max-h-96 overflow-y-auto custom-scrollbar">
               {relatoCaso || 'No hay relato disponible.'}
-            </div>
-          </div>
+              </div>
+        </div>
 
           {/* 2. UBICACIÓN - VISUALIZACIÓN DINÁMICA */}
           {(() => {
@@ -569,7 +569,7 @@ export default function DetalleDenuncia() {
                 }
               }
 
-              return (
+                    return (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">📍 Ubicación</h3>
                   <div className="space-y-3">
@@ -898,7 +898,7 @@ export default function DetalleDenuncia() {
                       <label className="text-xs text-gray-400 uppercase font-bold block mb-1">Sexo</label>
                       <p className="text-gray-700">{sexoVictima || 'No informado'}</p>
                     </div>
-                  </div>
+                            </div>
                 </>
               ) : (
                 <>
@@ -939,8 +939,8 @@ export default function DetalleDenuncia() {
                     </div>
                   )}
                 </>
-              )}
-            </div>
+                        )}
+                      </div>
           </div>
 
           {/* SECCIÓN DE MEDIDAS - TEMPORALMENTE OCULTA */}
@@ -951,8 +951,8 @@ export default function DetalleDenuncia() {
               </div>
               <div className="p-5 text-sm text-gray-800 italic bg-white/50">
                 "{denuncia.detalleMedidas || denuncia.DetalleMedidas || 'Sin detalle adicional'}"
+                 </div>
               </div>
-            </div>
           )} */}
         </div>
       </div>
