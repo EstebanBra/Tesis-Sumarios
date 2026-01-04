@@ -1,11 +1,7 @@
 import InfoTooltip from '@/components/ui/InfoTooltip';
 import FileUploader from '@/components/FileUploader';
 import { formatearRut } from '@/utils/validation.utils';
-import {
-  SEDES,
-  VINCULACIONES,
-  VINCULACIONES_CAMPO_CLINICO,
-} from '@/data/denuncias.data';
+import { SEDES, VINCULACIONES, VINCULACIONES_CAMPO_CLINICO } from '@/data/denuncias.data';
 import type { Paso2Props } from '@/types/step-props';
 
 export default function Paso2Hechos({
@@ -568,7 +564,8 @@ export default function Paso2Hechos({
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">
-                  {formulario.tipoFecha === 'unica' ? 'Fecha de los hechos' : 'Fecha de inicio'}
+                  {formulario.tipoFecha === 'unica' ? 'Fecha de los hechos' : 'Fecha de inicio'}{' '}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
                   data-field="fechaHecho"
@@ -579,7 +576,24 @@ export default function Paso2Hechos({
                   }`}
                   value={formulario.fechaHecho}
                   onChange={e => {
-                    handleChange('fechaHecho', e.target.value);
+                    const fechaIngresada = e.target.value;
+                    // Obtener fecha de hoy en formato 'YYYY-MM-DD'
+                    const hoy = new Date();
+                    hoy.setHours(0, 0, 0, 0);
+                    const hoyFormato = hoy.toISOString().split('T')[0];
+
+                    // Validar que la fecha no sea futura
+                    if (fechaIngresada && fechaIngresada > hoyFormato) {
+                      // No actualizar el estado y mostrar error inmediato
+                      setErrors(prev => ({
+                        ...prev,
+                        fechaHecho: 'La fecha de los hechos no puede ser futura',
+                      }));
+                      return; // Ignorar el cambio
+                    }
+
+                    // Si la fecha es válida, actualizar el estado
+                    handleChange('fechaHecho', fechaIngresada);
                     if (errors.fechaHecho) {
                       setErrors(prev => {
                         const newErrors = { ...prev };
@@ -589,14 +603,14 @@ export default function Paso2Hechos({
                     }
                   }}
                 />
-                {errors.fechaHecho && intentoAvanzar && (
+                {errors.fechaHecho && (
                   <p className="mt-1 text-xs text-red-500">{errors.fechaHecho}</p>
                 )}
               </div>
               {formulario.tipoFecha === 'rango' && (
                 <div>
                   <label className="text-[10px] uppercase font-bold text-gray-500 block mb-1">
-                    Fecha de término
+                    Fecha de término <span className="text-red-500">*</span>
                   </label>
                   <input
                     data-field="fechaHechoFin"
@@ -608,7 +622,24 @@ export default function Paso2Hechos({
                     }`}
                     value={formulario.fechaHechoFin}
                     onChange={e => {
-                      handleChange('fechaHechoFin', e.target.value);
+                      const fechaIngresada = e.target.value;
+                      // Obtener fecha de hoy en formato 'YYYY-MM-DD'
+                      const hoy = new Date();
+                      hoy.setHours(0, 0, 0, 0);
+                      const hoyFormato = hoy.toISOString().split('T')[0];
+
+                      // Validar que la fecha no sea futura
+                      if (fechaIngresada && fechaIngresada > hoyFormato) {
+                        // No actualizar el estado y mostrar error inmediato
+                        setErrors(prev => ({
+                          ...prev,
+                          fechaHechoFin: 'La fecha de término no puede ser futura',
+                        }));
+                        return; // Ignorar el cambio
+                      }
+
+                      // Si la fecha es válida, actualizar el estado
+                      handleChange('fechaHechoFin', fechaIngresada);
                       if (errors.fechaHechoFin) {
                         setErrors(prev => {
                           const newErrors = { ...prev };
@@ -618,7 +649,7 @@ export default function Paso2Hechos({
                       }
                     }}
                   />
-                  {errors.fechaHechoFin && intentoAvanzar && (
+                  {errors.fechaHechoFin && (
                     <p className="mt-1 text-xs text-red-500">{errors.fechaHechoFin}</p>
                   )}
                 </div>

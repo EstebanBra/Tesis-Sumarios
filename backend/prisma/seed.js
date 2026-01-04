@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-import { fileURLToPath } from 'url'
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { fileURLToPath } from 'url';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export async function runInitialSetup() {
-  console.log('🌱 Iniciando seed de datos...')
+  console.log('🌱 Iniciando seed de datos...');
 
   // 1. ESTADOS DE DENUNCIA
   const estados = [
@@ -15,13 +15,15 @@ export async function runInitialSetup() {
     { Tipo_Estado: 'Admisible' },
     { Tipo_Estado: 'Inadmisible' },
     { Tipo_Estado: 'En Investigación' },
-    { Tipo_Estado: 'Cerrada' }
-  ]
-  console.log('... Insertando Estados')
+    { Tipo_Estado: 'Cerrada' },
+  ];
+  console.log('... Insertando Estados');
   for (const e of estados) {
-    const existe = await prisma.estado_Denuncia.findFirst({ where: { Tipo_Estado: e.Tipo_Estado } })
+    const existe = await prisma.estado_Denuncia.findFirst({
+      where: { Tipo_Estado: e.Tipo_Estado },
+    });
     if (!existe) {
-      await prisma.estado_Denuncia.create({ data: e })
+      await prisma.estado_Denuncia.create({ data: e });
     }
   }
 
@@ -31,42 +33,66 @@ export async function runInitialSetup() {
 
   const tiposDenunciaData = [
     // --- TIPOS GENERALES POR ÁREA (sin subtipos) ---
-    { id: 100, area: 'Género y Equidad', nombre: 'Género y Equidad', descripcion: 'Denuncias relacionadas con Protocolo de Género y Equidad (DUE 4560).' },
-    { id: 200, area: 'Convivencia Estudiantil', nombre: 'Convivencia Estudiantil', descripcion: 'Denuncias relacionadas con Reglamento de Convivencia Estudiantil (DUE 5415).' },
+    {
+      id: 100,
+      area: 'Género y Equidad',
+      nombre: 'Género y Equidad',
+      descripcion: 'Denuncias relacionadas con Protocolo de Género y Equidad (DUE 4560).',
+    },
+    {
+      id: 200,
+      area: 'Convivencia Estudiantil',
+      nombre: 'Convivencia Estudiantil',
+      descripcion: 'Denuncias relacionadas con Reglamento de Convivencia Estudiantil (DUE 5415).',
+    },
 
     // --- DERIVACIONES A VRA ---
-    { id: 301, area: 'VRA', nombre: 'VRA General', descripcion: 'Derivación a Vicerrectoría Académica General.' },
-    { id: 302, area: 'VRA', nombre: 'Casos Clínicos', descripcion: 'Derivación a área de Casos Clínicos de VRA.' },
+    {
+      id: 301,
+      area: 'VRA',
+      nombre: 'VRA General',
+      descripcion: 'Derivación a Vicerrectoría Académica General.',
+    },
     // --- DERIVACIONES A DIRGEGEN ---
-    { id: 303, area: 'Dirgegen', nombre: 'Derivación a Dirgegen', descripcion: 'Derivación desde VRA hacia Dirección de Género y Equidad.' },
+    {
+      id: 303,
+      area: 'Dirgegen',
+      nombre: 'Derivación a Dirgegen',
+      descripcion: 'Derivación desde VRA hacia Dirección de Género y Equidad.',
+    },
 
     // --- CONVIVENCIA EN CAMPOS CLÍNICOS (NCG N°4) ---
     // Solo un tipo principal, sin subtipos
-    { id: 300, area: 'Campos Clínicos', nombre: 'Convivencia en Campos Clínicos', descripcion: 'Denuncias por hechos de maltrato, acoso sexual, hostigamiento docente o discriminación arbitraria que ocurran en el contexto de actividades formativas en campos clínicos (Hospitales, CESFAM, Centros de Salud).' },
+    {
+      id: 300,
+      area: 'Campos Clínicos',
+      nombre: 'Convivencia en Campos Clínicos',
+      descripcion:
+        'Denuncias por hechos de maltrato, acoso sexual, hostigamiento docente o discriminación arbitraria que ocurran en el contexto de actividades formativas en campos clínicos (Hospitales, CESFAM, Centros de Salud).',
+    },
+  ];
 
-  ]
-
-  console.log('... Insertando Tipos Detallados')
+  console.log('... Insertando Tipos Detallados');
   for (const tipo of tiposDenunciaData) {
     await prisma.tipo_Denuncia.upsert({
       where: { ID_TipoDe: tipo.id },
       update: {
         Nombre: tipo.nombre,
         Area: tipo.area,
-        Descripcion: tipo.descripcion
+        Descripcion: tipo.descripcion,
       },
       create: {
         ID_TipoDe: tipo.id,
         Nombre: tipo.nombre,
         Area: tipo.area,
-        Descripcion: tipo.descripcion
+        Descripcion: tipo.descripcion,
       },
-    })
+    });
   }
-  console.log('✅ Tipos de denuncia cargados correctamente.')
+  console.log('✅ Tipos de denuncia cargados correctamente.');
 
   // 3. CREAR USUARIOS (PERSONAS)
-  const passwordHash = await bcrypt.hash('123456', 10)
+  const passwordHash = await bcrypt.hash('123456', 10);
 
   const usuarios = [
     {
@@ -75,7 +101,7 @@ export async function runInitialSetup() {
       Correo: 'encargadoubb@gmail.com',
       Telefono: '+56911111111',
       password: passwordHash,
-      roles: ['Dirgegen']
+      roles: ['Dirgegen'],
     },
     {
       Rut: '11111111-1',
@@ -83,7 +109,7 @@ export async function runInitialSetup() {
       Correo: 'esteban@ubb.cl',
       Telefono: '+56911111111',
       password: passwordHash,
-      roles: ['Admin']
+      roles: ['Admin'],
     },
     {
       Rut: '22222222-2',
@@ -91,7 +117,7 @@ export async function runInitialSetup() {
       Correo: 'francisca@ubb.cl',
       Telefono: '+56922222222',
       password: passwordHash,
-      roles: ['Admin']
+      roles: ['Admin'],
     },
     {
       Rut: '33000000-3',
@@ -99,7 +125,7 @@ export async function runInitialSetup() {
       Correo: 'vra@ubb.cl',
       Telefono: '+56933333333',
       password: passwordHash,
-      roles: ['VRA']
+      roles: ['VRA'],
     },
     {
       Rut: '33333333-3',
@@ -107,7 +133,7 @@ export async function runInitialSetup() {
       Correo: 'vrae@ubb.cl',
       Telefono: '+56933333333',
       password: passwordHash,
-      roles: ['VRAE']
+      roles: ['VRAE'],
     },
     {
       Rut: '44444444-4',
@@ -115,7 +141,7 @@ export async function runInitialSetup() {
       Correo: 'fiscalia@ubb.cl',
       Telefono: '+56944444444',
       password: passwordHash,
-      roles: ['Fiscalia']
+      roles: ['Fiscalia'],
     },
     {
       Rut: '55555555-5',
@@ -123,7 +149,7 @@ export async function runInitialSetup() {
       Correo: 'revisor@ubb.cl',
       Telefono: '+56955555555',
       password: passwordHash,
-      roles: ['REVISOR']
+      roles: ['REVISOR'],
     },
     // Actores del caso (Sin rol administrativo)
     {
@@ -132,7 +158,7 @@ export async function runInitialSetup() {
       Correo: 'maria.vasquez@ubb.cl',
       Telefono: '+56910000001',
       password: passwordHash,
-      roles: [] // Denunciante potencial
+      roles: [], // Denunciante potencial
     },
     {
       Rut: '10000001-K',
@@ -140,58 +166,58 @@ export async function runInitialSetup() {
       Correo: 'ricardo.palma@ubb.cl',
       Telefono: '+56910000002',
       password: passwordHash,
-      roles: [] // Denunciado potencial
+      roles: [], // Denunciado potencial
     },
-  ]
+  ];
 
-  console.log('... Insertando Usuarios y Roles')
+  console.log('... Insertando Usuarios y Roles');
   for (const u of usuarios) {
     // Upsert Persona
     const persona = await prisma.persona.upsert({
       where: { Rut: u.Rut },
-      update: { 
+      update: {
         password: u.password,
         Correo: u.Correo,
         Nombre: u.Nombre,
-        Telefono: u.Telefono
+        Telefono: u.Telefono,
       }, // Actualiza datos si ya existe
       create: {
         Rut: u.Rut,
         Nombre: u.Nombre,
         Correo: u.Correo,
         Telefono: u.Telefono,
-        password: u.password
-      }
-    })
+        password: u.password,
+      },
+    });
 
     // Asignar Roles usando ID_Persona
     for (const rol of u.roles) {
       const existeRol = await prisma.participante_Caso.findFirst({
-        where: { ID_Persona: persona.ID, Tipo_PC: rol }
-      })
+        where: { ID_Persona: persona.ID, Tipo_PC: rol },
+      });
 
       if (!existeRol) {
         await prisma.participante_Caso.create({
           data: {
             ID_Persona: persona.ID,
-            Tipo_PC: rol
-          }
-        })
+            Tipo_PC: rol,
+          },
+        });
       }
     }
   }
 
-  console.log('✅ Seed completado exitosamente')
+  console.log('✅ Seed completado exitosamente');
 }
 
 // Ejecutar si se llama directamente
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   runInitialSetup()
     .catch(e => {
-      console.error(e)
-      process.exit(1)
+      console.error(e);
+      process.exit(1);
     })
     .finally(async () => {
-      await prisma.$disconnect()
-    })
+      await prisma.$disconnect();
+    });
 }

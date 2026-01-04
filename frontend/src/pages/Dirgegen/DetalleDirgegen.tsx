@@ -63,8 +63,8 @@ export default function DetalleDirgegen() {
       const idDenuncia = denuncia.ID_Denuncia || denuncia.id;
 
       // Mapear tipo de derivación a nuevoTipoId
-      // 301 = VRA General, 302 = Casos Clínicos
-      const nuevoTipoId = tipoDerivacion === 'casos_clinicos' ? 302 : 301;
+      // 301 = VRA General
+      const nuevoTipoId = 301;
 
       await gestionarDenuncia(idDenuncia, {
         observacion,
@@ -72,10 +72,7 @@ export default function DetalleDirgegen() {
         nuevoTipoId,
       });
       setShowModal(false);
-      const mensaje =
-        tipoDerivacion === 'casos_clinicos'
-          ? 'Denuncia derivada exitosamente a Casos Clínicos.'
-          : 'Denuncia derivada exitosamente a VRA General.';
+      const mensaje = 'Denuncia derivada exitosamente a VRA General.';
       alert(mensaje);
       navigate('/dirgegen/bandeja');
     } catch (error) {
@@ -839,8 +836,8 @@ export default function DetalleDirgegen() {
             </button>
           ) : (
             <button
-              onClick={() => setShowInformeModal(true)}
-              className="px-5 py-2.5 bg-blue-600 text-white border border-blue-700 rounded-lg text-sm font-bold hover:bg-blue-700 shadow-sm transition-all"
+              disabled
+              className="px-5 py-2.5 bg-gray-200 text-gray-400 border border-gray-300 rounded-lg text-sm font-bold cursor-not-allowed shadow-sm transition-all"
             >
               📝 Generar Informe
             </button>
