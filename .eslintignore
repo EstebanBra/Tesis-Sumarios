@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+.vite/
+coverage/
+*.min.js
+*.config.js
+*.config.ts
+prisma/migrations/
+.env
+.env.local
+

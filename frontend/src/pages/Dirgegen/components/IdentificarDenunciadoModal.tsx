@@ -26,7 +26,6 @@ export default function IdentificarDenunciadoModal({
     Correo: '',
     Telefono: '',
     sexo: '',
-    genero: '',
     region: '',
     comuna: '',
     direccion: '',
@@ -89,7 +88,7 @@ export default function IdentificarDenunciadoModal({
             datosDenunciado.telefono ||
             prev.Telefono,
           sexo: datosPersona.sexo || datosDenunciado.sexo || prev.sexo,
-          genero: datosPersona.genero || datosDenunciado.genero || prev.genero,
+          genero: datosPersona.genero || datosDenunciado.genero || prev.sexo,
           region: datosPersona.region || datosDenunciado.region || prev.region,
           comuna: datosPersona.comuna || datosDenunciado.comuna || prev.comuna,
           direccion:
@@ -151,7 +150,6 @@ export default function IdentificarDenunciadoModal({
         Correo: form.Correo.trim() || undefined,
         Telefono: form.Telefono.trim() || undefined,
         sexo: form.sexo || undefined,
-        genero: form.genero || undefined,
         region: form.region || undefined,
         comuna: form.comuna || undefined,
         direccion: form.direccion || undefined,
@@ -163,7 +161,6 @@ export default function IdentificarDenunciadoModal({
         Correo: '',
         Telefono: '',
         sexo: '',
-        genero: '',
         region: '',
         comuna: '',
         direccion: '',
@@ -337,30 +334,7 @@ export default function IdentificarDenunciadoModal({
                 <option value="">Seleccionar</option>
                 <option value="Femenino">Femenino</option>
                 <option value="Masculino">Masculino</option>
-                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
-              <select
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-100 outline-none"
-                value={form.genero}
-                onChange={e => setForm({ ...form, genero: e.target.value })}
-                disabled={processing}
-              >
-                <option value="">Seleccionar</option>
-                <option value="Femenino (Mujer Cis / Mujer Trans)">
-                  Femenino (Mujer Cis / Mujer Trans)
-                </option>
-                <option value="Masculino (Hombre Cis / Hombre Trans)">
-                  Masculino (Hombre Cis / Hombre Trans)
-                </option>
-                <option value="NoBinario">No Binario</option>
-                <option value="Fluido">Fluido</option>
-                <option value="Otro">Otro</option>
-                <option value="NoLoSe">No lo sé</option>
-                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+                <option value="Desconocido">Desconocido</option>
               </select>
             </div>
 

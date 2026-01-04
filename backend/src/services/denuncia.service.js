@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.js";
 
 
-// Esto es para incluir todas las relaciones
+// Esto es para incluir todas las relaciones 
 const includeFull = {
   tipo_denuncia: true,
   estado_denuncia: true,
@@ -20,15 +20,15 @@ const includeFull = {
     }
   },
   archivos: true, // Relación directa: archivos vinculados a esta denuncia específica
-  datos_denunciados: {
-    include: {
+  datos_denunciados: { 
+    include: { 
       persona: true // Incluir la relación con Persona si fue identificado
-    }
-  },
-  participante_denuncia: {
-    include: {
+    } 
+  }, 
+  participante_denuncia: { 
+    include: { 
       persona: true // Incluir la relación con Persona si tiene RUT
-    }
+    } 
   },
   medidas_cautelares: { include: { tipos_cautelar: true } },
   informe_tecnico: true,
@@ -98,12 +98,12 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         comuna: payload.comunaDenunciante || undefined,
         direccion: payload.direccionDenunciante || undefined
     };
-
+    
     // Si viene Carrera_Cargo y la persona no lo tenía, actualizarlo
     if (payload.carreraCargo && payload.carreraCargo.trim()) {
       updateData.Carrera_Cargo = payload.carreraCargo.trim();
     }
-
+    
     const denunciante = await tx.persona.upsert({
       where: { Rut: payload.Rut.trim() },
       update: updateData,
@@ -171,19 +171,19 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           : undefined,
       },
     });
-
+    
     // 2.5️⃣ Si es denuncia de campo clínico, crear Detalle_Campo_Clinico
     if (esCampoClinico) {
       if (!payload.detalleCampoClinico) {
         throw new Error("Los datos de campo clínico son obligatorios para este tipo de denuncia");
       }
-
+      
       await tx.detalle_Campo_Clinico.create({
         data: {
           ID_Denuncia: denuncia.ID_Denuncia,
           Nombre_Establecimiento: payload.detalleCampoClinico.nombreEstablecimiento,
           Unidad_Servicio: payload.detalleCampoClinico.unidadServicio,
-          Tipo_Vinculacion_Denunciado: payload.detalleCampoClinico.tipoVinculacionDenunciado || '',
+          Tipo_Vinculacion_Denunciado: payload.detalleCampoClinico.tipoVinculacionDenunciado,
           Region: payload.detalleCampoClinico.region || null,
           Comuna: payload.detalleCampoClinico.comuna || null,
           Direccion_Establecimiento: payload.detalleCampoClinico.direccionEstablecimiento || null
@@ -216,7 +216,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           genero: payload.victima.genero || null,
         }
       });
-
+      
       // Agregar víctima como participante
       participantes.push({
         ID_Denuncia: denuncia.ID_Denuncia,
@@ -411,12 +411,12 @@ export async function updateDenunciaService(id, data) {
         Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
         Ubicacion: data.Ubicacion ?? prev.Ubicacion,
     };
-
+    
     // Si se proporciona observación, actualizar observacionDirgegen
     if (data.observacion !== undefined) {
       updateData.observacionDirgegen = data.observacion ? String(data.observacion) : null;
     }
-
+    
     const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(id) },
       data: updateData,
@@ -608,7 +608,7 @@ export async function updateDenunciaService(id, data) {
             });
             const tipoDestino = nuevoTipo?.Nombre || "Dirgegen";
             const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
-
+            
             const promesasNotificacion = usuariosDirgegen.map((pc) =>
               crearNotificacion(
                 {
@@ -646,7 +646,7 @@ export async function updateDenunciaService(id, data) {
             });
             const tipoDestino = nuevoTipo?.Nombre || "VRA";
             const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
-
+            
             const promesasNotificacion = usuariosVRA.map((pc) =>
               crearNotificacion(
                 {
