@@ -13,7 +13,7 @@ export default function DetalleRevisor() {
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [showIdentificarModal, setShowIdentificarModal] = useState(false)
-  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string } | null>(null)
+  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string; datos?: any } | null>(null)
   const [selectedDenunciado, setSelectedDenunciado] = useState<any | null>(null)
   const [showModalDenunciado, setShowModalDenunciado] = useState(false)
   const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
@@ -352,7 +352,11 @@ export default function DetalleRevisor() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation() // Prevenir que se abra el modal de detalles
-                                setDenunciadoAIdentificar({ id: inv.ID_Datos || inv.id, nombre: nombreCompleto })
+                                setDenunciadoAIdentificar({
+                                  id: inv.ID_Datos || inv.id,
+                                  nombre: nombreCompleto,
+                                  datos: inv // Pasar todo el objeto del denunciado
+                                })
                                 setShowIdentificarModal(true)
                               }}
                               className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
@@ -868,6 +872,7 @@ export default function DetalleRevisor() {
           }}
           idDatosDenunciado={denunciadoAIdentificar.id}
           nombreActual={denunciadoAIdentificar.nombre}
+          datosDenunciado={denunciadoAIdentificar.datos}
         />
       )}
 
