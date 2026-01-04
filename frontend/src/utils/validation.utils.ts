@@ -34,17 +34,57 @@ export const validarRut = (rut: string): boolean => {
 /**
  * Formatea visualmente el RUT mientras el usuario escribe.
  * Entrada: 123456789 -> Salida: 12.345.678-9
+ * Limita el formato a:
+ * - RUTs bajo 10 millones: X.XXX.XXX-X (7 dígitos + 1 dígito verificador)
+ * - RUTs sobre 10 millones: XX.XXX.XXX-X (8 dígitos + 1 dígito verificador)
  */
 export const formatearRut = (rut: string): string => {
-  const actual = rut.replace(/^0+/, "").replace(/[^0-9kK]/g, "").toUpperCase();
+  // Limpiar el RUT: remover ceros al inicio y solo permitir números y K
+  let actual = rut.replace(/^0+/, "").replace(/[^0-9kK]/g, "").toUpperCase();
+
   if (actual === '') return '';
 
-  const cuerpo = actual.slice(0, -1);
-  const dv = actual.slice(-1);
+  // Si solo tiene un carácter
+  if (actual.length === 1) {
+    // Si es K, no permitirlo todavía (debe haber cuerpo antes)
+    if (actual === 'K') return '';
+    return actual;
+  }
 
-  if (actual.length < 2) return actual;
+  // Limitar a máximo 9 caracteres (8 dígitos del cuerpo + 1 dígito verificador)
+  if (actual.length > 9) {
+    actual = actual.slice(0, 9);
+  }
 
-  return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv;
+  // Separar: los primeros 8 dígitos son el cuerpo, el último es el dígito verificador
+  let cuerpo: string;
+  let dv: string;
+
+  if (actual.length <= 8) {
+    // Si tiene 8 o menos caracteres, todos son parte del cuerpo
+    cuerpo = actual;
+    dv = '';
+  } else {
+    // Si tiene 9 caracteres, los primeros 8 son cuerpo y el último es DV
+    cuerpo = actual.slice(0, 8);
+    dv = actual.slice(8, 9);
+
+    // El dígito verificador solo puede ser un número o K
+    if (dv && !/^[0-9kK]$/.test(dv)) {
+      dv = '';
+      actual = cuerpo;
+    }
+  }
+
+  // Formatear el cuerpo con puntos cada 3 dígitos desde la derecha
+  const cuerpoFormateado = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  // Retornar formateado
+  if (dv) {
+    return cuerpoFormateado + "-" + dv;
+  }
+
+  return cuerpoFormateado;
 };
 
 /**
