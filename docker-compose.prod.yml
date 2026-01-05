@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     command: server /data
     expose:
-      - "9000"
+      - '9000'
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
@@ -21,12 +21,12 @@ services:
     networks:
       - app-network
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
       interval: 30s
       timeout: 20s
       retries: 3
@@ -78,7 +78,7 @@ services:
     healthcheck:
       test:
         [
-          "CMD-SHELL",
+          'CMD-SHELL',
           '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -C -Q "SELECT 1" || exit 1',
         ]
       interval: 10s
@@ -118,7 +118,7 @@ services:
       dockerfile: Dockerfile
       target: builder
     container_name: app-migrator
-    restart: "no"
+    restart: 'no'
     environment:
       - DATABASE_URL=${DATABASE_URL}
     command: npx prisma migrate deploy
@@ -144,20 +144,27 @@ services:
     tmpfs:
       - /tmp
     restart: unless-stopped
-    expose:
-      - "3000"
+    #expose:
+    #  - '3000'
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=${DATABASE_URL}
+      - EXTERNAL_DATABASE_URL=${EXTERNAL_DATABASE_URL}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
       - MINIO_PORT=${MINIO_PORT:-9000}
       - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
-    networks:
-      - app-network
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-true}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    #networks:
+    #  - app-network
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -165,14 +172,21 @@ services:
         condition: service_completed_successfully
       minio:
         condition: service_healthy
-    user: "node"
+    user: 'node'
     cap_drop:
       - ALL
     deploy:
       resources:
         limits:
-          cpus: "0.50"
+          cpus: '0.50'
           memory: 512M
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # Servicio del frontend de la aplicación
   # Similar al backend, se ejecuta en modo de solo lectura y con un usuario no root.
@@ -192,10 +206,10 @@ services:
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=256m
     restart: unless-stopped
-    # ports:
-    #   - "80:8080"
+    ports:
+      - '80:8080'
     expose:
-      - "8080"
+      - '8080'
     depends_on:
       backend:
         condition: service_healthy
@@ -209,15 +223,15 @@ services:
       - SETGID
       - SETUID
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
+        max-size: '10m'
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.denuncias.rule=Host(`denuncias.ubiobio.dev`)"
-      - "traefik.http.routers.denuncias.entrypoints=websecure"
-      - "traefik.http.routers.denuncias.tls.certresolver=cfresolver"
-      - "traefik.http.services.denuncias.loadbalancer.server.port=8080"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.denuncias.rule=Host(`denuncias.ubiobio.dev`)'
+      - 'traefik.http.routers.denuncias.entrypoints=websecure'
+      - 'traefik.http.routers.denuncias.tls.certresolver=cfresolver'
+      - 'traefik.http.services.denuncias.loadbalancer.server.port=8080'
 
 # Se utiliza una red de tipo bridge para la comunicacion entre los servicios
 # TODO: Lo ideal en esta arquitectura seria usar una base de datos gestionada aqui adentro, asi podriamos tener distintas

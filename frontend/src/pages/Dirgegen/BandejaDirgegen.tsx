@@ -123,7 +123,7 @@ export default function BandejaDirgegen() {
           {/* Copia aquí el contenido de tu tabla tal cual lo tenías */}
           <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
-              <th className="px-6 py-4">ID / Fecha</th>
+              <th className="px-6 py-4">Fecha</th>
               <th className="px-6 py-4">Área</th>
               <th className="px-6 py-4">Denunciante</th>
               <th className="px-6 py-4">Estado</th>
@@ -135,9 +135,10 @@ export default function BandejaDirgegen() {
               <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
                 {/* ... tus celdas ... */}
                 <td className="px-6 py-4">
-                  <div className="font-mono font-bold text-gray-900">#{d.ID_Denuncia}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {d.Fecha_Fin ? (
+                  <div className="text-sm text-gray-900">
+                    {d.Fecha_Ingreso ? (
+                      formatearFechaCorta(d.Fecha_Ingreso)
+                    ) : d.Fecha_Fin ? (
                       <span>
                         {formatearFechaCorta(d.Fecha_Inicio)} - {formatearFechaCorta(d.Fecha_Fin)}
                       </span>

@@ -1,7 +1,7 @@
 import prisma from "../config/prisma.js";
 
 
-// Esto es para incluir todas las relaciones 
+// Esto es para incluir todas las relaciones
 const includeFull = {
   tipo_denuncia: true,
   estado_denuncia: true,
@@ -20,15 +20,15 @@ const includeFull = {
     }
   },
   archivos: true, // Relación directa: archivos vinculados a esta denuncia específica
-  datos_denunciados: { 
-    include: { 
+  datos_denunciados: {
+    include: {
       persona: true // Incluir la relación con Persona si fue identificado
-    } 
-  }, 
-  participante_denuncia: { 
-    include: { 
+    }
+  },
+  participante_denuncia: {
+    include: {
       persona: true // Incluir la relación con Persona si tiene RUT
-    } 
+    }
   },
   medidas_cautelares: { include: { tipos_cautelar: true } },
   informe_tecnico: true,
@@ -98,12 +98,12 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         comuna: payload.comunaDenunciante || undefined,
         direccion: payload.direccionDenunciante || undefined
     };
-    
+
     // Si viene Carrera_Cargo y la persona no lo tenía, actualizarlo
     if (payload.carreraCargo && payload.carreraCargo.trim()) {
       updateData.Carrera_Cargo = payload.carreraCargo.trim();
     }
-    
+
     const denunciante = await tx.persona.upsert({
       where: { Rut: payload.Rut.trim() },
       update: updateData,
@@ -171,19 +171,19 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           : undefined,
       },
     });
-    
+
     // 2.5️⃣ Si es denuncia de campo clínico, crear Detalle_Campo_Clinico
     if (esCampoClinico) {
       if (!payload.detalleCampoClinico) {
         throw new Error("Los datos de campo clínico son obligatorios para este tipo de denuncia");
       }
-      
+
       await tx.detalle_Campo_Clinico.create({
         data: {
           ID_Denuncia: denuncia.ID_Denuncia,
           Nombre_Establecimiento: payload.detalleCampoClinico.nombreEstablecimiento,
           Unidad_Servicio: payload.detalleCampoClinico.unidadServicio,
-          Tipo_Vinculacion_Denunciado: payload.detalleCampoClinico.tipoVinculacionDenunciado,
+          Tipo_Vinculacion_Denunciado: payload.detalleCampoClinico.tipoVinculacionDenunciado || '',
           Region: payload.detalleCampoClinico.region || null,
           Comuna: payload.detalleCampoClinico.comuna || null,
           Direccion_Establecimiento: payload.detalleCampoClinico.direccionEstablecimiento || null
@@ -194,9 +194,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     // 3️⃣ PARTICIPANTES (Denunciados + Testigos + Víctima Externa)
     const participantes = [];
 
+    // DEBUG: Verificar qué se recibe en payload.victima
+    console.log('🔍 DEBUG - payload.victima:', JSON.stringify(payload.victima, null, 2));
+    console.log('🔍 DEBUG - esVictima debería ser false cuando hay víctima externa');
+
     // Agregar víctima externa como participante PRIMERO si existe y tiene RUT
     // Esto es importante para que la víctima esté disponible en la lista de participantes
     if (payload.victima && payload.victima.rut && typeof payload.victima.rut === 'string' && payload.victima.rut.trim().length > 0) {
+      console.log('✅ Guardando víctima externa con Tipo_PD: VICTIMA');
       // Crear o actualizar la persona víctima
       const personaVictima = await tx.persona.upsert({
         where: { Rut: payload.victima.rut.trim() },
@@ -216,13 +221,21 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
           genero: payload.victima.genero || null,
         }
       });
-      
-      // Agregar víctima como participante
+
+      // Agregar víctima como participante con tipo VICTIMA
       participantes.push({
         ID_Denuncia: denuncia.ID_Denuncia,
         ID_Persona: personaVictima.ID,
         Nombre_PD: payload.victima.nombre || "Sin nombre",
+        Tipo_PD: 'VICTIMA', // IMPORTANTE: Marcar explícitamente como VICTIMA
       });
+      console.log('✅ Víctima agregada a participantes:', {
+        nombre: payload.victima.nombre,
+        rut: payload.victima.rut,
+        Tipo_PD: 'VICTIMA'
+      });
+    } else {
+      console.log('⚠️ NO se guardó víctima externa. payload.victima:', payload.victima);
     }
 
     // Denunciados
@@ -262,6 +275,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
             ID_Denuncia: denuncia.ID_Denuncia,
             ID_Persona: personaId,
             Nombre_PD: p.nombre ?? "Desconocido",
+            Tipo_PD: 'DENUNCIADO', // Marcar explícitamente como DENUNCIADO
           });
         }
       }
@@ -295,6 +309,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
             ID_Denuncia: denuncia.ID_Denuncia,
             ID_Persona: personaId,
             Nombre_PD: t.nombre ?? "Desconocido",
+            Tipo_PD: 'TESTIGO', // Marcar explícitamente como TESTIGO
           });
         }
       }
@@ -302,7 +317,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
     // Guardar todos los participantes (víctima + denunciados + testigos)
     if (participantes.length > 0) {
+      console.log('📝 Guardando participantes:', JSON.stringify(participantes.map(p => ({
+        Nombre_PD: p.Nombre_PD,
+        Tipo_PD: p.Tipo_PD
+      })), null, 2));
       await tx.participante_Denuncia.createMany({ data: participantes });
+      console.log('✅ Participantes guardados exitosamente');
+    } else {
+      console.log('⚠️ No hay participantes para guardar');
     }
 
     // 4️⃣ EVIDENCIAS Y CARACTERÍSTICAS
@@ -411,12 +433,12 @@ export async function updateDenunciaService(id, data) {
         Relato_Hechos: data.Relato_Hechos ?? prev.Relato_Hechos,
         Ubicacion: data.Ubicacion ?? prev.Ubicacion,
     };
-    
+
     // Si se proporciona observación, actualizar observacionDirgegen
     if (data.observacion !== undefined) {
       updateData.observacionDirgegen = data.observacion ? String(data.observacion) : null;
     }
-    
+
     const denunciaActualizada = await tx.denuncia.update({
       where: { ID_Denuncia: Number(id) },
       data: updateData,
@@ -608,7 +630,7 @@ export async function updateDenunciaService(id, data) {
             });
             const tipoDestino = nuevoTipo?.Nombre || "Dirgegen";
             const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
-            
+
             const promesasNotificacion = usuariosDirgegen.map((pc) =>
               crearNotificacion(
                 {
@@ -646,7 +668,7 @@ export async function updateDenunciaService(id, data) {
             });
             const tipoDestino = nuevoTipo?.Nombre || "VRA";
             const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
-            
+
             const promesasNotificacion = usuariosVRA.map((pc) =>
               crearNotificacion(
                 {

@@ -13,7 +13,7 @@ export default function DetalleRevisor() {
   const [denuncia, setDenuncia] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [showIdentificarModal, setShowIdentificarModal] = useState(false)
-  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string } | null>(null)
+  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{ id: number; nombre: string; datos?: any } | null>(null)
   const [selectedDenunciado, setSelectedDenunciado] = useState<any | null>(null)
   const [showModalDenunciado, setShowModalDenunciado] = useState(false)
   const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null)
@@ -59,21 +59,41 @@ export default function DetalleRevisor() {
     </div>
   )
 
-  // Leer datos de denunciados
-  const listaInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
+  // Denunciados: Filtrar para excluir al denunciante
+  const todosInvolucrados = denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
+  const listaInvolucrados = todosInvolucrados.filter((inv: any) => {
+    // Excluir si es el denunciante (por ID_Persona o por nombre si no tiene ID)
+    const denuncianteId = denuncia?.denunciante?.ID || datosDenuncianteObj?.ID;
+    if (inv.ID_Persona && denuncianteId && inv.ID_Persona === denuncianteId) {
+      return false;
+    }
+    // También verificar por RUT si está disponible
+    if (inv.persona?.Rut && datosDenuncianteObj?.Rut && inv.persona.Rut === datosDenuncianteObj.Rut) {
+      return false;
+    }
+    return true;
+  });
 
-  // Testigos: filtrar participantes que NO están en datos_denunciados
+  // Testigos: Filtrar por Tipo_PD === 'TESTIGO' (más confiable que por exclusión)
   const todosParticipantes = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
+  const listaTestigos = todosParticipantes.filter((p: any) => {
+    // Buscar directamente por Tipo_PD === 'TESTIGO'
+    const esTestigo = p.Tipo_PD === 'TESTIGO' || p.tipo_PD === 'TESTIGO';
+
+    // Fallback para compatibilidad con datos antiguos: si no tiene Tipo_PD, usar exclusión
+    if (!p.Tipo_PD && !p.tipo_PD) {
   const nombresDenunciados = new Set(
     listaInvolucrados.map((inv: any) =>
       (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
     )
   );
-
-  // Filtrar: testigos son los que NO están en datos_denunciados
-  const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
-    return !nombresDenunciados.has(nombreParticipante);
+      // Excluir si es denunciado o víctima (para datos antiguos)
+      return !nombresDenunciados.has(nombreParticipante) &&
+             p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID);
+    }
+
+    return esTestigo;
   });
 
   // Extraer archivos de la estructura anidada o del campo plano, filtrando duplicados
@@ -119,11 +139,23 @@ export default function DetalleRevisor() {
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
 
 
-    // Determinar si el denunciante es la víctima buscando en los hitos
-    let esVictima = false;
+    // Determinar si el denunciante es la víctima
+    // PRIMERO: Verificar si existe un participante con Tipo_PD === 'VICTIMA' (más confiable)
+    const todosParticipantesParaVictima = denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
+    const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
+
+    // Buscar víctima externa por Tipo_PD
+    const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
+      return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+             (!denuncianteId || p.ID_Persona !== denuncianteId);
+    });
+
+    // Si existe una víctima externa, el denunciante NO es la víctima
+    let esVictima = !victimaExternaPorTipo;
     let victimaMenor = false;
 
-    if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+    // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
+    if (!victimaExternaPorTipo && denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
       for (const pc of denuncia.denunciante.participantes_caso) {
         if (pc.hitos && Array.isArray(pc.hitos)) {
           for (const hito of pc.hitos) {
@@ -131,6 +163,9 @@ export default function DetalleRevisor() {
               const desc = hito.Descripcion;
               if (desc.includes('Denunciante es la víctima')) {
                 esVictima = true;
+              }
+              if (desc.includes('Denunciante es testigo/tercero')) {
+                esVictima = false; // Si dice explícitamente que NO es la víctima
               }
               if (desc.includes('Víctima es menor de edad') || desc.toLowerCase().includes('menor de edad')) {
                 victimaMenor = true;
@@ -145,38 +180,50 @@ export default function DetalleRevisor() {
 
     // Si no es víctima, buscar víctima externa en participantes
     let victimaExterna: any = null;
-    const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
 
     if (!esVictima) {
-      victimaExterna = todosParticipantes.find((p: any) => {
-        return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+      // Primero intentar buscar directamente en denuncia.victima si existe
+      if (denuncia?.victima) {
+        victimaExterna = { persona: denuncia.victima };
+      } else {
+        // Usar la víctima encontrada por tipo (ya la tenemos arriba)
+        victimaExterna = victimaExternaPorTipo || null;
+
+        // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
+        if (!victimaExterna) {
+          const participantesConPersona = todosParticipantes.filter((p: any) => {
+            return p.ID_Persona && p.persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
       });
+          victimaExterna = participantesConPersona[0] || null;
+        }
+      }
     }
 
-    // Datos finales para mostrar
+    // Datos finales para mostrar - IMPORTANTE: Si esVictima es true, usar datos del denunciante
+    // Si esVictima es false, usar datos de la víctima externa encontrada
     const nombreVictima = esVictima
       ? nombreCompletoDenunciante
-      : (victimaExterna?.persona?.Nombre || 'No identificado');
+      : (victimaExterna?.persona?.Nombre || victimaExterna?.Nombre || 'No identificado');
 
     const rutVictima = esVictima
       ? rutDenunciante
-      : (victimaExterna?.persona?.Rut || null);
+      : (victimaExterna?.persona?.Rut || victimaExterna?.Rut || null);
 
     const correoVictima = esVictima
       ? correoDenunciante
-      : (victimaExterna?.persona?.Correo || null);
+      : (victimaExterna?.persona?.Correo || victimaExterna?.Correo || null);
 
     const telefonoVictima = esVictima
       ? telefonoDenunciante
-      : (victimaExterna?.persona?.Telefono || null);
+      : (victimaExterna?.persona?.Telefono || victimaExterna?.Telefono || null);
 
     const generoVictima = esVictima
       ? generoDenunciante
-      : (victimaExterna?.persona?.genero || null);
+      : (victimaExterna?.persona?.genero || victimaExterna?.genero || null);
 
     const sexoVictima = esVictima
-      ? null
-      : (victimaExterna?.persona?.sexo || null);
+      ? sexoDenunciante
+      : (victimaExterna?.persona?.sexo || victimaExterna?.sexo || null);
 
   // Verificar si la denuncia fue derivada y tiene observación
   const observacionDerivacion = denuncia.observacionDirgegen;
@@ -352,7 +399,11 @@ export default function DetalleRevisor() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation() // Prevenir que se abra el modal de detalles
-                                setDenunciadoAIdentificar({ id: inv.ID_Datos || inv.id, nombre: nombreCompleto })
+                                setDenunciadoAIdentificar({
+                                  id: inv.ID_Datos || inv.id,
+                                  nombre: nombreCompleto,
+                                  datos: inv // Pasar todo el objeto del denunciado
+                                })
                                 setShowIdentificarModal(true)
                               }}
                               className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
@@ -868,6 +919,7 @@ export default function DetalleRevisor() {
           }}
           idDatosDenunciado={denunciadoAIdentificar.id}
           nombreActual={denunciadoAIdentificar.nombre}
+          datosDenunciado={denunciadoAIdentificar.datos}
         />
       )}
 

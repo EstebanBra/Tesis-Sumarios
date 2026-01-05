@@ -1,0 +1,19 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- AlterTable
+ALTER TABLE [dbo].[Participante_Denuncia] ADD [Tipo_PD] VARCHAR(50) NOT NULL CONSTRAINT [Participante_Denuncia_Tipo_PD_df] DEFAULT 'TESTIGO';
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

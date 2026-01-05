@@ -1,0 +1,56 @@
+services:
+  vpn:
+    image: qmcgaw/gluetun:latest
+    container_name: app-vpn
+    expose:
+      - '3000'
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=openvpn
+      - OPENVPN_CUSTOM_CONFIG=/gluetun/custom.conf
+      - OPENVPN_USER_SECRETFILE=/tmp/vpn/user.txt
+      - OPENVPN_PASSWORD_SECRETFILE=/tmp/vpn/pass.txt
+
+      - FIREWALL_OUTBOUND_SUBNETS=172.16.0.0/12,192.168.0.0/16,52.0.0.0/8,54.0.0.0/8,3.0.0.0/8,1.1.1.1/32,8.8.8.8/32
+
+      - HEALTH_RESTART_VPN=off
+
+      - HEALTH_TARGET_ADDRESSES=127.0.0.1:9999
+
+      - PUBLICIP_ENABLED=no
+      - DOT=off
+      - DNS_ADDRESS=1.1.1.1
+      - DNS_KEEP_NAMESERVER=on
+      - OPENVPN_ENDPOINT_IP=146.83.201.123
+      - LOG_LEVEL=info
+      - OPENVPN_VERBOSITY=1
+      - OPENVPN_FLAGS=--ping 10 --ping-exit 60 --inactive 3600 --mute-replay-warnings --route-nopull --route 146.83.195.78 255.255.255.255 vpn_gateway
+    extra_hosts:
+      - 'sistemas.dci.ubiobio.cl:146.83.195.78'
+    volumes:
+      - ./vpn/vpn.conf.ovpn:/gluetun/custom.conf:ro
+
+      - ./vpn/vpn_user.txt:/tmp/vpn/user.txt:ro
+      - ./vpn/vpn_password.txt:/tmp/vpn/pass.txt:ro
+    networks:
+      app-network:
+        aliases:
+          - backend
+    restart: unless-stopped
+
+    healthcheck:
+      test: ['CMD', 'pgrep', 'openvpn']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+
+  backend:
+    network_mode: service:vpn
+    depends_on:
+      vpn:
+        condition: service_healthy

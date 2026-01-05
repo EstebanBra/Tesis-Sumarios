@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
-export type TipoDerivacionVRA = 'vra_general' | 'casos_clinicos';
+export type TipoDerivacionVRA = 'vra_general';
 
 interface Props {
   isOpen: boolean;
@@ -8,9 +8,16 @@ interface Props {
   // Ahora también enviamos el tipo de derivación VRA
   onConfirm: (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => void;
   isProcessing: boolean;
+  derivarADirgegen?: boolean; // Si es true, el modal es para derivar a Dirgegen
 }
 
-export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessing }: Props) {
+export default function DerivacionModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isProcessing,
+  derivarADirgegen = false,
+}: Props) {
   const [observacion, setObservacion] = useState('');
   const [tipoDerivacion, setTipoDerivacion] = useState<TipoDerivacionVRA>('vra_general');
 
@@ -29,52 +36,54 @@ export default function DerivacionModal({ isOpen, onClose, onConfirm, isProcessi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Derivar Caso a VRA</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          {derivarADirgegen ? 'Derivar Caso a Dirgegen' : 'Derivar Caso a VRA'}
+        </h2>
         <p className="text-sm text-gray-500 mb-4">
-          Selecciona el tipo de derivación y completa la observación obligatoria.
+          {derivarADirgegen
+            ? 'Completa la observación obligatoria para derivar el caso.'
+            : 'Selecciona el tipo de derivación y completa la observación obligatoria.'}
         </p>
 
         <form onSubmit={handleSubmit}>
-          {/* Selector de tipo de derivación VRA */}
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Tipo de Derivación a VRA *
-            </label>
-            <div className="space-y-2">
-              <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
-                <input
-                  type="radio"
-                  name="tipoDerivacion"
-                  value="vra_general"
-                  checked={tipoDerivacion === 'vra_general'}
-                  onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
-                  className="mr-3 text-ubb-blue focus:ring-ubb-blue"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-900">VRA General</span>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Derivación a Vicerrectoría Académica General
-                  </p>
-                </div>
+          {/* Selector de tipo de derivación VRA o Dirgegen */}
+          {!derivarADirgegen ? (
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tipo de Derivación a VRA *
               </label>
-              <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
-                <input
-                  type="radio"
-                  name="tipoDerivacion"
-                  value="casos_clinicos"
-                  checked={tipoDerivacion === 'casos_clinicos'}
-                  onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
-                  className="mr-3 text-ubb-blue focus:ring-ubb-blue"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Casos Clínicos</span>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Derivación a área de Casos Clínicos
-                  </p>
-                </div>
-              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="tipoDerivacion"
+                    value="vra_general"
+                    checked={tipoDerivacion === 'vra_general'}
+                    onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                    className="mr-3 text-ubb-blue focus:ring-ubb-blue"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">VRA General</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Derivación a Vicerrectoría Académica General
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Destino de la Derivación *
+              </label>
+              <div className="p-3 border border-gray-300 rounded-md bg-gray-50">
+                <span className="text-sm font-medium text-gray-900">Dirgegen</span>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Derivar a Dirección de Género y Equidad
+                </p>
+              </div>
+            </div>
+          )}
 
           <label className="block text-sm font-semibold text-gray-700 mb-1">Observación *</label>
           <textarea
