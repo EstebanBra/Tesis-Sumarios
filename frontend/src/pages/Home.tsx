@@ -10,12 +10,13 @@ export default function Home() {
   const isVRA = hasRole('VRA')
   const isVRAE = hasRole('VRAE')
   const isRevisor = hasRole('REVISOR') || hasRole('Revisor')
+  const isCampoClinico = hasRole('CampoClinico')
 
   return (
     <div className="space-y-10 py-6">
 
-      {/* SECCIÓN 1: PANEL DE GESTIÓN (Visible para Dirgegen, VRA, VRAE o Revisor) */}
-      {(isDirgegen || isVRA || isVRAE || isRevisor) && (
+      {/* SECCIÓN 1: PANEL DE GESTIÓN (Visible para Dirgegen, VRA, VRAE, Revisor o CampoClinico) */}
+      {(isDirgegen || isVRA || isVRAE || isRevisor || isCampoClinico) && (
         <section className="bg-blue-50 border border-blue-100 rounded-xl p-8 text-center animate-in fade-in slide-in-from-top-4 duration-500">
           <div className="inline-flex items-center gap-2 mb-4 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
             Espacio de Trabajo
@@ -26,6 +27,7 @@ export default function Home() {
             {isVRA && 'Panel de Gestión VRA'}
             {isVRAE && 'Panel de Gestión VRAE'}
             {isRevisor && 'Panel de Gestión Revisor'}
+            {isCampoClinico && 'Panel de Gestión Campo Clínico'}
           </h1>
 
           <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
@@ -33,6 +35,7 @@ export default function Home() {
             {isVRA && 'Accede a la administración de casos derivados por razones de género o por convivencia estudiantil, donde el denunciado es un estudiante.'}
             {isVRAE && 'Accede a la administración de casos derivados por razones de género, donde el denunciado es un funcionario o académico.'}
             {isRevisor && 'Accede a la vista transversal de todas las denuncias del sistema para revisión y gestión de datos de denunciados.'}
+            {isCampoClinico && 'Accede a la administración de denuncias de Convivencia en Campos Clínicos según la Norma de Carácter General N°4 de la Superintendencia de Educación Superior.'}
           </p>
 
           <div className="flex justify-center">
@@ -40,6 +43,7 @@ export default function Home() {
               to={
                 isDirgegen ? '/dirgegen/bandeja'
                 : isRevisor ? '/revisor/bandeja'
+                : isCampoClinico ? '/campo-clinico/bandeja'
                 : '/autoridad/bandeja'
               }
               className="inline-flex items-center gap-2 rounded-md bg-ubb-blue px-6 py-3 text-base font-semibold text-white shadow-md hover:bg-blue-800 transition-all"

@@ -151,6 +151,14 @@ export async function runInitialSetup() {
       password: passwordHash,
       roles: ['REVISOR'],
     },
+    {
+      Rut: '66666666-6',
+      Nombre: 'Usuario Campo Clínico',
+      Correo: 'campoclinico@ubb.cl',
+      Telefono: '+56966666666',
+      password: passwordHash,
+      roles: ['CampoClinico'],
+    },
     // Actores del caso (Sin rol administrativo)
     {
       Rut: '10000000-1',

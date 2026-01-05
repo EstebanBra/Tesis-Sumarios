@@ -46,12 +46,12 @@ router.post("/:id/evidencia", idParamRule, subirEvidenciaDenuncia);
 
 router.put("/:id", updateDenunciaRules, updateDenuncia);
 
-// esto es para el cambio de estado 
+// esto es para el cambio de estado
 router.patch("/:id/estado", verifyToken, hasRole(['Autoridad', 'Fiscal', 'Dirgegen','VRA','VRAE' ]),
  changeEstadoRules, changeEstado
 );
-// Ruta de gestión (usada por Dirgegen y VRA para derivar)
-router.patch("/:id/gestionar", verifyToken, hasRole(['Dirgegen', 'VRA', 'VRAE']), idParamRule, updateDenuncia);
+// Ruta de gestión (usada por Dirgegen, VRA, VRAE y CampoClinico para derivar)
+router.patch("/:id/gestionar", verifyToken, hasRole(['Dirgegen', 'VRA', 'VRAE', 'CampoClinico']), idParamRule, updateDenuncia);
 // ver bien esto
 router.delete("/:id", hasRole(['Admin']), idParamRule, deleteDenuncia);
 

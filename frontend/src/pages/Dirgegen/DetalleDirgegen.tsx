@@ -53,26 +53,31 @@ export default function DetalleDirgegen() {
     cargarDatos();
   }, [cargarDatos]);
 
-  const handleDerivacionConfirm = async (
-    observacion: string,
-  ) => {
+  const handleDerivacionConfirm = async (observacion: string, nuevoTipoId?: number) => {
     if (!denuncia) return;
     try {
       setProcessing(true);
       const idDenuncia = denuncia.ID_Denuncia || denuncia.id;
 
-      // Mapear tipo de derivación a nuevoTipoId
-      // 301 = VRA General
-      const nuevoTipoId = 301;
+      // Si no se proporciona nuevoTipoId, usar el valor por defecto (legacy)
+      const tipoIdFinal = nuevoTipoId || 301; // Default: VRA para compatibilidad
+
+      // Obtener el nombre del destino para el mensaje
+      const opcionesDestino = [
+        { id: 301, nombre: 'VRA' },
+        { id: 300, nombre: 'Campo Clínico' },
+      ];
+      const destino =
+        opcionesDestino.find(o => o.id === tipoIdFinal)?.nombre || 'destino seleccionado';
+      const mensajeExito = `Denuncia derivada exitosamente a ${destino}.`;
 
       await gestionarDenuncia(idDenuncia, {
         observacion,
-        nuevoEstadoId: 3,
-        nuevoTipoId,
+        nuevoEstadoId: 3, // Estado "Derivada"
+        nuevoTipoId: tipoIdFinal,
       });
       setShowModal(false);
-      const mensaje = 'Denuncia derivada exitosamente a VRA General.';
-      alert(mensaje);
+      alert(mensajeExito);
       navigate('/dirgegen/bandeja');
     } catch (error) {
       console.error(error);
@@ -119,7 +124,11 @@ export default function DetalleDirgegen() {
       return false;
     }
     // También verificar por RUT si está disponible
-    if (inv.persona?.Rut && datosDenuncianteObj?.Rut && inv.persona.Rut === datosDenuncianteObj.Rut) {
+    if (
+      inv.persona?.Rut &&
+      datosDenuncianteObj?.Rut &&
+      inv.persona.Rut === datosDenuncianteObj.Rut
+    ) {
       return false;
     }
     return true;
@@ -143,10 +152,12 @@ export default function DetalleDirgegen() {
 
     // Fallback para compatibilidad con datos antiguos: si no tiene Tipo_PD, usar exclusión
     if (!p.Tipo_PD && !p.tipo_PD) {
-    const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
+      const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
       // Excluir si es denunciado o víctima (para datos antiguos)
-      return !nombresDenunciados.has(nombreParticipante) &&
-             p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID);
+      return (
+        !nombresDenunciados.has(nombreParticipante) &&
+        p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID)
+      );
     }
 
     return esTestigo;
@@ -207,8 +218,10 @@ export default function DetalleDirgegen() {
 
   // Buscar víctima externa por Tipo_PD
   const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
-    return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
-           (!denuncianteId || p.ID_Persona !== denuncianteId);
+    return (
+      (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+      (!denuncianteId || p.ID_Persona !== denuncianteId)
+    );
   });
 
   // Si existe una víctima externa, el denunciante NO es la víctima
@@ -216,7 +229,11 @@ export default function DetalleDirgegen() {
   let victimaMenor = false;
 
   // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
-  if (!victimaExternaPorTipo && denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+  if (
+    !victimaExternaPorTipo &&
+    denuncia.denunciante?.participantes_caso &&
+    Array.isArray(denuncia.denunciante.participantes_caso)
+  ) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
         for (const hito of pc.hitos) {
@@ -253,11 +270,12 @@ export default function DetalleDirgegen() {
 
     // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
     if (!victimaExterna) {
-    victimaExterna = todosParticipantes.find((p: any) => {
-      // La víctima externa debe tener ID_Persona (fue guardada como persona)
-      // y no debe ser el denunciante
-      return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
-      }) || null;
+      victimaExterna =
+        todosParticipantes.find((p: any) => {
+          // La víctima externa debe tener ID_Persona (fue guardada como persona)
+          // y no debe ser el denunciante
+          return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+        }) || null;
     }
   }
 
@@ -286,35 +304,41 @@ export default function DetalleDirgegen() {
   const solicitudPendiente = solicitudesDeMedida.find((s: any) => s.Estado === 'Pendiente Informe');
   const tieneInforme = !!(denuncia.informe_tecnico || denuncia.InformeTecnico);
 
+  // Verificar si la denuncia fue derivada y tiene observación
+  const observacionDerivacion = denuncia.observacionDirgegen;
+  const tipoActual = denuncia.tipo_denuncia?.ID_TipoDe;
+  // Fue derivada si tiene observaciónDirgegen
+  // - Si el tipo es 303: fue derivada A Dirgegen desde otra unidad (VRA, Campo Clínico)
+  // - Si el tipo es 301, 300, 302: fue derivada DESDE Dirgegen a otra unidad
+  // - Si el tipo es 100: es Dirgegen original, no derivada
+  const fueDerivada = !!observacionDerivacion && tipoActual !== 100;
+
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
       {/* --- BANNER DE OBSERVACIÓN DE DERIVACIÓN (si fue derivada) --- */}
-      {(denuncia.tipo_denuncia?.ID_TipoDe === 301 ||
-        denuncia.tipo_denuncia?.ID_TipoDe === 302 ||
-        denuncia.tipo_denuncia?.ID_TipoDe === 303) &&
-        denuncia.observacionDirgegen && (
-          <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-blue-900 mb-1">
-                  Esta denuncia fue derivada a {denuncia.tipo_denuncia?.Nombre || 'VRA'}
-                </h3>
-                <p className="text-sm text-blue-800">
-                  <strong>Observación de derivación:</strong> {denuncia.observacionDirgegen}
-                </p>
-              </div>
+      {fueDerivada && observacionDerivacion && (
+        <div className="rounded-lg border border-blue-300 bg-blue-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-bold text-blue-900 mb-1">
+                Esta denuncia fue derivada a {denuncia.tipo_denuncia?.Nombre || 'otra unidad'}
+              </h3>
+              <p className="text-sm text-blue-800">
+                <strong>Observación de derivación:</strong> {observacionDerivacion}
+              </p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* --- ALERTAS --- */}
       <div className="space-y-4">
@@ -898,12 +922,21 @@ export default function DetalleDirgegen() {
       </div>
 
       {/* --- MODALES --- */}
-      <DerivacionModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onConfirm={handleDerivacionConfirm}
-        isProcessing={processing}
-      />
+      {(() => {
+        const Modal = DerivacionModal as any;
+        return (
+          <Modal
+            isOpen={showModal}
+            onClose={() => setShowModal(false)}
+            onConfirm={handleDerivacionConfirm}
+            isProcessing={processing}
+            opcionesDestino={[
+              { id: 301, nombre: 'VRA' },
+              { id: 300, nombre: 'Campo Clínico' },
+            ]}
+          />
+        );
+      })()}
       {denuncia && (
         <InformeTecnicoModal
           isOpen={showInformeModal}

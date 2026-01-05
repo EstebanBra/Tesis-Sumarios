@@ -98,6 +98,16 @@ export default function Header() {
             </Link>
           )}
 
+          {/* Enlace para CampoClinico */}
+          {hasRole('CampoClinico') && (
+            <Link
+              to="/campo-clinico/bandeja"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Bandeja Campo Clínico
+            </Link>
+          )}
+
           {/* Zona de usuario al extremo derecho (placeholder) */}
           <div className="ml-auto inline-flex items-center gap-3 py-2">
             {isAuthenticated && (

@@ -606,9 +606,9 @@ export async function updateDenunciaService(id, data) {
       include: includeFull, // Usar includeFull para traer todos los datos
     });
 
-    // 6️⃣ Si se cambió el tipo a VRA (301, 302) o Dirgegen (303) y hay observación, notificar
+    // 6️⃣ Si se cambió el tipo a VRA (301, 302), Dirgegen (303) o Campo Clínico (300) y hay observación, notificar
     const nuevoTipoId = data.ID_TipoDe ?? prev.ID_TipoDe;
-    if ((nuevoTipoId === 301 || nuevoTipoId === 302 || nuevoTipoId === 303) && data.observacion) {
+    if ((nuevoTipoId === 300 || nuevoTipoId === 301 || nuevoTipoId === 302 || nuevoTipoId === 303) && data.observacion) {
       try {
         const { crearNotificacion } = await import('./notificacion.service.js');
         const { getIO } = await import('../socket/socket.js');
@@ -689,6 +689,44 @@ export async function updateDenunciaService(id, data) {
 
             Promise.all(promesasNotificacion).catch(err => {
               console.error('Error al notificar derivación a VRA:', err);
+            });
+          }
+        } else if (nuevoTipoId === 300) {
+          // Derivación a Campo Clínico - notificar a usuarios CampoClinico
+          const usuariosCampoClinico = await prisma.participante_Caso.findMany({
+            where: {
+              Tipo_PC: {
+                in: ['CampoClinico', 'Campo Clínico', 'CAMPO_CLINICO', 'EncargadoCampoClinico'],
+              },
+            },
+            include: {
+              persona: true,
+            },
+          });
+
+          if (usuariosCampoClinico.length > 0) {
+            const nuevoTipo = await prisma.tipo_Denuncia.findUnique({
+              where: { ID_TipoDe: Number(nuevoTipoId) },
+            });
+            const tipoDestino = nuevoTipo?.Nombre || 'Campo Clínico';
+            const mensajeNotificacion = `Una denuncia ha sido derivada a ${tipoDestino}.\n\nObservación de derivación:\n"${data.observacion}"`;
+
+            const promesasNotificacion = usuariosCampoClinico.map(pc =>
+              crearNotificacion(
+                {
+                  ID_Usuario: pc.ID_Persona,
+                  Tipo: 'DENUNCIA_DERIVADA',
+                  Titulo: `Denuncia Derivada a ${tipoDestino}`,
+                  Mensaje: mensajeNotificacion,
+                  ID_Denuncia: Number(id),
+                  enviarEmail: true,
+                },
+                io
+              )
+            );
+
+            Promise.all(promesasNotificacion).catch(err => {
+              console.error('Error al notificar derivación a Campo Clínico:', err);
             });
           }
         }
