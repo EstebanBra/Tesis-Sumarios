@@ -1,35 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getDenunciaById } from '@/services/denuncias.api';
-import DerivacionModal, { type TipoDerivacionVRA } from '@/pages/Denuncias/components/Derivacion';
-import SolicitudFiscaliaModal from './components/SolicitudFiscaliaModal';
-import InstruirInvestigacionModal from './components/InstruirInvestigacionModal';
+import { getDenunciaById, gestionarDenuncia } from '@/services/denuncias.api';
+import DerivacionModal from '@/pages/Denuncias/components/Derivacion';
+import IdentificarDenunciadoModal from '../Dirgegen/components/IdentificarDenunciadoModal';
 import ModalDetalleDenunciado from '@/components/modals/ModalDetalleDenunciado';
 import ModalDetalleTestigo from '@/components/modals/ModalDetalleTestigo';
 import EvidenciaViewer from '@/components/EvidenciaViewer';
-//import { formatearFechaCorta } from '@/utils/date.utils'
 
-export default function DetalleAutoridad() {
+export default function DetalleCampoClinico() {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [denuncia, setDenuncia] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showSolicitudFiscalia, setShowSolicitudFiscalia] = useState(false);
   const [showDerivacion, setShowDerivacion] = useState(false);
-  const [showInstruirInvestigacion, setShowInstruirInvestigacion] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [showIdentificarModal, setShowIdentificarModal] = useState(false);
+  const [denunciadoAIdentificar, setDenunciadoAIdentificar] = useState<{
+    id: number;
+    nombre: string;
+    datos?: any;
+  } | null>(null);
   const [selectedDenunciado, setSelectedDenunciado] = useState<any | null>(null);
   const [showModalDenunciado, setShowModalDenunciado] = useState(false);
   const [selectedTestigo, setSelectedTestigo] = useState<any | null>(null);
   const [showModalTestigo, setShowModalTestigo] = useState(false);
 
-  useEffect(() => {
+  const cargarDatos = useCallback(async () => {
     if (!id) return;
-    cargarDatos();
-  }, [id]);
-
-  async function cargarDatos() {
     try {
       const data = await getDenunciaById(Number(id));
       setDenuncia(data);
@@ -38,44 +36,50 @@ export default function DetalleAutoridad() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
   // Handler para derivar con opciones dinámicas
-  const handleDerivacion = async (observacion: string, nuevoTipoId?: number, _tipoDerivacion?: TipoDerivacionVRA) => {
+  const handleDerivacion = (observacion: string, nuevoTipoId?: number) => {
     if (!denuncia) return;
-    try {
-      setProcessing(true);
-      const idDenuncia = denuncia.ID_Denuncia;
 
-      // Si no se proporciona nuevoTipoId, usar el valor por defecto (legacy)
-      const tipoIdFinal = nuevoTipoId || 303; // Default: Dirgegen para compatibilidad
+    (async () => {
+      try {
+        setProcessing(true);
+        const idDenuncia = denuncia.ID_Denuncia;
 
-      // Obtener el nombre del destino para el mensaje
-      const opcionesDestino = [
-        { id: 303, nombre: 'Dirgegen' },
-        { id: 300, nombre: 'Campo Clínico' },
-      ];
-      const destino = opcionesDestino.find(o => o.id === tipoIdFinal)?.nombre || 'destino seleccionado';
-      const mensajeExito = `Denuncia derivada exitosamente a ${destino}.`;
+        // Si no se proporciona nuevoTipoId, usar el valor por defecto
+        const tipoIdFinal = nuevoTipoId || 301; // Default: VRA para compatibilidad
 
-      // Usar la función gestionarDenuncia que ya existe
-      const { gestionarDenuncia } = await import('@/services/denuncias.api');
-      await gestionarDenuncia(idDenuncia, {
-        observacion,
-        nuevoEstadoId: 3, // Estado "Derivada"
-        nuevoTipoId: tipoIdFinal,
-      });
+        // Obtener el nombre del destino para el mensaje
+        const opcionesDestino = [
+          { id: 301, nombre: 'VRA' },
+          { id: 303, nombre: 'Dirgegen' },
+        ];
+        const destino =
+          opcionesDestino.find(o => o.id === tipoIdFinal)?.nombre || 'destino seleccionado';
+        const mensajeExito = `Denuncia derivada exitosamente a ${destino}.`;
 
-      setShowDerivacion(false);
-      alert(mensajeExito);
-      navigate('/autoridad/bandeja');
-    } catch (error) {
-      console.error(error);
-      alert('Error al derivar');
-    } finally {
-      setProcessing(false);
-    }
+        await gestionarDenuncia(idDenuncia, {
+          observacion,
+          nuevoEstadoId: 3, // Estado "Derivada"
+          nuevoTipoId: tipoIdFinal,
+        });
+
+        setShowDerivacion(false);
+        alert(mensajeExito);
+        navigate('/campo-clinico/bandeja');
+      } catch (error) {
+        console.error(error);
+        alert('Error al derivar');
+      } finally {
+        setProcessing(false);
+      }
+    })();
   };
+
+  useEffect(() => {
+    cargarDatos();
+  }, [cargarDatos]);
 
   const getProp = (obj: any, keyCap: string, keyLow: string) => {
     if (!obj) return '';
@@ -107,42 +111,51 @@ export default function DetalleAutoridad() {
       </div>
     );
 
+  // Verificar que sea una denuncia de Campos Clínicos (ID_TipoDe === 300)
+  const tipoId = denuncia?.ID_TipoDe || denuncia?.tipo_denuncia?.ID_TipoDe;
+  if (tipoId !== 300) {
+    return (
+      <div className="p-10 text-center text-red-600 font-bold border border-red-200 bg-red-50 rounded-lg mx-auto max-w-lg mt-10">
+        Error: Esta denuncia no corresponde a Campos Clínicos.
+      </div>
+    );
+  }
+
   // Denunciados: Filtrar para excluir al denunciante
   const todosInvolucrados =
     denuncia.datos_denunciados || denuncia.Involucrados || denuncia.involucrados || [];
   const listaInvolucrados = todosInvolucrados.filter((inv: any) => {
-    // Excluir si es el denunciante (por ID_Persona o por nombre si no tiene ID)
     const denuncianteId = denuncia?.denunciante?.ID || datosDenuncianteObj?.ID;
     if (inv.ID_Persona && denuncianteId && inv.ID_Persona === denuncianteId) {
       return false;
     }
-    // También verificar por RUT si está disponible
-    if (inv.persona?.Rut && datosDenuncianteObj?.Rut && inv.persona.Rut === datosDenuncianteObj.Rut) {
+    if (
+      inv.persona?.Rut &&
+      datosDenuncianteObj?.Rut &&
+      inv.persona.Rut === datosDenuncianteObj.Rut
+    ) {
       return false;
     }
     return true;
   });
 
-  // Testigos: Filtrar por Tipo_PD === 'TESTIGO' (más confiable que por exclusión)
+  // Testigos: Filtrar por Tipo_PD === 'TESTIGO'
   const todosParticipantes =
     denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
   const listaTestigos = todosParticipantes.filter((p: any) => {
-    // Buscar directamente por Tipo_PD === 'TESTIGO'
     const esTestigo = p.Tipo_PD === 'TESTIGO' || p.tipo_PD === 'TESTIGO';
-
-    // Fallback para compatibilidad con datos antiguos: si no tiene Tipo_PD, usar exclusión
     if (!p.Tipo_PD && !p.tipo_PD) {
-  const nombresDenunciados = new Set(
-    listaInvolucrados.map((inv: any) =>
-      (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
-    )
-  );
-    const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
-      // Excluir si es denunciado o víctima (para datos antiguos)
-      return !nombresDenunciados.has(nombreParticipante) &&
-             p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID);
+      const nombresDenunciados = new Set(
+        listaInvolucrados.map((inv: any) =>
+          (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
+        )
+      );
+      const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
+      return (
+        !nombresDenunciados.has(nombreParticipante) &&
+        p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID)
+      );
     }
-
     return esTestigo;
   });
 
@@ -158,7 +171,6 @@ export default function DetalleAutoridad() {
     denuncia.Archivos ||
     [];
 
-  // Filtrar duplicados por ID_Archivo
   const archivosUnicos = new Map();
   archivosRaw.forEach((arch: any) => {
     const id = arch.ID_Archivo || arch.id;
@@ -177,7 +189,7 @@ export default function DetalleAutoridad() {
   const relatoCaso = denuncia.Relato_Hechos || denuncia.relato;
   const estadoCaso = denuncia.estado_denuncia?.Tipo_Estado || denuncia.estado || 'Pendiente';
 
-  // Datos Denunciante: Si existe denuncia.denunciante, usar esos datos (persona con RUT reconocido)
+  // Datos Denunciante
   const datosDenuncianteObj = denuncia.denunciante || denuncia;
   const nombreCompletoDenunciante = getProp(datosDenuncianteObj, 'Nombre', 'nombre');
   const rutDenunciante = getProp(datosDenuncianteObj, 'Rut', 'rut');
@@ -193,22 +205,25 @@ export default function DetalleAutoridad() {
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
 
   // Determinar si el denunciante es la víctima
-  // PRIMERO: Verificar si existe un participante con Tipo_PD === 'VICTIMA' (más confiable)
-  const todosParticipantesParaVictima = todosParticipantes;
+  const todosParticipantesParaVictima =
+    denuncia.participante_denuncia || denuncia.Testigos || denuncia.testigos || [];
   const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
 
-  // Buscar víctima externa por Tipo_PD
   const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
-    return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
-           (!denuncianteId || p.ID_Persona !== denuncianteId);
+    return (
+      (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+      (!denuncianteId || p.ID_Persona !== denuncianteId)
+    );
   });
 
-  // Si existe una víctima externa, el denunciante NO es la víctima
   let esVictima = !victimaExternaPorTipo;
   let victimaMenor = false;
 
-  // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
-  if (!victimaExternaPorTipo && denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+  if (
+    !victimaExternaPorTipo &&
+    denuncia.denunciante?.participantes_caso &&
+    Array.isArray(denuncia.denunciante.participantes_caso)
+  ) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
         for (const hito of pc.hitos) {
@@ -218,7 +233,7 @@ export default function DetalleAutoridad() {
               esVictima = true;
             }
             if (desc.includes('Denunciante es testigo/tercero')) {
-              esVictima = false; // Si dice explícitamente que NO es la víctima
+              esVictima = false;
             }
             if (
               desc.includes('Víctima es menor de edad') ||
@@ -234,52 +249,44 @@ export default function DetalleAutoridad() {
     }
   }
 
-  // Si no es víctima, buscar víctima externa en participantes
   let victimaExterna: any = null;
-
   if (!esVictima) {
-    // Primero intentar buscar directamente en denuncia.victima si existe
     if (denuncia?.victima) {
       victimaExterna = { persona: denuncia.victima };
     } else {
-      // Usar la víctima encontrada por tipo (ya la tenemos arriba)
       victimaExterna = victimaExternaPorTipo || null;
-
-      // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
       if (!victimaExterna) {
         const participantesConPersona = todosParticipantes.filter((p: any) => {
           return p.ID_Persona && p.persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
-    });
+        });
         victimaExterna = participantesConPersona[0] || null;
       }
     }
   }
 
-  // Datos finales para mostrar - IMPORTANTE: Si esVictima es true, usar datos del denunciante
-  // Si esVictima es false, usar datos de la víctima externa encontrada
   const nombreVictima = esVictima
     ? nombreCompletoDenunciante
-    : (victimaExterna?.persona?.Nombre || victimaExterna?.Nombre || 'No identificado');
+    : victimaExterna?.persona?.Nombre || victimaExterna?.Nombre || 'No identificado';
 
   const rutVictima = esVictima
     ? rutDenunciante
-    : (victimaExterna?.persona?.Rut || victimaExterna?.Rut || null);
+    : victimaExterna?.persona?.Rut || victimaExterna?.Rut || null;
 
   const correoVictima = esVictima
     ? correoDenunciante
-    : (victimaExterna?.persona?.Correo || victimaExterna?.Correo || null);
+    : victimaExterna?.persona?.Correo || victimaExterna?.Correo || null;
 
   const telefonoVictima = esVictima
     ? telefonoDenunciante
-    : (victimaExterna?.persona?.Telefono || victimaExterna?.Telefono || null);
-
-  const sexoVictima = esVictima
-    ? sexoDenunciante
-    : (victimaExterna?.persona?.sexo || victimaExterna?.sexo || null);
+    : victimaExterna?.persona?.Telefono || victimaExterna?.Telefono || null;
 
   const generoVictima = esVictima
     ? generoDenunciante
-    : (victimaExterna?.persona?.genero || victimaExterna?.genero || null);
+    : victimaExterna?.persona?.genero || victimaExterna?.genero || null;
+
+  const sexoVictima = esVictima
+    ? sexoDenunciante
+    : victimaExterna?.persona?.sexo || victimaExterna?.sexo || null;
 
   // Verificar si la denuncia fue derivada y tiene observación
   const observacionDerivacion = denuncia.observacionDirgegen;
@@ -287,53 +294,6 @@ export default function DetalleAutoridad() {
     denuncia.tipo_denuncia?.ID_TipoDe === 301 ||
     denuncia.tipo_denuncia?.ID_TipoDe === 302 ||
     denuncia.tipo_denuncia?.ID_TipoDe === 303;
-
-  // Verificar si se puede instruir investigación (habilitado solo si ya tiene recomendación de fiscalía)
-  const puedeInstruirInvestigacion =
-    denuncia?.estado_denuncia?.Tipo_Estado === 'Recomendación Recibida' ||
-    denuncia?.estado_denuncia?.Tipo_Estado === 'En Investigación';
-
-  // Handler para solicitar recomendación a fiscalía
-  const handleSolicitudFiscalia = async (fundamentos: string) => {
-    if (!denuncia) return;
-    try {
-      setProcessing(true);
-      // TODO: Implementar llamada al backend
-      console.log('Solicitar recomendación a fiscalía:', { id: denuncia.ID_Denuncia, fundamentos });
-
-      setShowSolicitudFiscalia(false);
-      alert('Solicitud enviada a Fiscalía exitosamente (funcionalidad pendiente)');
-      navigate('/autoridad/bandeja');
-    } catch (error) {
-      console.error(error);
-      alert('Error al enviar solicitud');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  // Handler para instruir investigación sumaria
-  const handleInstruirInvestigacion = async (fiscalDesignado: string, observaciones: string) => {
-    if (!denuncia) return;
-    try {
-      setProcessing(true);
-      // TODO: Implementar llamada al backend
-      console.log('Instruir investigación sumaria:', {
-        id: denuncia.ID_Denuncia,
-        fiscalDesignado,
-        observaciones,
-      });
-
-      setShowInstruirInvestigacion(false);
-      alert('Investigación sumaria instruida exitosamente (funcionalidad pendiente)');
-      navigate('/autoridad/bandeja');
-    } catch (error) {
-      console.error(error);
-      alert('Error al instruir investigación');
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   return (
     <section className="mx-auto max-w-6xl pb-12 px-4 py-8 space-y-6">
@@ -433,7 +393,6 @@ export default function DetalleAutoridad() {
               {listaInvolucrados.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {listaInvolucrados.map((inv: any, idx: number) => {
-                    // Si está identificado, priorizar el nombre de persona.Nombre, sino usar Nombre_Ingresado
                     const nombreCompleto = inv.persona?.Nombre
                       ? inv.persona.Nombre.trim()
                       : (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || 'Sin Nombre').trim();
@@ -466,7 +425,6 @@ export default function DetalleAutoridad() {
                               )}
                             </div>
 
-                            {/* Mostrar datos de persona si está identificado */}
                             {estaIdentificado && inv.persona && (
                               <div className="mt-2 bg-green-50 border border-green-200 rounded p-2 text-xs">
                                 <p>
@@ -488,7 +446,6 @@ export default function DetalleAutoridad() {
                               </div>
                             )}
 
-                            {/* Mostrar información de identidad de género si existe */}
                             {(inv.persona?.sexo || inv.persona?.genero) && (
                               <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-xs">
                                 {inv.persona?.sexo && (
@@ -509,7 +466,6 @@ export default function DetalleAutoridad() {
                               </div>
                             )}
 
-                            {/* Mostrar descripción completa */}
                             {inv.Descripcion || inv.descripcion ? (
                               <p className="text-sm text-gray-700 mt-2 bg-orange-50/50 p-2 rounded border border-orange-100 whitespace-pre-wrap">
                                 {inv.Descripcion || inv.descripcion}
@@ -526,10 +482,22 @@ export default function DetalleAutoridad() {
                           </span>
                         </div>
 
-                        {/* Compatibilidad con campos antiguos si existieran */}
-                        {(inv.DescripcionFisica || inv.descripcionFisica) && !inv.Descripcion && (
-                          <div className="mt-3 bg-gray-50 p-3 rounded text-xs text-gray-600 italic border border-gray-100">
-                            "Descripción física: {inv.DescripcionFisica || inv.descripcionFisica}"
+                        {!estaIdentificado && (
+                          <div className="mt-3 pt-3 border-t border-orange-100">
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                setDenunciadoAIdentificar({
+                                  id: inv.ID_Datos || inv.id,
+                                  nombre: nombreCompleto,
+                                  datos: inv,
+                                });
+                                setShowIdentificarModal(true);
+                              }}
+                              className="w-full px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                            >
+                              🔍 Individualizar Denunciado
+                            </button>
                           </div>
                         )}
                       </div>
@@ -576,22 +544,19 @@ export default function DetalleAutoridad() {
               )}
             </div>
 
-            {/* Evidencias */}
+            {/* Archivos */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                📎 Evidencias
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                📎 Archivos y Evidencias
               </h3>
               {listaEvidencias.length > 0 ? (
-                <ul className="space-y-2">
-                  {listaEvidencias.map((ev: any, idx: number) => (
-                    <li key={idx} className="text-sm text-gray-700 flex items-center gap-2">
-                      <span className="text-blue-500">📄</span>
-                      {ev.Nombre || ev.nombre || `Evidencia ${idx + 1}`}
-                    </li>
+                <div className="space-y-4">
+                  {listaEvidencias.map((arch: any, i: number) => (
+                    <EvidenciaViewer key={arch.ID_Archivo || i} archivo={arch} />
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p className="text-sm text-gray-400 italic">No hay evidencias adjuntas.</p>
+                <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
               )}
             </div>
           </div>
@@ -604,7 +569,7 @@ export default function DetalleAutoridad() {
             <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-bold text-gray-800 text-sm">👤 Datos Denunciante</h3>
               {(denuncia.reservaIdentidad || denuncia.ReservaIdentidad) && (
-                <span className="text-[10px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded border border-purple-200">
+                <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded border border-blue-200">
                   CONFIDENCIAL
                 </span>
               )}
@@ -715,7 +680,6 @@ export default function DetalleAutoridad() {
             </div>
             <div className="p-5 text-sm space-y-4">
               {esVictima && !(denuncia.anonimo || denuncia.Anonimo) ? (
-                // Caso A: El Denunciante ES la Víctima
                 <>
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                     <p className="text-xs text-blue-800 font-semibold">
@@ -769,7 +733,6 @@ export default function DetalleAutoridad() {
                   </div>
                 </>
               ) : (
-                // Caso B: El Denunciante NO es la Víctima (Víctima Externa)
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -829,80 +792,157 @@ export default function DetalleAutoridad() {
             </div>
           </div>
 
-          {/* Ubicación */}
-          {denuncia.Ubicacion && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-                📍 Ubicación
-              </h3>
-              <p className="text-sm text-gray-700">{denuncia.Ubicacion}</p>
-            </div>
-          )}
+          {/* UBICACIÓN - CAMPO CLÍNICO */}
+          {(() => {
+            const ubicacion = denuncia?.Ubicacion || denuncia?.ubicacion;
+            const detalleCampoClinico =
+              denuncia?.detalle_campo_clinico || denuncia?.detalleCampoClinico;
 
-          {/* Archivos y Evidencias */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
-              📎 Archivos y Evidencias
-            </h3>
-            {listaEvidencias.length > 0 ? (
-              <div className="space-y-4">
-                {listaEvidencias.map((arch: any, i: number) => (
-                  <EvidenciaViewer key={arch.ID_Archivo || i} archivo={arch} />
-                ))}
+            if (!ubicacion && !detalleCampoClinico) {
+              return null;
+            }
+
+            // Extraer datos del establecimiento de salud
+            let nombreEstablecimiento = detalleCampoClinico?.Nombre_Establecimiento || null;
+            let direccionEstablecimiento = detalleCampoClinico?.Direccion_Establecimiento || null;
+            let regionEstablecimiento = detalleCampoClinico?.Region || null;
+            let comunaEstablecimiento = detalleCampoClinico?.Comuna || null;
+            let unidadServicio = detalleCampoClinico?.Unidad_Servicio || null;
+            let tipoVinculacion = detalleCampoClinico?.Tipo_Vinculacion_Denunciado || null;
+
+            // Si no hay campos desagregados pero sí hay string de ubicación, intentar parsearlo
+            if (!detalleCampoClinico && ubicacion) {
+              const partes = ubicacion
+                .split(' - ')
+                .map((p: string) => p.trim())
+                .filter(Boolean);
+              if (partes.length > 0) {
+                nombreEstablecimiento = partes[0] || null;
+
+                for (let i = 1; i < partes.length; i++) {
+                  const parte = partes[i];
+                  const parteLower = parte.toLowerCase();
+
+                  if (
+                    (parteLower.includes('región') || parteLower.includes('region')) &&
+                    !regionEstablecimiento
+                  ) {
+                    regionEstablecimiento = parte;
+                  } else if (
+                    (parteLower.includes('urgencias') ||
+                      parteLower.includes('pediatría') ||
+                      parteLower.includes('pediatria') ||
+                      parteLower.includes('maternidad') ||
+                      parteLower.includes('cirugía') ||
+                      parteLower.includes('cirugia') ||
+                      parteLower.includes('oncología') ||
+                      parteLower.includes('oncologia') ||
+                      parteLower.includes('servicio') ||
+                      parteLower.includes('unidad')) &&
+                    !unidadServicio
+                  ) {
+                    unidadServicio = parte;
+                  } else if (
+                    !comunaEstablecimiento &&
+                    parte.length < 40 &&
+                    parte.length > 2 &&
+                    !parteLower.includes('región') &&
+                    !parteLower.includes('region') &&
+                    i < partes.length - 2
+                  ) {
+                    comunaEstablecimiento = parte;
+                  } else if (!direccionEstablecimiento && i === partes.length - 2) {
+                    direccionEstablecimiento = parte;
+                  }
+                }
+              }
+            }
+
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                  📍 Ubicación - Campo Clínico
+                </h3>
+                <div className="space-y-3">
+                  {nombreEstablecimiento && (
+                    <div>
+                      <span className="text-xs text-gray-500 font-semibold">
+                        🏥 Establecimiento:
+                      </span>
+                      <p className="text-sm font-medium text-gray-900 mt-1">
+                        {nombreEstablecimiento}
+                      </p>
+                    </div>
+                  )}
+                  {direccionEstablecimiento && (
+                    <div>
+                      <span className="text-xs text-gray-500 font-semibold">📍 Dirección:</span>
+                      <p className="text-sm font-medium text-gray-900 mt-1">
+                        {direccionEstablecimiento}
+                      </p>
+                    </div>
+                  )}
+                  {(regionEstablecimiento || comunaEstablecimiento) && (
+                    <div>
+                      <span className="text-xs text-gray-500 font-semibold">🗺️ Comuna/Región:</span>
+                      <p className="text-sm font-medium text-gray-900 mt-1">
+                        {[comunaEstablecimiento, regionEstablecimiento].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
+                  )}
+                  {unidadServicio && (
+                    <div>
+                      <span className="text-xs text-gray-500 font-semibold">
+                        🩺 Unidad/Servicio:
+                      </span>
+                      <p className="text-sm font-medium text-gray-900 mt-1">{unidadServicio}</p>
+                    </div>
+                  )}
+                  {tipoVinculacion && (
+                    <div>
+                      <span className="text-xs text-gray-500 font-semibold">
+                        👤 Tipo de Vinculación:
+                      </span>
+                      <p className="text-sm font-medium text-gray-900 mt-1">
+                        {tipoVinculacion === 'DOCENTE_IES'
+                          ? 'Docente IES'
+                          : tipoVinculacion === 'TUTOR_HOSPITAL'
+                            ? 'Personal Colaboración Docente (Tutor Hospital)'
+                            : tipoVinculacion === 'ESTUDIANTE'
+                              ? 'Estudiante'
+                              : tipoVinculacion === 'ADMINISTRATIVO'
+                                ? 'Administrativo'
+                                : tipoVinculacion}
+                      </p>
+                    </div>
+                  )}
+                  {!nombreEstablecimiento &&
+                    !direccionEstablecimiento &&
+                    !regionEstablecimiento &&
+                    !comunaEstablecimiento &&
+                    !unidadServicio &&
+                    !tipoVinculacion &&
+                    ubicacion && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{ubicacion}</p>
+                      </div>
+                    )}
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-gray-400 italic">No se adjuntaron archivos.</p>
-            )}
-          </div>
+            );
+          })()}
         </div>
       </div>
 
-      {/* --- FOOTER --- */}
-      <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-end items-center gap-4 rounded-b-xl mt-6">
-        {/* Botón 1: Solicitar Recomendación a Fiscalía */}
-        <button
-          disabled
-          className="px-4 py-2 bg-gray-200 text-gray-400 border border-gray-300 rounded-md text-sm font-bold cursor-not-allowed shadow-sm transition-colors flex items-center justify-center gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
-          </svg>
-          Solicitar Recomendación a Fiscalía
-        </button>
-
-        {/* Botón 2: Derivar a Otra Autoridad */}
-        <button
-          onClick={() => setShowDerivacion(true)}
-          className="px-4 py-2 bg-white border border-orange-500 text-orange-600 rounded-md text-sm font-bold hover:bg-orange-50 shadow-sm flex items-center justify-center gap-2 transition-colors"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-          >
-            <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
-          </svg>
-          Derivar a Otra Autoridad
-        </button>
-
-        {/* Botón 3: Instruir Investigación Sumaria (Condicional) */}
-        <div className="relative group">
+      {/* --- FOOTER CON ACCIONES --- */}
+      <div className="bg-gray-50 px-6 py-5 border-t border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-xl mt-6">
+        <div className="text-xs text-gray-500 font-medium">
+          Vista de Campo Clínico - Gestión de denuncias de Campos Clínicos
+        </div>
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => puedeInstruirInvestigacion && setShowInstruirInvestigacion(true)}
-            disabled={!puedeInstruirInvestigacion}
-            className={`px-4 py-2 rounded-md text-sm font-bold shadow-sm flex items-center justify-center gap-2 transition-colors
-                ${
-                  puedeInstruirInvestigacion
-                    ? 'bg-green-600 text-white hover:bg-green-700 border border-green-600'
-                    : 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'
-                }`}
+            onClick={() => setShowDerivacion(true)}
+            className="px-4 py-2 bg-white border border-orange-500 text-orange-600 rounded-md text-sm font-bold hover:bg-orange-50 shadow-sm flex items-center justify-center gap-2 transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -910,61 +950,57 @@ export default function DetalleAutoridad() {
               viewBox="0 0 20 20"
               fill="currentColor"
             >
-              <path
-                fillRule="evenodd"
-                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                clipRule="evenodd"
-              />
+              <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
             </svg>
-            Instruir Investigación Sumaria
+            Derivar a Otra Autoridad
           </button>
-
-          {/* Tooltip cuando está deshabilitado */}
-          {!puedeInstruirInvestigacion && (
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 hidden group-hover:block z-10">
-              <div className="bg-gray-800 text-white text-xs rounded py-1 px-3 whitespace-nowrap">
-                Pendiente de recomendación de Fiscalía
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       <div className="flex justify-start pt-2">
         <button
-          onClick={() => navigate('/autoridad/bandeja')}
+          onClick={() => navigate('/campo-clinico/bandeja')}
           className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors"
         >
           ← Volver a la Bandeja
         </button>
       </div>
 
-      {/* MODALES */}
-      <SolicitudFiscaliaModal
-        isOpen={showSolicitudFiscalia}
-        onClose={() => setShowSolicitudFiscalia(false)}
-        onConfirm={handleSolicitudFiscalia}
-        isProcessing={processing}
-      />
+      {/* MODAL DE DERIVACIÓN */}
+      {(() => {
+        const Modal = DerivacionModal as any;
+        return (
+          <Modal
+            isOpen={showDerivacion}
+            onClose={() => setShowDerivacion(false)}
+            onConfirm={handleDerivacion}
+            isProcessing={processing}
+            opcionesDestino={[
+              { id: 301, nombre: 'VRA' },
+              { id: 303, nombre: 'Dirgegen' },
+            ]}
+          />
+        );
+      })()}
 
-      <DerivacionModal
-        isOpen={showDerivacion}
-        onClose={() => setShowDerivacion(false)}
-        onConfirm={handleDerivacion}
-        isProcessing={processing}
-        opcionesDestino={[
-          { id: 303, nombre: 'Dirgegen' },
-          { id: 300, nombre: 'Campo Clínico' },
-        ]}
-      />
-
-      <InstruirInvestigacionModal
-        isOpen={showInstruirInvestigacion}
-        onClose={() => setShowInstruirInvestigacion(false)}
-        onConfirm={handleInstruirInvestigacion}
-        isProcessing={processing}
-      />
+      {/* MODAL DE IDENTIFICAR DENUNCIADO */}
+      {denunciadoAIdentificar && (
+        <IdentificarDenunciadoModal
+          isOpen={showIdentificarModal}
+          onClose={() => {
+            setShowIdentificarModal(false);
+            setDenunciadoAIdentificar(null);
+          }}
+          onSuccess={() => {
+            setShowIdentificarModal(false);
+            setDenunciadoAIdentificar(null);
+            cargarDatos();
+          }}
+          idDatosDenunciado={denunciadoAIdentificar.id}
+          nombreActual={denunciadoAIdentificar.nombre}
+          datosDenunciado={denunciadoAIdentificar.datos}
+        />
+      )}
 
       {/* Modales de Detalle */}
       <ModalDetalleDenunciado

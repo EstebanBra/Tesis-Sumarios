@@ -4,9 +4,13 @@ import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
 import { useAuth } from '@/hooks/useAuth';
 import { formatearFechaCorta } from '@/utils/date.utils';
 
+type OrdenFecha = 'mas_nueva' | 'mas_antigua';
+
 export default function BandejaAutoridad() {
   const [denuncias, setDenuncias] = useState<DenunciaListado[]>([]);
+  const [denunciasFiltradas, setDenunciasFiltradas] = useState<DenunciaListado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordenFecha, setOrdenFecha] = useState<OrdenFecha>('mas_nueva');
   const { user, hasRole } = useAuth();
   const navigate = useNavigate();
 
@@ -40,9 +44,15 @@ export default function BandejaAutoridad() {
         setLoading(true);
         // El Backend filtra automáticamente según el rol (VRA o VRAE)
         const res = await listarDenuncias({ page: 1, pageSize: 100 });
-        // ✅ FILTRO ADICIONAL: Solo mostrar VRA General (ID 301), eliminar Campos Clínicos (300, 302)
-        const casosVRA = res.data.filter(d => d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe === 301);
+        // ✅ FILTRO ADICIONAL: Mostrar Convivencia Estudiantil (ID 200) y derivaciones VRA General (ID 301)
+        // Excluir Campos Clínicos (300, 302)
+        const casosVRA = res.data.filter(d => {
+          const idTipo = d.tipo_denuncia?.ID_TipoDe;
+          return idTipo === 200 || idTipo === 301;
+        });
         setDenuncias(casosVRA);
+        // Aplicar ordenamiento inicial
+        ordenarDenuncias(casosVRA, ordenFecha);
       } catch (error) {
         console.error('Error cargando bandeja', error);
       } finally {
@@ -51,6 +61,26 @@ export default function BandejaAutoridad() {
     }
     loadData();
   }, []);
+
+  // Función para ordenar denuncias por fecha
+  const ordenarDenuncias = (lista: DenunciaListado[], orden: OrdenFecha) => {
+    const listaOrdenada = [...lista].sort((a, b) => {
+      const fechaA = a.Fecha_Ingreso ? new Date(a.Fecha_Ingreso).getTime() : 0;
+      const fechaB = b.Fecha_Ingreso ? new Date(b.Fecha_Ingreso).getTime() : 0;
+
+      if (orden === 'mas_nueva') {
+        return fechaB - fechaA; // Más nueva primero (descendente)
+      } else {
+        return fechaA - fechaB; // Más antigua primero (ascendente)
+      }
+    });
+    setDenunciasFiltradas(listaOrdenada);
+  };
+
+  // Efecto para reordenar cuando cambia el orden
+  useEffect(() => {
+    ordenarDenuncias(denuncias, ordenFecha);
+  }, [ordenFecha, denuncias]);
 
   if (loading)
     return (
@@ -75,10 +105,37 @@ export default function BandejaAutoridad() {
             Bienvenido(a), {user?.nombre || 'Autoridad'}
           </span>
           <div className="bg-ubb-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
-            {denuncias.length} Casos Pendientes
+            {denunciasFiltradas.length} Casos Pendientes
           </div>
         </div>
       </header>
+
+      {/* Filtro de Ordenamiento por Fecha */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-700 mr-2">Ordenar por fecha:</span>
+          <button
+            onClick={() => setOrdenFecha('mas_nueva')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              ordenFecha === 'mas_nueva'
+                ? 'bg-ubb-blue text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Más Nueva
+          </button>
+          <button
+            onClick={() => setOrdenFecha('mas_antigua')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              ordenFecha === 'mas_antigua'
+                ? 'bg-ubb-blue text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Más Antigua
+          </button>
+        </div>
+      </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -92,7 +149,7 @@ export default function BandejaAutoridad() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {denuncias.map(d => (
+            {denunciasFiltradas.map(d => (
               <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">
@@ -160,7 +217,7 @@ export default function BandejaAutoridad() {
               </tr>
             ))}
 
-            {denuncias.length === 0 && (
+            {denunciasFiltradas.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-16 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">

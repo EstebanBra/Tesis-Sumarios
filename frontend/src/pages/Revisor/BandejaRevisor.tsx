@@ -4,11 +4,13 @@ import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api'
 import { useAuth } from '@/hooks/useAuth'
 
 type FiltroTipo = 'todas' | 'convivencia' | 'genero' | 'camposClinicos'
+type OrdenFecha = 'mas_nueva' | 'mas_antigua'
 
 export default function BandejaRevisor() {
   const [denuncias, setDenuncias] = useState<DenunciaListado[]>([])
   const [denunciasCompletas, setDenunciasCompletas] = useState<DenunciaListado[]>([])
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todas')
+  const [ordenFecha, setOrdenFecha] = useState<OrdenFecha>('mas_nueva')
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -54,6 +56,20 @@ export default function BandejaRevisor() {
     return tipoDenuncia.Area || 'N/A'
   }
 
+  // Función para ordenar denuncias por fecha
+  const ordenarDenuncias = (lista: DenunciaListado[], orden: OrdenFecha) => {
+    return [...lista].sort((a, b) => {
+      const fechaA = a.Fecha_Ingreso ? new Date(a.Fecha_Ingreso).getTime() : 0;
+      const fechaB = b.Fecha_Ingreso ? new Date(b.Fecha_Ingreso).getTime() : 0;
+
+      if (orden === 'mas_nueva') {
+        return fechaB - fechaA; // Más nueva primero (descendente)
+      } else {
+        return fechaA - fechaB; // Más antigua primero (ascendente)
+      }
+    });
+  };
+
   // Filtrar denuncias según el filtro seleccionado
   useEffect(() => {
     let denunciasFiltradas = denunciasCompletas
@@ -78,8 +94,10 @@ export default function BandejaRevisor() {
       })
     }
 
-    setDenuncias(denunciasFiltradas)
-  }, [filtroTipo, denunciasCompletas])
+    // Aplicar ordenamiento
+    const denunciasOrdenadas = ordenarDenuncias(denunciasFiltradas, ordenFecha);
+    setDenuncias(denunciasOrdenadas)
+  }, [filtroTipo, denunciasCompletas, ordenFecha])
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-ubb-blue font-medium animate-pulse">
@@ -113,8 +131,8 @@ export default function BandejaRevisor() {
         </div>
       </header>
 
-      {/* Filtros por Tipo */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      {/* Filtros por Tipo y Ordenamiento */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-gray-700 mr-2">Filtrar por tipo:</span>
           <button
@@ -156,6 +174,29 @@ export default function BandejaRevisor() {
             }`}
           >
             Solo Campos Clínicos
+          </button>
+        </div>
+        <div className="flex items-center gap-2 border-t border-gray-200 pt-4">
+          <span className="text-sm font-semibold text-gray-700 mr-2">Ordenar por fecha:</span>
+          <button
+            onClick={() => setOrdenFecha('mas_nueva')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              ordenFecha === 'mas_nueva'
+                ? 'bg-ubb-blue text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Más Nueva
+          </button>
+          <button
+            onClick={() => setOrdenFecha('mas_antigua')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              ordenFecha === 'mas_antigua'
+                ? 'bg-ubb-blue text-white shadow-sm'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Más Antigua
           </button>
         </div>
       </div>

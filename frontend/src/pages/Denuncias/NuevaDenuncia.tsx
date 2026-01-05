@@ -365,7 +365,15 @@ export default function NuevaDenuncia() {
       return;
     }
 
-    // La vinculación es opcional, no se valida
+    // Validar que tenga vinculación
+    if (!nuevoInv.vinculacion || !nuevoInv.vinculacion.trim()) {
+      setErrorDenunciado('La vinculación del denunciado es obligatoria');
+      setErrors(prev => ({
+        ...prev,
+        nuevoInvolucrado_vinculacion: 'La vinculación es obligatoria',
+      }));
+      return;
+    }
 
     // Validar RUT si se ingresó
     if (nuevoInv.rut && nuevoInv.rut.trim() && !validarRut(nuevoInv.rut)) {

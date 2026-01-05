@@ -16,6 +16,8 @@ import BandejaAutoridad from '@/pages/Autoridad/BandejaAutoridad';
 import DetalleAutoridad from '@/pages/Autoridad/DetalleAutoridad';
 import BandejaRevisor from '@/pages/Revisor/BandejaRevisor';
 import DetalleRevisor from '@/pages/Revisor/DetalleRevisor';
+import BandejaCampoClinico from '@/pages/CampoClinico/BandejaCampoClinico';
+import DetalleCampoClinico from '@/pages/CampoClinico/DetalleCampoClinico';
 
 import AuthShell from '@/components/layout/AuthShell';
 import RequireAuth from '@/components/RequireAuth';
@@ -47,6 +49,7 @@ const appRoutes = {
       children: [
         { index: true, element: <Navigate to="/home" replace /> },
         { path: 'home', element: <Home /> },
+        { path: 'denuncias/nueva', element: <NuevaDenuncia /> },
         { path: 'denuncias', element: <MisDenuncias /> },
         { path: 'denuncias/:id', element: <DetalleDenuncia /> },
 
@@ -58,6 +61,9 @@ const appRoutes = {
 
         { path: 'revisor/bandeja', element: <BandejaRevisor /> },
         { path: 'revisor/denuncia/:id', element: <DetalleRevisor /> },
+
+        { path: 'campo-clinico/bandeja', element: <BandejaCampoClinico /> },
+        { path: 'campo-clinico/denuncia/:id', element: <DetalleCampoClinico /> },
       ],
     },
   ],
