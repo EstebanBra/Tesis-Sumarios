@@ -28,7 +28,7 @@ export default function FormularioLayout({
   enviando,
 }: FormularioLayoutProps) {
   return (
-    <section className="mx-auto max-w-4xl py-6">
+    <section className="mx-auto w-full max-w-4xl">
       <header className="mb-6 space-y-2">
         <p className="text-xs font-bold uppercase tracking-wide text-ubb-blue">Nueva denuncia</p>
         <h1 className="font-condensed text-3xl font-bold tracking-tight text-gray-900">

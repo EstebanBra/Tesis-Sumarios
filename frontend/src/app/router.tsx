@@ -33,7 +33,7 @@ const authRoutes = {
     { path: '/denuncia/acceso', element: <AccesoDenuncia /> },
     { path: '/verificacion-email', element: <VerificacionEmail /> },
     { path: '/seleccion-rol', element: <SeleccionRol /> },
-    { path: '/denuncias/nueva', element: <NuevaDenuncia /> },
+    //{ path: '/denuncias/nueva', element: <NuevaDenuncia /> },
     { path: '/denuncias/confirmacion', element: <ConfirmacionDenuncia /> },
     { path: '/denuncia/seguimiento/:token', element: <SeguimientoDenuncia /> },
   ],
