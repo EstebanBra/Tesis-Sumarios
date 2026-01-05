@@ -80,21 +80,30 @@ export default function VerificacionEmail() {
         setLoading(true)
 
         try {
-            const datos = await verificarCodigoEmail(rut, codigoCompleto)
+            const response = await verificarCodigoEmail(rut, codigoCompleto)
+
+            // Guardar token temporal para crear denuncia
+            if (response.tokenTemporal) {
+                sessionStorage.setItem('tokenTemporal', response.tokenTemporal)
+                sessionStorage.setItem('rutVerificado', rut)
+            }
 
             // Guardar datos verificados en sessionStorage
             sessionStorage.removeItem('datosTempDenunciante')
-            sessionStorage.setItem('datosDenunciante', JSON.stringify(datos))
+            sessionStorage.setItem('datosDenunciante', JSON.stringify(response.data))
 
             // Navegar según roles
-            if (datos.roles.length > 1) {
+            if (response.data.roles.length > 1) {
                 navigate('/seleccion-rol')
-            } else if (datos.roles.length === 1) {
-                const datosConRol = { ...datos, rolSeleccionado: datos.roles[0] }
+            } else if (response.data.roles.length === 1) {
+                const datosConRol = { ...response.data, rolSeleccionado: response.data.roles[0] }
                 sessionStorage.setItem(
                     'datosDenunciante',
                     JSON.stringify(datosConRol)
                 )
+                navigate('/denuncias/nueva')
+            } else {
+                // Usuario sin roles (acceso público)
                 navigate('/denuncias/nueva')
             }
         } catch (err: any) {

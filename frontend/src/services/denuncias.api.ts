@@ -186,6 +186,18 @@ export type ListarDenunciasResponse = {
 // --- FUNCIONES ---
 
 export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File[]) {
+  // Obtener token temporal si existe (para denuncias públicas)
+  const tokenTemporal = sessionStorage.getItem('tokenTemporal')
+
+  // Determinar endpoint según si hay token temporal o no
+  const endpoint = tokenTemporal ? '/denuncias/publica' : '/denuncias'
+
+  // Headers adicionales para token temporal
+  const extraHeaders: Record<string, string> = {}
+  if (tokenTemporal) {
+    extraHeaders['Authorization'] = `Bearer ${tokenTemporal}`
+  }
+
   // Si hay archivos, usar FormData; si no, JSON normal
   if (archivos && archivos.length > 0) {
     const formData = new FormData();
@@ -201,16 +213,24 @@ export async function crearDenuncia(payload: CrearDenunciaInput, archivos?: File
 
     // Usar el cliente Axios centralizado para FormData
     // Axios detecta FormData y ajusta automáticamente el Content-Type con boundary
-    const response = await apiClient.post('/denuncias', formData, {
+    const response = await apiClient.post(endpoint, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        ...extraHeaders,
       },
     });
 
     return response.data;
   } else {
-    // Sin archivos, usar el método normal
-    return http('/denuncias', { method: 'POST', body: payload });
+    // Sin archivos, usar el cliente Axios para JSON
+    const response = await apiClient.post(endpoint, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...extraHeaders,
+      },
+    });
+
+    return response.data;
   }
 }
 

@@ -164,6 +164,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
         Reserva_Identidad: payload.reservaIdentidad ?? false,
+        token_seguimiento: payload.tokenSeguimiento || null, // UUID para seguimiento público
 
         // Historial inicial
         historial_estado: historial

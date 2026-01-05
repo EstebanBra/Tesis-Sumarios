@@ -1,4 +1,6 @@
 import { validationResult } from "express-validator";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET } from "../config/auth.config.js";
 import { obtenerDatosUnificados } from "../services/datosExternos.service.js";
 import {
   enviarCodigoVerificacion,
@@ -82,9 +84,20 @@ export const verificarCodigoEmail = async (req, res) => {
     // Si el código es correcto, obtener datos completos del usuario
     const datos = await obtenerDatosUnificados(rut);
 
+    // Generar token temporal para crear denuncia (expira en 30 minutos)
+    const tokenTemporal = jwt.sign(
+      {
+        rut: rut,
+        tipo: 'denuncia_publica',
+        exp: Math.floor(Date.now() / 1000) + (30 * 60) // 30 minutos
+      },
+      JWT_SECRET
+    );
+
     res.status(200).json({
       message: resultado.message,
       data: datos,
+      tokenTemporal: tokenTemporal,
     });
   } catch (error) {
     console.error("Error en verificarCodigoEmail:", error);

@@ -19,6 +19,7 @@ const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minioadmin';
 const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin';
 const MINIO_PUBLIC_ENDPOINT = process.env.MINIO_PUBLIC_ENDPOINT || null;
 
+// Cliente S3 para operaciones internas (endpoint privado)
 const s3Client = new S3Client({
   region: "us-east-1",
   endpoint: `${PROTOCOL}://${MINIO_ENDPOINT}:${MINIO_PORT}`,
@@ -28,6 +29,18 @@ const s3Client = new S3Client({
   },
   forcePathStyle: true,
 });
+
+// Cliente S3 para generar URLs públicas (endpoint público sin prefijos)
+// Por ejemplo: http://localhost en lugar de http://localhost/storage
+const publicS3Client = MINIO_PUBLIC_ENDPOINT ? new S3Client({
+  region: "us-east-1",
+  endpoint: MINIO_PUBLIC_ENDPOINT,
+  credentials: {
+    accessKeyId: MINIO_ACCESS_KEY,
+    secretAccessKey: MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
+}) : s3Client;
 
 const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'evidencia-denuncias';
 
@@ -123,28 +136,33 @@ export function generateUniqueFileName(originalName) {
 /**
  * Reemplaza el endpoint en una URL presigned con el endpoint público si está configurado
  * @param {string} url - URL presigned generada por MinIO
- * @returns {string} - URL con endpoint público si está configurado
+ * @param {string} prefix - Prefijo a inyectar (ej: /storage)
+ * @returns {string} - URL con prefijo inyectado en el pathname
  */
-function replacePresignedUrlEndpoint(url) {
-  if (!MINIO_PUBLIC_ENDPOINT) return url;
+function replacePresignedUrlEndpoint(url, prefix = '/storage') {
+  if (!prefix) {
+    return url;
+  }
+
   try {
     const urlObj = new URL(url);
-    const publicUrlObj = new URL(MINIO_PUBLIC_ENDPOINT);
-    urlObj.host = publicUrlObj.host;
-    urlObj.port = publicUrlObj.port;
-    urlObj.protocol = publicUrlObj.protocol;
+    // Inyecta el prefijo para que Nginx lo enrute, pero la firma
+    // se mantiene válida para el path original (sin prefijo) que ve MinIO
+    urlObj.pathname = `${prefix}${urlObj.pathname}`;
     return urlObj.toString();
   } catch (error) {
-    console.log(error);
+    console.error('Error inyectando prefijo:', error);
+    return url;
   }
 }
+
 
 /**
  * Genera una URL firmada (presigned) para subir un archivo
  * @param {string} fileName - Nombre del archivo (debe ser único)
  * @param {string} mimeType - MIME type del archivo
  * @param {number} expiresIn - Tiempo de expiración en segundos (default: 1 hora)
- * @returns {Promise<string>} - URL firmada para PUT (con endpoint público si está configurado)
+ * @returns {Promise<string>} - URL firmada para PUT con prefijo /storage
  */
 export async function getPresignedUploadUrl(fileName, mimeType, expiresIn = 3600) {
   const command = new PutObjectCommand({
@@ -152,24 +170,28 @@ export async function getPresignedUploadUrl(fileName, mimeType, expiresIn = 3600
     Key: fileName,
     ContentType: mimeType,
   });
-  // Firma de S3
-  const url = await getSignedUrl(s3Client, command, { expiresIn });
-  return replacePresignedUrlEndpoint(url);
+  // Usar publicS3Client para generar URL contra endpoint público
+  const url = await getSignedUrl(publicS3Client, command, { expiresIn });
+  // Inyectar prefijo /storage para que nginx lo enrute
+  return replacePresignedUrlEndpoint(url, '/storage');
 }
 
 /**
  * Genera una URL firmada (presigned) para descargar/ver un archivo
  * @param {string} objectKey - Clave del objeto en MinIO
  * @param {number} expiresIn - Tiempo de expiración en segundos (default: 1 hora)
- * @returns {Promise<string>} - URL firmada para GET (con endpoint público si está configurado)
+ * @returns {Promise<string>} - URL firmada para GET con prefijo /storage
  */
 export async function getPresignedDownloadUrl(objectKey, expiresIn = 3600) {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: objectKey,
   });
-  const url = await getSignedUrl(s3Client, command, { expiresIn });
-  return replacePresignedUrlEndpoint(url);
+  // Usar publicS3Client para generar URL contra endpoint público
+  const url = await getSignedUrl(publicS3Client, command, { expiresIn });
+  // Inyectar prefijo /storage para que nginx lo enrute
+  // La firma se mantiene válida porque se calcula contra la ruta original (sin /storage)
+  return replacePresignedUrlEndpoint(url, '/storage');
 }
 
 /**

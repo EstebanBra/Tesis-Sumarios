@@ -8,6 +8,8 @@ import SeleccionRol from '@/pages/SeleccionRol/SeleccionRol';
 import NuevaDenuncia from '@/pages/Denuncias/NuevaDenuncia';
 import MisDenuncias from '@/pages/Denuncias/MisDenuncias';
 import DetalleDenuncia from '@/pages/Denuncias/DetalleDenuncia';
+import SeguimientoDenuncia from '@/pages/SeguimientoDenuncia/SeguimientoDenuncia';
+import ConfirmacionDenuncia from '@/pages/ConfirmacionDenuncia/ConfirmacionDenuncia';
 import BandejaDirgegen from '@/pages/Dirgegen/BandejaDirgegen';
 import DetalleDirgegen from '@/pages/Dirgegen/DetalleDirgegen';
 import BandejaAutoridad from '@/pages/Autoridad/BandejaAutoridad';
@@ -30,6 +32,8 @@ const authRoutes = {
     { path: '/verificacion-email', element: <VerificacionEmail /> },
     { path: '/seleccion-rol', element: <SeleccionRol /> },
     { path: '/denuncias/nueva', element: <NuevaDenuncia /> },
+    { path: '/denuncias/confirmacion', element: <ConfirmacionDenuncia /> },
+    { path: '/denuncia/seguimiento/:token', element: <SeguimientoDenuncia /> },
   ],
 };
 
