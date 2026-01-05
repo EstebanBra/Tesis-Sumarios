@@ -127,7 +127,7 @@ export default function Paso1Identificacion({
                 <option value="">Seleccionar</option>
                 <option value="Femenino">Femenino</option>
                 <option value="Masculino">Masculino</option>
-                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
+                <option value="Desconocido">Desconocido</option>
               </select>
             </div>
             <div>
@@ -151,7 +151,6 @@ export default function Paso1Identificacion({
                 <option value="Fluido">Fluido</option>
                 <option value="Otro">Otro</option>
                 <option value="NoLoSe">No lo sé</option>
-                <option value="Prefiero no decirlo">Prefiero no decirlo</option>
               </select>
             </div>
           </div>

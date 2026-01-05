@@ -1,25 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 1. IMPORTAR la nueva función y tipos
-import {
-  listarDenuncias,
-  listarMedidasPendientes,
-  type DenunciaListado,
-  type SolicitudMedida,
-} from '@/services/denuncias.api';
+import { listarDenuncias, type DenunciaListado } from '@/services/denuncias.api';
 import { useAuth } from '@/hooks/useAuth';
 import { formatearFechaCorta } from '@/utils/date.utils';
 
 type OrdenFecha = 'mas_nueva' | 'mas_antigua';
 
-export default function BandejaDirgegen() {
+export default function BandejaCampoClinico() {
   const [denuncias, setDenuncias] = useState<DenunciaListado[]>([]);
   const [denunciasFiltradas, setDenunciasFiltradas] = useState<DenunciaListado[]>([]);
-  // 2. ESTADO NUEVO para las alertas
-  const [medidasPendientes, setMedidasPendientes] = useState<SolicitudMedida[]>([]);
-  const [ordenFecha, setOrdenFecha] = useState<OrdenFecha>('mas_nueva');
-
   const [loading, setLoading] = useState(true);
+  const [ordenFecha, setOrdenFecha] = useState<OrdenFecha>('mas_nueva');
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -27,24 +18,14 @@ export default function BandejaDirgegen() {
     async function loadData() {
       try {
         setLoading(true);
-        // 3. CARGA PARALELA: Pedimos denuncias Y medidas pendientes a la vez
-        const [resDenuncias, resMedidas] = await Promise.all([
-          listarDenuncias({ page: 1, pageSize: 100 }), // Traemos más para filtrar localmente
-          listarMedidasPendientes(),
-        ]);
-
-        // ✅ FILTRO DE COMPETENCIA: Solo mostrar Género y Equidad (ID 100 o derivación 303)
-        const casosGenero = resDenuncias.data.filter(
-          d =>
-            d.tipo_denuncia &&
-            (d.tipo_denuncia.ID_TipoDe === 100 || d.tipo_denuncia.ID_TipoDe === 303)
+        const res = await listarDenuncias({ page: 1, pageSize: 100 });
+        // ✅ FILTRO: Solo mostrar denuncias de Campos Clínicos (ID_TipoDe === 300)
+        const casosCampoClinico = res.data.filter(
+          d => d.tipo_denuncia && d.tipo_denuncia.ID_TipoDe === 300
         );
-
-        setDenuncias(casosGenero);
-        setMedidasPendientes(resMedidas);
-
+        setDenuncias(casosCampoClinico);
         // Aplicar ordenamiento inicial
-        ordenarDenuncias(casosGenero, ordenFecha);
+        ordenarDenuncias(casosCampoClinico, ordenFecha);
       } catch (error) {
         console.error('Error cargando bandeja', error);
       } finally {
@@ -77,71 +58,30 @@ export default function BandejaDirgegen() {
   if (loading)
     return (
       <div className="flex items-center justify-center h-64 text-ubb-blue font-medium animate-pulse">
-        Cargando...
+        Cargando denuncias de Campos Clínicos...
       </div>
     );
 
   return (
     <section className="space-y-6 max-w-7xl mx-auto py-8 px-4">
-      {/* Header (Igual que antes) */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="font-condensed text-3xl font-bold tracking-tight text-gray-900">
-            Bandeja de Entrada Dirgegen
+            Bandeja de Entrada - Campo Clínico
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Gestión de denuncias bajo el Protocolo de Género y Equidad (DUE 4560).
+            Gestión de denuncias de Convivencia en Campos Clínicos
           </p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-            Bienvenida, {user?.nombre || 'Encargada'}
+            Bienvenido(a), {user?.nombre || 'Usuario'}
           </span>
           <div className="bg-ubb-blue text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
-            {denunciasFiltradas.length} Casos en Total
+            {denunciasFiltradas.length} Casos Pendientes
           </div>
         </div>
       </header>
-
-      {/* 4. AQUÍ ESTÁ LA MAGIA: El Banner Rojo */}
-      {/* Solo se muestra si hay medidas pendientes */}
-      {medidasPendientes.length > 0 && (
-        <div className="rounded-xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">🚨</div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-red-800">
-                Atención Requerida: Medidas de Resguardo
-              </h3>
-              <p className="text-sm text-red-700 mt-1 mb-4">
-                Se han recibido <strong>{medidasPendientes.length} solicitud(es)</strong> que
-                requieren la elaboración de Informe Técnico urgente.
-              </p>
-
-              <div className="grid gap-3 md:grid-cols-2">
-                {medidasPendientes.map(m => (
-                  <div
-                    key={m.ID_Solicitud}
-                    className="flex items-center justify-between bg-white p-3 rounded-lg border border-red-200 shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">Caso #{m.ID_Denuncia}</p>
-                      <p className="text-xs text-gray-500">{m.Tipo_Medida}</p>
-                    </div>
-                    <button
-                      onClick={() => navigate(`/dirgegen/denuncia/${m.ID_Denuncia}`)}
-                      className="bg-red-100 text-red-700 text-xs font-bold px-3 py-2 rounded hover:bg-red-200 transition-colors"
-                    >
-                      Gestionar →
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Fin del Banner */}
 
       {/* Filtro de Ordenamiento por Fecha */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
@@ -170,11 +110,8 @@ export default function BandejaDirgegen() {
         </div>
       </div>
 
-      {/* Tu tabla original sigue aquí abajo... */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-200">
-        {/* ... Código de tu tabla ... */}
         <table className="min-w-full divide-y divide-gray-200 text-sm">
-          {/* Copia aquí el contenido de tu tabla tal cual lo tenías */}
           <thead className="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-6 py-4">Fecha</th>
@@ -187,7 +124,6 @@ export default function BandejaDirgegen() {
           <tbody className="divide-y divide-gray-100">
             {denunciasFiltradas.map(d => (
               <tr key={d.ID_Denuncia} className="group hover:bg-blue-50/50 transition-colors">
-                {/* ... tus celdas ... */}
                 <td className="px-6 py-4">
                   <div className="text-sm text-gray-900">
                     {d.Fecha_Ingreso ? (
@@ -201,31 +137,72 @@ export default function BandejaDirgegen() {
                     )}
                   </div>
                 </td>
+
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-pink-100 text-pink-700 border border-pink-200">
-                    Género y Equidad
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                    {d.tipo_denuncia?.Nombre || 'Campos Clínicos'}
                   </span>
                 </td>
+
                 <td className="px-6 py-4">
                   <span className="font-mono text-sm font-semibold text-gray-900">
                     {d.denunciante?.Rut || 'N/A'}
                   </span>
                 </td>
+
                 <td className="px-6 py-4">
-                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
-                    {d.estado_denuncia?.Tipo_Estado}
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border
+                    ${
+                      d.estado_denuncia?.Tipo_Estado === 'Recibida'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : d.estado_denuncia?.Tipo_Estado === 'Derivada'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : d.estado_denuncia?.Tipo_Estado === 'En Investigación'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-green-50 text-green-700 border-green-200'
+                    }`}
+                  >
+                    {d.estado_denuncia?.Tipo_Estado || 'Recibida'}
                   </span>
                 </td>
+
                 <td className="px-6 py-4 text-right">
                   <button
-                    onClick={() => navigate(`/dirgegen/denuncia/${d.ID_Denuncia}`)}
-                    className="text-ubb-blue font-bold text-xs hover:underline"
+                    onClick={() => navigate(`/campo-clinico/denuncia/${d.ID_Denuncia}`)}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md bg-white border border-gray-300 px-4 py-2 text-xs font-bold uppercase tracking-wide text-gray-700 shadow-sm transition-all hover:bg-ubb-blue hover:text-white hover:border-ubb-blue group-hover:border-blue-300"
                   >
-                    REVISAR
+                    Revisar y Gestionar
                   </button>
                 </td>
               </tr>
             ))}
+
+            {denunciasFiltradas.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
+                    <svg
+                      className="h-6 w-6 text-green-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900">¡Todo al día!</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    No hay denuncias de Campos Clínicos pendientes de revisión en tu bandeja.
+                  </p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

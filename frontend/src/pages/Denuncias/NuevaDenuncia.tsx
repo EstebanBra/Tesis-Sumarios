@@ -365,7 +365,15 @@ export default function NuevaDenuncia() {
       return;
     }
 
-    // La vinculación es opcional, no se valida
+    // Validar que tenga vinculación
+    if (!nuevoInv.vinculacion || !nuevoInv.vinculacion.trim()) {
+      setErrorDenunciado('La vinculación del denunciado es obligatoria');
+      setErrors(prev => ({
+        ...prev,
+        nuevoInvolucrado_vinculacion: 'La vinculación es obligatoria',
+      }));
+      return;
+    }
 
     // Validar RUT si se ingresó
     if (nuevoInv.rut && nuevoInv.rut.trim() && !validarRut(nuevoInv.rut)) {
@@ -1162,12 +1170,25 @@ export default function NuevaDenuncia() {
       setEnviando(true);
       // Extraer archivos de archivosEvidencia y enviarlos junto con el payload
       const archivosParaEnviar = archivosEvidencia.map(fm => fm.file);
-      await crearDenuncia(payload, archivosParaEnviar.length > 0 ? archivosParaEnviar : undefined);
+      const response = await crearDenuncia(payload, archivosParaEnviar.length > 0 ? archivosParaEnviar : undefined);
 
       // Limpiar datos de sessionStorage después de enviar exitosamente
       sessionStorage.removeItem('datosDenunciante');
 
-      nav(routes.denuncias.root);
+      // Si hay token temporal (denuncia pública), ir a página de confirmación
+      const tokenTemporal = sessionStorage.getItem('tokenTemporal');
+      if (tokenTemporal && response.tokenSeguimiento) {
+        // Navegar a confirmación con el token
+        nav('/denuncias/confirmacion', {
+          state: {
+            tokenSeguimiento: response.tokenSeguimiento,
+            linkSeguimiento: response.linkSeguimiento
+          }
+        });
+      } else {
+        // Usuario autenticado, ir a lista de denuncias
+        nav(routes.denuncias.root);
+      }
     } catch (err: any) {
       // Mapear errores del backend al estado errors para mostrarlos en los campos
       const backendErrors: Record<string, string> = {};

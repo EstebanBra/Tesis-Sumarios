@@ -16,5 +16,7 @@ scripts-infra/minio.exe
 
 scripts-infra/minio-data/
 
+sqlserver.yml
+
 vpn/
 .env

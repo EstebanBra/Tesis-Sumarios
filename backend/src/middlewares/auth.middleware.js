@@ -49,3 +49,39 @@ export const hasRole = (rolesPermitidos) => {
 }
 
 export const isAdmin = hasRole(['Admin', 'VRA', 'VRAE', 'Fiscal', 'Fiscalia', 'Dirgergen']) // Ajustar según necesidad
+
+/**
+ * Middleware para verificar tokens temporales de denuncias públicas
+ * Estos tokens se generan después de la verificación de email
+ */
+export const verifyTemporaryToken = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'No se encontró token de verificación' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    // Verificar que sea un token temporal de denuncia pública
+    if (decoded.tipo !== 'denuncia_publica') {
+      return res.status(401).json({ message: 'Token inválido para esta operación' });
+    }
+
+    // Agregar datos del denunciante verificado al request
+    req.denuncianteVerificado = {
+      rut: decoded.rut
+    };
+
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        message: 'El token de verificación ha expirado. Por favor, verifica tu email nuevamente.'
+      });
+    }
+    return res.status(401).json({ message: 'Token de verificación inválido' });
+  }
+};

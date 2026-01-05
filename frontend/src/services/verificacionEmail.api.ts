@@ -7,6 +7,7 @@ interface SolicitudCodigoResponse {
 
 interface VerificarCodigoResponse {
     message: string
+    tokenTemporal?: string // Token JWT temporal para crear denuncias (30 min)
     data: {
         rut: string | number
         dv: string
@@ -53,10 +54,10 @@ export const solicitarCodigoVerificacion = async (
 export const verificarCodigoEmail = async (
     rut: string,
     codigo: string
-): Promise<VerificarCodigoResponse['data']> => {
+): Promise<VerificarCodigoResponse> => {
     const response = await apiClient.post<VerificarCodigoResponse>(
         '/verificacion-email/verificar',
         { rut, codigo }
     )
-    return response.data.data
+    return response.data
 }

@@ -2,13 +2,20 @@ import { useState, type FormEvent } from 'react';
 
 export type TipoDerivacionVRA = 'vra_general';
 
+export type OpcionDestino = {
+  id: number;
+  nombre: string;
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  // Ahora también enviamos el tipo de derivación VRA
-  onConfirm: (observacion: string, tipoDerivacion?: TipoDerivacionVRA) => void;
+  // Si se proporcionan opcionesDestino, se usa el selector dinámico
+  // Si no, se usa el comportamiento legacy (derivarADirgegen o tipoDerivacion)
+  onConfirm: (observacion: string, nuevoTipoId?: number, tipoDerivacion?: TipoDerivacionVRA) => void;
   isProcessing: boolean;
-  derivarADirgegen?: boolean; // Si es true, el modal es para derivar a Dirgegen
+  derivarADirgegen?: boolean; // Legacy: Si es true, el modal es para derivar a Dirgegen
+  opcionesDestino?: OpcionDestino[]; // Nuevo: Opciones dinámicas de destino
 }
 
 export default function DerivacionModal({
@@ -17,9 +24,13 @@ export default function DerivacionModal({
   onConfirm,
   isProcessing,
   derivarADirgegen = false,
+  opcionesDestino,
 }: Props) {
   const [observacion, setObservacion] = useState('');
   const [tipoDerivacion, setTipoDerivacion] = useState<TipoDerivacionVRA>('vra_general');
+  const [destinoSeleccionado, setDestinoSeleccionado] = useState<number | null>(
+    opcionesDestino && opcionesDestino.length > 0 ? opcionesDestino[0].id : null
+  );
 
   if (!isOpen) return null;
 
@@ -29,8 +40,18 @@ export default function DerivacionModal({
       alert('Debes escribir la observación para derivar.');
       return;
     }
-    // Enviamos el texto y el tipo de derivación al padre
-    onConfirm(observacion, tipoDerivacion);
+
+    // Si hay opciones de destino, usar el nuevo flujo
+    if (opcionesDestino && opcionesDestino.length > 0) {
+      if (!destinoSeleccionado) {
+        alert('Debes seleccionar un destino para la derivación.');
+        return;
+      }
+      onConfirm(observacion, destinoSeleccionado);
+    } else {
+      // Comportamiento legacy
+      onConfirm(observacion, undefined, tipoDerivacion);
+    }
   };
 
   return (
@@ -46,43 +67,72 @@ export default function DerivacionModal({
         </p>
 
         <form onSubmit={handleSubmit}>
-          {/* Selector de tipo de derivación VRA o Dirgegen */}
-          {!derivarADirgegen ? (
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tipo de Derivación a VRA *
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
-                  <input
-                    type="radio"
-                    name="tipoDerivacion"
-                    value="vra_general"
-                    checked={tipoDerivacion === 'vra_general'}
-                    onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
-                    className="mr-3 text-ubb-blue focus:ring-ubb-blue"
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-900">VRA General</span>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Derivación a Vicerrectoría Académica General
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </div>
-          ) : (
+          {/* Selector dinámico de destino (nuevo flujo) */}
+          {opcionesDestino && opcionesDestino.length > 0 ? (
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Destino de la Derivación *
               </label>
-              <div className="p-3 border border-gray-300 rounded-md bg-gray-50">
-                <span className="text-sm font-medium text-gray-900">Dirgegen</span>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Derivar a Dirección de Género y Equidad
-                </p>
+              <div className="space-y-2">
+                {opcionesDestino.map(opcion => (
+                  <label
+                    key={opcion.id}
+                    className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      type="radio"
+                      name="destino"
+                      value={opcion.id}
+                      checked={destinoSeleccionado === opcion.id}
+                      onChange={e => setDestinoSeleccionado(Number(e.target.value))}
+                      className="mr-3 text-ubb-blue focus:ring-ubb-blue"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">{opcion.nombre}</span>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
+          ) : (
+            /* Selector de tipo de derivación VRA o Dirgegen (legacy) */
+            !derivarADirgegen ? (
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Tipo de Derivación a VRA *
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input
+                      type="radio"
+                      name="tipoDerivacion"
+                      value="vra_general"
+                      checked={tipoDerivacion === 'vra_general'}
+                      onChange={e => setTipoDerivacion(e.target.value as TipoDerivacionVRA)}
+                      className="mr-3 text-ubb-blue focus:ring-ubb-blue"
+                    />
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">VRA General</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Derivación a Vicerrectoría Académica General
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Destino de la Derivación *
+                </label>
+                <div className="p-3 border border-gray-300 rounded-md bg-gray-50">
+                  <span className="text-sm font-medium text-gray-900">Dirgegen</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Derivar a Dirección de Género y Equidad
+                  </p>
+                </div>
+              </div>
+            )
           )}
 
           <label className="block text-sm font-semibold text-gray-700 mb-1">Observación *</label>
