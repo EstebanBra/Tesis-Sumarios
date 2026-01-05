@@ -1,25 +1,46 @@
-import * as MinIO from 'minio';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  CreateBucketCommand,
+  HeadBucketCommand,
+  HeadObjectCommand
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import crypto from 'node:crypto';
 import path from 'path';
 
 // Configuración de MinIO desde variables de entorno
 const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'localhost';
-const MINIO_PORT = parseInt(process.env.MINIO_PORT || '9000');
-const MINIO_USE_SSL = process.env.MINIO_USE_SSL === 'true';
+const MINIO_PORT = process.env.MINIO_PORT || '9000';
+const PROTOCOL = process.env.MINIO_USE_SSL === 'true' ? 'https' : 'http';
 const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minioadmin';
 const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin';
-
-// Endpoint público para presigned URLs (accesible desde el navegador)
-// Si no se define, se usa el endpoint interno
 const MINIO_PUBLIC_ENDPOINT = process.env.MINIO_PUBLIC_ENDPOINT || null;
 
-const minioClient = new MinIO.Client({
-  endPoint: MINIO_ENDPOINT,
-  port: MINIO_PORT,
-  useSSL: MINIO_USE_SSL,
-  accessKey: MINIO_ACCESS_KEY,
-  secretKey: MINIO_SECRET_KEY,
+// Cliente S3 para operaciones internas (endpoint privado)
+const s3Client = new S3Client({
+  region: "us-east-1",
+  endpoint: `${PROTOCOL}://${MINIO_ENDPOINT}:${MINIO_PORT}`,
+  credentials: {
+    accessKeyId: MINIO_ACCESS_KEY,
+    secretAccessKey: MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
 });
+
+// Cliente S3 para generar URLs públicas (endpoint público sin prefijos)
+// Por ejemplo: http://localhost en lugar de http://localhost/storage
+const publicS3Client = MINIO_PUBLIC_ENDPOINT ? new S3Client({
+  region: "us-east-1",
+  endpoint: MINIO_PUBLIC_ENDPOINT,
+  credentials: {
+    accessKeyId: MINIO_ACCESS_KEY,
+    secretAccessKey: MINIO_SECRET_KEY,
+  },
+  forcePathStyle: true,
+}) : s3Client;
 
 const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'evidencia-denuncias';
 
@@ -61,16 +82,15 @@ const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB en bytes
  */
 export async function initializeBucket() {
   try {
-    const exists = await minioClient.bucketExists(BUCKET_NAME);
-    if (!exists) {
-      await minioClient.makeBucket(BUCKET_NAME, 'us-east-1');
+    await s3Client.send(new HeadBucketCommand({ Bucket: BUCKET_NAME }));
+    console.log(`✅ Bucket "${BUCKET_NAME}" ya existe`);
+  } catch (error) {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      await s3Client.send(new CreateBucketCommand({ Bucket: BUCKET_NAME }));
       console.log(`✅ Bucket "${BUCKET_NAME}" creado exitosamente`);
     } else {
-      console.log(`✅ Bucket "${BUCKET_NAME}" ya existe`);
+      console.error('❌ Error inicializando bucket:', error);
     }
-  } catch (error) {
-    console.error('❌ Error inicializando bucket:', error);
-    throw error;
   }
 }
 
@@ -116,72 +136,62 @@ export function generateUniqueFileName(originalName) {
 /**
  * Reemplaza el endpoint en una URL presigned con el endpoint público si está configurado
  * @param {string} url - URL presigned generada por MinIO
- * @returns {string} - URL con endpoint público si está configurado
+ * @param {string} prefix - Prefijo a inyectar (ej: /storage)
+ * @returns {string} - URL con prefijo inyectado en el pathname
  */
-function replacePresignedUrlEndpoint(url) {
-  if (!MINIO_PUBLIC_ENDPOINT) {
+function replacePresignedUrlEndpoint(url, prefix = '/storage') {
+  if (!prefix) {
     return url;
   }
 
   try {
     const urlObj = new URL(url);
-    const publicUrlObj = new URL(MINIO_PUBLIC_ENDPOINT);
-
-    // Reemplazar host y puerto con el endpoint público
-    urlObj.host = publicUrlObj.host;
-    urlObj.port = publicUrlObj.port;
-    urlObj.protocol = publicUrlObj.protocol;
-
+    // Inyecta el prefijo para que Nginx lo enrute, pero la firma
+    // se mantiene válida para el path original (sin prefijo) que ve MinIO
+    urlObj.pathname = `${prefix}${urlObj.pathname}`;
     return urlObj.toString();
   } catch (error) {
-    console.warn('Error reemplazando endpoint en presigned URL, usando URL original:', error);
+    console.error('Error inyectando prefijo:', error);
     return url;
   }
 }
+
 
 /**
  * Genera una URL firmada (presigned) para subir un archivo
  * @param {string} fileName - Nombre del archivo (debe ser único)
  * @param {string} mimeType - MIME type del archivo
  * @param {number} expiresIn - Tiempo de expiración en segundos (default: 1 hora)
- * @returns {Promise<string>} - URL firmada para PUT (con endpoint público si está configurado)
+ * @returns {Promise<string>} - URL firmada para PUT con prefijo /storage
  */
 export async function getPresignedUploadUrl(fileName, mimeType, expiresIn = 3600) {
-  try {
-    const url = await minioClient.presignedPutObject(
-      BUCKET_NAME,
-      fileName,
-      expiresIn
-    );
-
-    // Reemplazar con endpoint público si está configurado
-    return replacePresignedUrlEndpoint(url);
-  } catch (error) {
-    console.error('Error generando presigned URL para upload:', error);
-    throw new Error('No se pudo generar la URL de carga');
-  }
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: fileName,
+    ContentType: mimeType,
+  });
+  // Usar publicS3Client para generar URL contra endpoint público
+  const url = await getSignedUrl(publicS3Client, command, { expiresIn });
+  // Inyectar prefijo /storage para que nginx lo enrute
+  return replacePresignedUrlEndpoint(url, '/storage');
 }
 
 /**
  * Genera una URL firmada (presigned) para descargar/ver un archivo
  * @param {string} objectKey - Clave del objeto en MinIO
  * @param {number} expiresIn - Tiempo de expiración en segundos (default: 1 hora)
- * @returns {Promise<string>} - URL firmada para GET (con endpoint público si está configurado)
+ * @returns {Promise<string>} - URL firmada para GET con prefijo /storage
  */
 export async function getPresignedDownloadUrl(objectKey, expiresIn = 3600) {
-  try {
-    const url = await minioClient.presignedGetObject(
-      BUCKET_NAME,
-      objectKey,
-      expiresIn
-    );
-
-    // Reemplazar con endpoint público si está configurado
-    return replacePresignedUrlEndpoint(url);
-  } catch (error) {
-    console.error('Error generando presigned URL para download:', error);
-    throw new Error('No se pudo generar la URL de descarga');
-  }
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: objectKey,
+  });
+  // Usar publicS3Client para generar URL contra endpoint público
+  const url = await getSignedUrl(publicS3Client, command, { expiresIn });
+  // Inyectar prefijo /storage para que nginx lo enrute
+  // La firma se mantiene válida porque se calcula contra la ruta original (sin /storage)
+  return replacePresignedUrlEndpoint(url, '/storage');
 }
 
 /**
@@ -190,12 +200,10 @@ export async function getPresignedDownloadUrl(objectKey, expiresIn = 3600) {
  * @returns {Promise<void>}
  */
 export async function deleteFile(objectKey) {
-  try {
-    await minioClient.removeObject(BUCKET_NAME, objectKey);
-  } catch (error) {
-    console.error('Error eliminando archivo de MinIO:', error);
-    throw new Error('No se pudo eliminar el archivo');
-  }
+  await s3Client.send(new DeleteObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: objectKey,
+  }));
 }
 
 /**
@@ -205,10 +213,13 @@ export async function deleteFile(objectKey) {
  */
 export async function fileExists(objectKey) {
   try {
-    await minioClient.statObject(BUCKET_NAME, objectKey);
+    await s3Client.send(new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: objectKey,
+    }));
     return true;
   } catch (error) {
-    if (error.code === 'NotFound') {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
       return false;
     }
     throw error;
@@ -222,12 +233,16 @@ export async function fileExists(objectKey) {
  */
 export async function getFileMetadata(objectKey) {
   try {
-    const stat = await minioClient.statObject(BUCKET_NAME, objectKey);
+    const response = await s3Client.send(new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: objectKey,
+    }));
+
     return {
-      size: stat.size,
-      etag: stat.etag,
-      lastModified: stat.lastModified,
-      contentType: stat.metaData?.['content-type'] || 'application/octet-stream',
+      size: response.ContentLength,
+      etag: response.ETag,
+      lastModified: response.LastModified,
+      contentType: response.ContentType || 'application/octet-stream',
     };
   } catch (error) {
     console.error('Error obteniendo metadatos del archivo:', error);
@@ -244,15 +259,12 @@ export async function getFileMetadata(objectKey) {
  */
 export async function uploadFileToMinIO(fileBuffer, objectKey, mimeType) {
   try {
-    await minioClient.putObject(
-      BUCKET_NAME,
-      objectKey,
-      fileBuffer,
-      fileBuffer.length,
-      {
-        'Content-Type': mimeType,
-      }
-    );
+    await s3Client.send(new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: objectKey,
+      Body: fileBuffer,
+      ContentType: mimeType,
+    }));
   } catch (error) {
     console.error('Error subiendo archivo a MinIO:', error);
     throw new Error('No se pudo subir el archivo a MinIO');

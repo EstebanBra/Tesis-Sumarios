@@ -149,6 +149,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - DATABASE_URL=${DATABASE_URL}
       - EXTERNAL_DATABASE_URL=${EXTERNAL_DATABASE_URL}
       - MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio}
@@ -157,12 +158,15 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
+      - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT:-http://localhost/storage}
       - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_SECURE=${SMTP_SECURE:-true}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - SMTP_FROM=${SMTP_FROM}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
     #networks:
     #  - app-network
     depends_on:

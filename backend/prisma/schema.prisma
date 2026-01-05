@@ -67,6 +67,7 @@ model Denuncia {
   Ubicacion           String?   @db.VarChar(200)
   observacionDirgegen String?   @db.NVarChar(MAX)
   Reserva_Identidad   Boolean  @default(false) // Reserva de identidad del denunciante
+  token_seguimiento   String?   @unique @db.VarChar(255) // UUID para seguimiento público de la denuncia
 
   // Relaciones
   denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
