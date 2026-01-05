@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { buscarPorRut } from '@/services/datosExternos.api'
 import { solicitarCodigoVerificacion } from '@/services/verificacionEmail.api'
-import { limpiarRut } from '@/utils/validation.utils'
+import { limpiarRut, formatearRut } from '@/utils/validation.utils'
 
 export default function AccesoDenuncia() {
     const navigate = useNavigate()
@@ -85,7 +85,11 @@ export default function AccesoDenuncia() {
                                 className="w-full rounded-none border border-gray-400 px-4 py-3 text-gray-700 placeholder-gray-500 focus:border-ubb-blue focus:outline-none focus:ring-1 focus:ring-ubb-blue"
                                 placeholder="12.345.678-9"
                                 value={rut}
-                                onChange={(e) => setRut(e.target.value)}
+                                onChange={(e) => {
+                                    const valor = e.target.value;
+                                    const formateado = formatearRut(valor);
+                                    setRut(formateado);
+                                }}
                                 required
                             />
                             <p className="mt-2 text-xs text-gray-500">
