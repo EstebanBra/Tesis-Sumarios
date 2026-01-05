@@ -2,6 +2,9 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from '@/App';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login/Login';
+import AccesoDenuncia from '@/pages/AccesoDenuncia';
+import VerificacionEmail from '@/pages/VerificacionEmail/VerificacionEmail';
+import SeleccionRol from '@/pages/SeleccionRol/SeleccionRol';
 import NuevaDenuncia from '@/pages/Denuncias/NuevaDenuncia';
 import MisDenuncias from '@/pages/Denuncias/MisDenuncias';
 import DetalleDenuncia from '@/pages/Denuncias/DetalleDenuncia';
@@ -18,10 +21,16 @@ import RequireAuth from '@/components/RequireAuth';
 import { AuthProvider } from '@/context/AuthContext';
 import { Outlet } from 'react-router-dom';
 
-// Grupo AUTH (sin header/footer): Login
+// Grupo AUTH (sin header/footer): Login y flujo de denuncias públicas
 const authRoutes = {
   element: <AuthShell />,
-  children: [{ path: '/login', element: <Login /> }],
+  children: [
+    { path: '/login', element: <Login /> },
+    { path: '/denuncia/acceso', element: <AccesoDenuncia /> },
+    { path: '/verificacion-email', element: <VerificacionEmail /> },
+    { path: '/seleccion-rol', element: <SeleccionRol /> },
+    { path: '/denuncias/nueva', element: <NuevaDenuncia /> },
+  ],
 };
 
 // Grupo APP (con header/footer): Protegido
@@ -35,7 +44,6 @@ const appRoutes = {
         { index: true, element: <Navigate to="/home" replace /> },
         { path: 'home', element: <Home /> },
         { path: 'denuncias', element: <MisDenuncias /> },
-        { path: 'denuncias/nueva', element: <NuevaDenuncia /> },
         { path: 'denuncias/:id', element: <DetalleDenuncia /> },
 
         { path: 'dirgegen/bandeja', element: <BandejaDirgegen /> },

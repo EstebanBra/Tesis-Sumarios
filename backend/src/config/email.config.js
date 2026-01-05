@@ -25,7 +25,7 @@ emailTransporter.verify((error, success) => {
 export async function enviarCorreo({ to, subject, html, text }) {
   try {
     const info = await emailTransporter.sendMail({
-      from: `"Sistema de Denuncias UBB" <${process.env.SMTP_USER}>`,
+      from: `"Sistema de Denuncias UBB" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
       to,
       subject,
       html,

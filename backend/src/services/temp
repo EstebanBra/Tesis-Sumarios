@@ -1,0 +1,20 @@
+
+const emailService = await import('./src/config/email.config.js');
+
+const testEmail = {
+  to: 'sespinoza@ubiobio.cl',
+  subject: 'Prueba de configuración SMTP',
+  html: '<h1>¡Funciona!</h1><p>El sistema de correos está configurado correctamente.</p>',
+  text: 'El sistema de correos está configurado correctamente.'
+};
+
+console.log('Enviando correo de prueba...');
+
+const resultado = await emailService.enviarCorreo(testEmail);
+
+if (resultado.success) {
+  console.log('Correo enviado exitosamente');
+  console.log('ID del mensaje:', resultado.messageId);
+} else {
+  console.error('Error al enviar:', resultado.error);
+}

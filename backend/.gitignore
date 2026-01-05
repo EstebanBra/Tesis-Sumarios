@@ -36,3 +36,6 @@ Thumbs.db
 Desktop.ini
 .env
 /src/generated/prisma
+
+/vpn/
+.env

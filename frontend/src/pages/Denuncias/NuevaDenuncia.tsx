@@ -174,6 +174,44 @@ export default function NuevaDenuncia() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const datosGuardados = sessionStorage.getItem('datosDenunciante');
+
+    if (datosGuardados && !user) {
+      try {
+        const datos = JSON.parse(datosGuardados);
+        const rolSeleccionado = datos.rolSeleccionado;
+
+        let carreraCargo = '';
+        if (rolSeleccionado === 'Personal' && datos.detalles?.personal) {
+          carreraCargo = datos.detalles.personal.cargo;
+        } else if (rolSeleccionado === 'Alumno' && datos.detalles?.alumno) {
+          carreraCargo = datos.detalles.alumno.carrera;
+        }
+
+        setForm(prev => {
+          const isVictima = prev.esVictima === 'si';
+          return {
+            ...prev,
+            rut: datos.rut + '-' + datos.dv,
+            nombre: datos.nombre_completo,
+            correo: datos.email || '',
+            telefono: datos.telefono || '',
+            carreraCargo: carreraCargo,
+            victimaRut: isVictima ? datos.rut + '-' + datos.dv : prev.victimaRut,
+            victimaNombre: isVictima ? datos.nombres : prev.victimaNombre,
+            victimaApellido1: isVictima ? datos.apellido_paterno : prev.victimaApellido1,
+            victimaApellido2: isVictima ? datos.apellido_materno : prev.victimaApellido2,
+            victimaCorreo: isVictima ? datos.email || '' : prev.victimaCorreo,
+            victimaTelefono: isVictima ? datos.telefono || '' : prev.victimaTelefono,
+          };
+        });
+      } catch (error) {
+        console.error('Error al cargar datos del denunciante:', error);
+      }
+    }
+  }, [user]);
+
   function handleSelectTipo(id: number) {
     // Asignar tipo de denuncia por defecto basado en el tipo seleccionado
     // ID 100 = "Género y Equidad" para tipo 1 (Género)
@@ -990,6 +1028,10 @@ export default function NuevaDenuncia() {
       // Extraer archivos de archivosEvidencia y enviarlos junto con el payload
       const archivosParaEnviar = archivosEvidencia.map(fm => fm.file);
       await crearDenuncia(payload, archivosParaEnviar.length > 0 ? archivosParaEnviar : undefined);
+
+      // Limpiar datos de sessionStorage después de enviar exitosamente
+      sessionStorage.removeItem('datosDenunciante');
+
       nav(routes.denuncias.root);
     } catch (err: any) {
       // Mapear errores del backend al estado errors para mostrarlos en los campos
