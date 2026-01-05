@@ -143,3 +143,27 @@ export function validarRequerido(valor: string | null | undefined): boolean {
   return !!(valor && valor.trim().length > 0);
 }
 
+/**
+ * Limpia un RUT removiendo puntos y guiones, y opcionalmente el dígito verificador
+ * Entrada: 12.345.678-9 -> Salida: 12345678 (sin DV) o 12345678-9 (con DV si keepDv=true)
+ *
+ * @param rut - RUT a limpiar
+ * @param keepDv - Si es true, mantiene el dígito verificador. Por defecto false.
+ * @returns RUT sin puntos y opcionalmente sin DV
+ */
+export function limpiarRut(rut: string, keepDv: boolean = false): string {
+  if (!rut || typeof rut !== 'string') return '';
+
+  // Remover puntos
+  const rutSinPuntos = rut.replace(/\./g, '').trim();
+
+  // Si queremos mantener el DV, retornar tal cual
+  if (keepDv) {
+    return rutSinPuntos;
+  }
+
+  // Remover el guion y todo lo que esté después (el DV)
+  const rutSinDv = rutSinPuntos.split('-')[0];
+  return rutSinDv;
+}
+
