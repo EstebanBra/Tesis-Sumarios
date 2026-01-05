@@ -67,6 +67,7 @@ model Denuncia {
   Ubicacion           String?   @db.VarChar(200)
   observacionDirgegen String?   @db.NVarChar(MAX)
   Reserva_Identidad   Boolean  @default(false) // Reserva de identidad del denunciante
+  denuncianteEsVictima Boolean @default(false) // Indica si el denunciante es también la víctima
 
   // Relaciones
   denunciante           Persona                 @relation(fields: [ID_Denunciante], references: [ID], onDelete: NoAction, onUpdate: NoAction)
@@ -136,7 +137,7 @@ model Participante_Denuncia {
   ID_Denuncia Int
   ID_Persona  Int?
   Nombre_PD   String @db.VarChar(100)
-  Tipo_PD     String @default("TESTIGO") @db.VarChar(50) // Valores: 'VICTIMA', 'TESTIGO', 'DENUNCIADO', etc.
+  Tipo_PD     String @db.VarChar(50) // Valores permitidos: 'VICTIMA', 'DENUNCIADO', 'TESTIGO' (sin valor por defecto, validado en código)
 
   // Relaciones
   denuncia Denuncia @relation(fields: [ID_Denuncia], references: [ID_Denuncia], onDelete: Cascade, onUpdate: Cascade)

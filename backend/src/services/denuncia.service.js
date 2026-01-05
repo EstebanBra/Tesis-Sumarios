@@ -36,6 +36,46 @@ const includeFull = {
   detalle_campo_clinico: true // Detalle específico para denuncias de campo clínico
 };
 
+/**
+ * Función helper para "fabricar" el denunciante como participante si denuncianteEsVictima === true
+ * Esto mantiene la compatibilidad con el frontend sin duplicar datos en la BD
+ */
+function fabricarDenuncianteComoParticipante(denuncia) {
+  if (!denuncia || !denuncia.denuncianteEsVictima || !denuncia.denunciante) {
+    return denuncia;
+  }
+
+  // Crear un objeto "participante" virtual que representa al denunciante como víctima
+  const denuncianteComoParticipante = {
+    ID_PD: -1, // ID negativo para indicar que es virtual (no existe en BD)
+    ID_Denuncia: denuncia.ID_Denuncia,
+    ID_Persona: denuncia.denunciante.ID,
+    Nombre_PD: denuncia.denunciante.Nombre || 'Sin nombre',
+    Tipo_PD: 'VICTIMA', // Enum TipoParticipante.VICTIMA
+    persona: denuncia.denunciante, // Incluir los datos completos de la persona
+  };
+
+  // Agregar el denunciante como participante al inicio del array (para mantener orden lógico)
+  const participantes = Array.isArray(denuncia.participante_denuncia)
+    ? [...denuncia.participante_denuncia]
+    : [];
+
+  // Verificar que no exista ya un participante con el mismo ID_Persona y Tipo_PD === 'VICTIMA'
+  const yaExisteVictima = participantes.some(
+    p => p.ID_Persona === denuncianteComoParticipante.ID_Persona &&
+         (p.Tipo_PD === 'VICTIMA' || p.Tipo_PD === 'VICTIMA')
+  );
+
+  if (!yaExisteVictima) {
+    participantes.unshift(denuncianteComoParticipante);
+  }
+
+  return {
+    ...denuncia,
+    participante_denuncia: participantes,
+  };
+}
+
 
 // Lista con los filtros
 export async function listDenunciasService(filters = {}, page = 1, pageSize = 10) {
@@ -66,14 +106,26 @@ export async function listDenunciasService(filters = {}, page = 1, pageSize = 10
     }),
   ]);
 
-  return { total, rows, page, pageSize, pages: Math.ceil(total / pageSize) };
+  // "Fabricar" el denunciante como participante si denuncianteEsVictima === true
+  // Esto mantiene la compatibilidad con el frontend sin duplicar datos en la BD
+  const rowsConDenunciante = rows.map(denuncia => fabricarDenuncianteComoParticipante(denuncia));
+
+  return { total, rows: rowsConDenunciante, page, pageSize, pages: Math.ceil(total / pageSize) };
 }
 
 export async function getDenunciaByIdService(id) {
-  return prisma.denuncia.findUnique({
+  const denuncia = await prisma.denuncia.findUnique({
     where: { ID_Denuncia: Number(id) },
     include: includeFull
   });
+
+  if (!denuncia) {
+    return null;
+  }
+
+  // "Fabricar" el denunciante como participante si denuncianteEsVictima === true
+  // Esto mantiene la compatibilidad con el frontend sin duplicar datos en la BD
+  return fabricarDenuncianteComoParticipante(denuncia);
 }
 
 export async function createDenunciaService(payload, { historial = true } = {}) {
@@ -153,6 +205,11 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     // Determinar si es denuncia de campo clínico (verificar si viene detalleCampoClinico en el payload)
     const esCampoClinico = !!payload.detalleCampoClinico;
 
+    // Determinar si el denunciante es también la víctima
+    // Si existe payload.victima con RUT, significa que hay una víctima externa (denunciante NO es víctima)
+    // Si NO existe payload.victima, el denunciante ES la víctima
+    const denuncianteEsVictima = !(payload.victima && payload.victima.rut && typeof payload.victima.rut === 'string' && payload.victima.rut.trim().length > 0);
+
     const denuncia = await tx.denuncia.create({
       data: {
         ID_Denunciante: denunciante.ID,  // Usamos el ID de la persona
@@ -164,6 +221,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         Relato_Hechos: payload.Relato_Hechos,
         Ubicacion: payload.Ubicacion ?? null,
         Reserva_Identidad: payload.reservaIdentidad ?? false,
+        denuncianteEsVictima: denuncianteEsVictima, // Nuevo campo: indica si el denunciante es la víctima
 
         // Historial inicial
         historial_estado: historial
@@ -384,7 +442,8 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
       console.error("Error importando servicios de notificación:", err);
     }
 
-    return denunciaCompleta;
+    // "Fabricar" el denunciante como participante si denuncianteEsVictima === true
+    return fabricarDenuncianteComoParticipante(denunciaCompleta);
   });
 }
 export async function updateDenunciaService(id, data) {
@@ -462,8 +521,8 @@ export async function updateDenunciaService(id, data) {
       });
     }
 
-    // 3️⃣ Actualizar participantes (denunciados y testigos)
-    if (Array.isArray(data.denunciados) || Array.isArray(data.testigos)) {
+    // 3️⃣ Actualizar participantes (víctima externa + denunciados + testigos)
+    if (data.victima || Array.isArray(data.denunciados) || Array.isArray(data.testigos)) {
       // Eliminamos los participantes previos de esta denuncia
       await tx.participante_Denuncia.deleteMany({
         where: { ID_Denuncia: Number(id) },
@@ -474,6 +533,37 @@ export async function updateDenunciaService(id, data) {
       });
 
       const nuevosParticipantes = [];
+      let hayVictimaExterna = false;
+
+      // Víctima externa (si existe)
+      if (data.victima && data.victima.rut && typeof data.victima.rut === 'string' && data.victima.rut.trim().length > 0) {
+        hayVictimaExterna = true;
+        const personaVictima = await tx.persona.upsert({
+          where: { Rut: data.victima.rut.trim() },
+          update: {
+            Nombre: data.victima.nombre || undefined,
+            Correo: data.victima.correo || undefined,
+            Telefono: data.victima.telefono || undefined,
+            sexo: data.victima.sexo || undefined,
+            genero: data.victima.genero || undefined,
+          },
+          create: {
+            Rut: data.victima.rut.trim(),
+            Nombre: data.victima.nombre || "Sin nombre",
+            Correo: data.victima.correo || "",
+            Telefono: data.victima.telefono || "",
+            sexo: data.victima.sexo || null,
+            genero: data.victima.genero || null,
+          }
+        });
+
+        nuevosParticipantes.push({
+          ID_Denuncia: Number(id),
+          ID_Persona: personaVictima.ID,
+          Nombre_PD: data.victima.nombre || "Sin nombre",
+          Tipo_PD: 'VICTIMA', // Enum TipoParticipante.VICTIMA
+        });
+      }
 
       // denunciados
       if (Array.isArray(data.denunciados)) {
@@ -511,6 +601,7 @@ export async function updateDenunciaService(id, data) {
               ID_Denuncia: Number(id),
               ID_Persona: personaId,
               Nombre_PD: p.nombre ?? "Desconocido",
+              Tipo_PD: 'DENUNCIADO', // Enum TipoParticipante.DENUNCIADO
             });
           }
         }
@@ -543,10 +634,20 @@ export async function updateDenunciaService(id, data) {
               ID_Denuncia: Number(id),
               ID_Persona: personaId,
               Nombre_PD: t.nombre ?? "Desconocido",
+              Tipo_PD: 'TESTIGO', // Enum TipoParticipante.TESTIGO
             });
           }
         }
       }
+
+      // Actualizar denuncianteEsVictima basándose en si hay víctima externa
+      const denuncianteEsVictima = !hayVictimaExterna;
+
+      // Actualizar la denuncia con el nuevo valor de denuncianteEsVictima
+      await tx.denuncia.update({
+        where: { ID_Denuncia: Number(id) },
+        data: { denuncianteEsVictima: denuncianteEsVictima },
+      });
 
       if (nuevosParticipantes.length) {
         await tx.participante_Denuncia.createMany({ data: nuevosParticipantes });
@@ -601,6 +702,9 @@ export async function updateDenunciaService(id, data) {
       where: { ID_Denuncia: Number(id) },
       include: includeFull, // Usar includeFull para traer todos los datos
     });
+
+    // "Fabricar" el denunciante como participante si denuncianteEsVictima === true
+    return fabricarDenuncianteComoParticipante(updatedFull);
 
     // 6️⃣ Si se cambió el tipo a VRA (301, 302) o Dirgegen (303) y hay observación, notificar
     const nuevoTipoId = data.ID_TipoDe ?? prev.ID_TipoDe;
@@ -693,7 +797,7 @@ export async function updateDenunciaService(id, data) {
       }
     }
 
-    return updatedFull;
+    // Ya retornamos arriba con fabricarDenuncianteComoParticipante
   });
 }
 
@@ -725,6 +829,7 @@ export async function changeEstadoService(id, nuevoEstadoId, fecha = null) {
       },
     });
 
-    return upd;
+    // "Fabricar" el denunciante como participante si denuncianteEsVictima === true
+    return fabricarDenuncianteComoParticipante(upd);
   });
 }

@@ -201,44 +201,74 @@ export default function DetalleDirgegen() {
 
   // Función helper para parsear datos de víctima desde caracteristicasDenunciado
   // Determinar si el denunciante es la víctima
-  // PRIMERO: Verificar si existe un participante con Tipo_PD === 'VICTIMA' (más confiable)
+  // PRIMERO: Verificar el booleano denuncianteEsVictima del backend (nuevo campo)
+  const denuncianteEsVictimaBackend = denuncia?.denuncianteEsVictima === true;
+
   const todosParticipantesParaVictima = todosParticipantes;
   const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
 
-  // Buscar víctima externa por Tipo_PD
-  const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
-    return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
-           (!denuncianteId || p.ID_Persona !== denuncianteId);
-  });
-
-  // Si existe una víctima externa, el denunciante NO es la víctima
-  let esVictima = !victimaExternaPorTipo;
+  let esVictima: boolean;
   let victimaMenor = false;
 
-  // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
-  if (!victimaExternaPorTipo && denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
-    for (const pc of denuncia.denunciante.participantes_caso) {
-      if (pc.hitos && Array.isArray(pc.hitos)) {
-        for (const hito of pc.hitos) {
-          if (hito.Descripcion && typeof hito.Descripcion === 'string') {
-            const desc = hito.Descripcion;
-            if (desc.includes('Denunciante es la víctima')) {
-              esVictima = true;
+  // Si el backend indica que el denunciante es víctima, usar esa información directamente
+  if (denuncianteEsVictimaBackend) {
+    esVictima = true;
+    // Verificar si es menor de edad en los hitos (para compatibilidad)
+    if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+      for (const pc of denuncia.denunciante.participantes_caso) {
+        if (pc.hitos && Array.isArray(pc.hitos)) {
+          for (const hito of pc.hitos) {
+            if (hito.Descripcion && typeof hito.Descripcion === 'string') {
+              const desc = hito.Descripcion;
+              if (
+                desc.includes('Víctima es menor de edad') ||
+                desc.toLowerCase().includes('menor de edad')
+              ) {
+                victimaMenor = true;
+                break;
+              }
             }
-            if (desc.includes('Denunciante es testigo/tercero')) {
-              esVictima = false; // Si dice explícitamente que NO es la víctima
-            }
-            if (
-              desc.includes('Víctima es menor de edad') ||
-              desc.toLowerCase().includes('menor de edad')
-            ) {
-              victimaMenor = true;
-            }
-            // Si encontramos ambas, podemos salir del loop
-            if (esVictima && victimaMenor) break;
           }
+          if (victimaMenor) break;
         }
-        if (esVictima && victimaMenor) break;
+      }
+    }
+  } else {
+    // Lógica antigua: buscar víctima externa en participantes (para compatibilidad con datos antiguos)
+    // Buscar víctima externa por Tipo_PD
+    const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
+      return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+             (!denuncianteId || p.ID_Persona !== denuncianteId);
+    });
+
+    // Si existe una víctima externa, el denunciante NO es la víctima
+    esVictima = !victimaExternaPorTipo;
+
+    // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
+    if (!victimaExternaPorTipo && denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+      for (const pc of denuncia.denunciante.participantes_caso) {
+        if (pc.hitos && Array.isArray(pc.hitos)) {
+          for (const hito of pc.hitos) {
+            if (hito.Descripcion && typeof hito.Descripcion === 'string') {
+              const desc = hito.Descripcion;
+              if (desc.includes('Denunciante es la víctima')) {
+                esVictima = true;
+              }
+              if (desc.includes('Denunciante es testigo/tercero')) {
+                esVictima = false; // Si dice explícitamente que NO es la víctima
+              }
+              if (
+                desc.includes('Víctima es menor de edad') ||
+                desc.toLowerCase().includes('menor de edad')
+              ) {
+                victimaMenor = true;
+              }
+              // Si encontramos ambas, podemos salir del loop
+              if (esVictima && victimaMenor) break;
+            }
+          }
+          if (esVictima && victimaMenor) break;
+        }
       }
     }
   }
@@ -248,15 +278,21 @@ export default function DetalleDirgegen() {
   let victimaExterna: any = null;
 
   if (!esVictima) {
-    // Usar la víctima encontrada por tipo (ya la tenemos arriba)
+    // Buscar víctima externa por Tipo_PD
+    const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
+      return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+             (!denuncianteId || p.ID_Persona !== denuncianteId);
+    });
+
+    // Usar la víctima encontrada por tipo
     victimaExterna = victimaExternaPorTipo || null;
 
     // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
     if (!victimaExterna) {
-    victimaExterna = todosParticipantes.find((p: any) => {
-      // La víctima externa debe tener ID_Persona (fue guardada como persona)
-      // y no debe ser el denunciante
-      return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+      victimaExterna = todosParticipantes.find((p: any) => {
+        // La víctima externa debe tener ID_Persona (fue guardada como persona)
+        // y no debe ser el denunciante
+        return p.ID_Persona && p.persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
       }) || null;
     }
   }
