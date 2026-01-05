@@ -212,50 +212,69 @@ export default function DetalleDirgegen() {
 
   // Función helper para parsear datos de víctima desde caracteristicasDenunciado
   // Determinar si el denunciante es la víctima
-  // PRIMERO: Verificar si existe un participante con Tipo_PD === 'VICTIMA' (más confiable)
+  // PRIMERO: Verificar el booleano denuncianteEsVictima del backend (nuevo campo)
+  const denuncianteEsVictimaBackend = denuncia?.denuncianteEsVictima === true;
+
   const todosParticipantesParaVictima = todosParticipantes;
   const denuncianteId = denuncia.denunciante?.ID || datosDenuncianteObj?.ID;
 
-  // Buscar víctima externa por Tipo_PD
-  const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
-    return (
-      (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
-      (!denuncianteId || p.ID_Persona !== denuncianteId)
-    );
-  });
-
-  // Si existe una víctima externa, el denunciante NO es la víctima
-  let esVictima = !victimaExternaPorTipo;
+  let esVictima: boolean;
   let victimaMenor = false;
 
-  // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
-  if (
-    !victimaExternaPorTipo &&
-    denuncia.denunciante?.participantes_caso &&
-    Array.isArray(denuncia.denunciante.participantes_caso)
-  ) {
+  // PRIORIDAD 1: Si el backend indica que el denunciante es víctima, usar esa información
+  if (denuncianteEsVictimaBackend) {
+    esVictima = true;
+  } else {
+    // PRIORIDAD 2: Buscar víctima externa por Tipo_PD === 'VICTIMA'
+    const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
+      return (
+        (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+        (!denuncianteId || p.ID_Persona !== denuncianteId)
+      );
+    });
+
+    if (victimaExternaPorTipo) {
+      // Si existe víctima externa por tipo, el denunciante NO es la víctima
+      esVictima = false;
+    } else {
+      // PRIORIDAD 3: Verificar en los hitos (compatibilidad con datos antiguos)
+      esVictima = true; // Asumir que es la víctima por defecto
+      if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+        for (const pc of denuncia.denunciante.participantes_caso) {
+          if (pc.hitos && Array.isArray(pc.hitos)) {
+            for (const hito of pc.hitos) {
+              if (hito.Descripcion && typeof hito.Descripcion === 'string') {
+                const desc = hito.Descripcion;
+                if (desc.includes('Denunciante es testigo/tercero')) {
+                  esVictima = false;
+                  break;
+                }
+              }
+            }
+            if (!esVictima) break;
+          }
+        }
+      }
+    }
+  }
+
+  // Verificar si es menor de edad en los hitos (aplica en cualquier caso)
+  if (denuncia.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
         for (const hito of pc.hitos) {
           if (hito.Descripcion && typeof hito.Descripcion === 'string') {
             const desc = hito.Descripcion;
-            if (desc.includes('Denunciante es la víctima')) {
-              esVictima = true;
-            }
-            if (desc.includes('Denunciante es testigo/tercero')) {
-              esVictima = false; // Si dice explícitamente que NO es la víctima
-            }
             if (
               desc.includes('Víctima es menor de edad') ||
               desc.toLowerCase().includes('menor de edad')
             ) {
               victimaMenor = true;
+              break;
             }
-            // Si encontramos ambas, podemos salir del loop
-            if (esVictima && victimaMenor) break;
           }
         }
-        if (esVictima && victimaMenor) break;
+        if (victimaMenor) break;
       }
     }
   }
@@ -265,7 +284,13 @@ export default function DetalleDirgegen() {
   let victimaExterna: any = null;
 
   if (!esVictima) {
-    // Usar la víctima encontrada por tipo (ya la tenemos arriba)
+    // Buscar víctima externa por Tipo_PD
+    const victimaExternaPorTipo = todosParticipantesParaVictima.find((p: any) => {
+      return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+             (!denuncianteId || p.ID_Persona !== denuncianteId);
+    });
+
+    // Usar la víctima encontrada por tipo
     victimaExterna = victimaExternaPorTipo || null;
 
     // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
