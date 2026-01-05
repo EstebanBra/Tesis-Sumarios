@@ -54,6 +54,9 @@ const initialForm: FormularioDenuncia = {
   victimaNacimiento: '',
   victimaCorreo: '',
   victimaTelefono: '',
+  regionVictima: '',
+  comunaVictima: '',
+  direccionVictima: '',
 
   regionHecho: '',
   comunaHecho: '',
@@ -142,6 +145,7 @@ export default function NuevaDenuncia() {
     return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
   }, [form.regionDenunciante, allRegions]);
 
+  // Sincronizar datos del usuario cuando se carga
   useEffect(() => {
     if (user) {
       setForm(prev => {
@@ -169,6 +173,16 @@ export default function NuevaDenuncia() {
           victimaGenero: isVictima
             ? user.genero || prev.victimaGenero || prev.genero
             : prev.victimaGenero,
+          // Mapear ubicación del denunciante cuando es víctima
+          regionVictima: isVictima
+            ? user.region || prev.regionDenunciante || prev.regionVictima
+            : prev.regionVictima,
+          comunaVictima: isVictima
+            ? user.comuna || prev.comunaDenunciante || prev.comunaVictima
+            : prev.comunaVictima,
+          direccionVictima: isVictima
+            ? user.direccion || prev.direccionDenunciante || prev.direccionVictima
+            : prev.direccionVictima,
         };
       });
     }
@@ -211,6 +225,51 @@ export default function NuevaDenuncia() {
       }
     }
   }, [user]);
+  // Sincronizar datos de víctima cuando esVictima === 'si' y cambian los datos del denunciante
+  useEffect(() => {
+    if (form.esVictima === 'si') {
+      setForm(prev => {
+        // Solo actualizar si hay cambios para evitar loops infinitos
+        const hasChanges =
+          prev.victimaRut !== prev.rut ||
+          prev.victimaNombre !== prev.nombre ||
+          prev.victimaCorreo !== prev.correo ||
+          prev.victimaTelefono !== prev.telefono ||
+          prev.victimaSexo !== (prev.sexo || prev.victimaSexo || '') ||
+          prev.victimaGenero !== (prev.genero || prev.victimaGenero || '') ||
+          prev.regionVictima !== prev.regionDenunciante ||
+          prev.comunaVictima !== prev.comunaDenunciante ||
+          prev.direccionVictima !== prev.direccionDenunciante;
+
+        if (!hasChanges) return prev;
+
+        return {
+          ...prev,
+          // Autocompletar campos de víctima con datos del denunciante
+          victimaRut: prev.rut,
+          victimaNombre: prev.nombre,
+          victimaCorreo: prev.correo,
+          victimaTelefono: prev.telefono,
+          victimaSexo: prev.sexo || prev.victimaSexo || '',
+          victimaGenero: prev.genero || prev.victimaGenero || '',
+          regionVictima: prev.regionDenunciante,
+          comunaVictima: prev.comunaDenunciante,
+          direccionVictima: prev.direccionDenunciante,
+        };
+      });
+    }
+  }, [
+    form.esVictima,
+    form.rut,
+    form.nombre,
+    form.correo,
+    form.telefono,
+    form.sexo,
+    form.genero,
+    form.regionDenunciante,
+    form.comunaDenunciante,
+    form.direccionDenunciante,
+  ]);
 
   function handleSelectTipo(id: number) {
     // Asignar tipo de denuncia por defecto basado en el tipo seleccionado
@@ -246,28 +305,37 @@ export default function NuevaDenuncia() {
   }
 
   function handleEsVictimaChange(esVictima: 'si' | 'no') {
-    if (esVictima === 'si' && user) {
+    if (esVictima === 'si') {
       setForm(prev => ({
         ...prev,
         esVictima: 'si',
-        victimaRut: user.rut,
-        victimaNombre: user.nombre,
-        victimaCorreo: user.email,
-        victimaTelefono: user.telefono || prev.telefono,
-        // Precargar sexo y género del usuario, o del formulario si no están en el usuario
-        victimaSexo: (user as any).sexo || prev.sexo || prev.victimaSexo || '',
-        victimaGenero: user.genero || prev.genero || prev.victimaGenero || '',
+        // Autocompletar con datos del Paso 1 (denunciante)
+        victimaRut: prev.rut,
+        victimaNombre: prev.nombre,
+        victimaCorreo: prev.correo,
+        victimaTelefono: prev.telefono,
+        // Mapear región, comuna y dirección del denunciante
+        regionVictima: prev.regionDenunciante,
+        comunaVictima: prev.comunaDenunciante,
+        direccionVictima: prev.direccionDenunciante,
+        // Precargar sexo y género del denunciante
+        victimaSexo: prev.sexo || prev.victimaSexo || '',
+        victimaGenero: prev.genero || prev.victimaGenero || '',
       }));
     } else {
       setForm(prev => ({
         ...prev,
         esVictima: 'no',
+        // Limpiar todos los campos de víctima
         victimaRut: '',
         victimaNombre: '',
         victimaCorreo: '',
         victimaTelefono: '',
         victimaGenero: '',
         victimaSexo: '',
+        regionVictima: '',
+        comunaVictima: '',
+        direccionVictima: '',
       }));
     }
   }
@@ -484,29 +552,62 @@ export default function NuevaDenuncia() {
         break;
 
       case 2: // Paso 2: Hechos y Denunciados
-        // Validar RUT de víctima si no es el denunciante
+        // Validar campos de víctima si NO es el denunciante
         if (form.esVictima === 'no') {
+          // Validar RUT (obligatorio)
           if (!form.victimaRut.trim()) {
             newErrors.victimaRut = 'El RUT de la víctima es obligatorio';
           } else if (!validarRut(form.victimaRut)) {
             newErrors.victimaRut = 'RUT de víctima inválido';
           }
-          // Validar nombre de víctima si se ingresó
-          if (form.victimaNombre.trim()) {
+
+          // Validar Nombre Completo (obligatorio)
+          if (!form.victimaNombre.trim()) {
+            newErrors.victimaNombre = 'El nombre completo de la víctima es obligatorio';
+          } else {
             const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
             if (!nombreRegex.test(form.victimaNombre.trim())) {
               newErrors.victimaNombre = 'El nombre solo puede contener letras';
             }
           }
-          // Validar correo de víctima si se ingresó
-          if (form.victimaCorreo.trim() && !validarEmail(form.victimaCorreo)) {
+
+          // Validar Correo Electrónico (obligatorio)
+          if (!form.victimaCorreo.trim()) {
+            newErrors.victimaCorreo = 'El correo electrónico de la víctima es obligatorio';
+          } else if (!validarEmail(form.victimaCorreo)) {
             newErrors.victimaCorreo = 'Correo electrónico de víctima inválido';
           }
-          // Validar teléfono de víctima si se ingresó
-          if (form.victimaTelefono.trim() && !validarTelefono(form.victimaTelefono)) {
+
+          // Validar Teléfono (obligatorio)
+          if (!form.victimaTelefono.trim()) {
+            newErrors.victimaTelefono = 'El teléfono de la víctima es obligatorio';
+          } else if (!validarTelefono(form.victimaTelefono)) {
             newErrors.victimaTelefono = 'Teléfono de víctima inválido (debe tener 8-9 dígitos)';
           }
+
+          // Validar Sexo (obligatorio)
+          if (!form.victimaSexo || !form.victimaSexo.trim()) {
+            newErrors.victimaSexo = 'El sexo de la víctima es obligatorio';
+          }
+
+          // Género es opcional, solo validar formato si se ingresó
+
+          // Validar Región (obligatorio)
+          if (!form.regionVictima || !form.regionVictima.trim()) {
+            newErrors.regionVictima = 'La región de la víctima es obligatoria';
+          }
+
+          // Validar Comuna (obligatorio)
+          if (!form.comunaVictima || !form.comunaVictima.trim()) {
+            newErrors.comunaVictima = 'La comuna de la víctima es obligatoria';
+          }
+
+          // Validar Dirección (obligatorio)
+          if (!form.direccionVictima || !form.direccionVictima.trim()) {
+            newErrors.direccionVictima = 'La dirección de la víctima es obligatoria';
+          }
         }
+        // Si es víctima, no se validan estos campos porque se autocompletan del Paso 1
 
         // VALIDACIÓN DE FECHAS - Protección doble: robusta y sin problemas de zona horaria
         if (form.fechaHecho) {
@@ -771,29 +872,63 @@ export default function NuevaDenuncia() {
       }
     }
 
-    // Validaciones de víctima (denunciado) - SIEMPRE OBLIGATORIA
+    // Validaciones de víctima - Requeridos solo si NO es el denunciante
     if (form.esVictima === 'no') {
-      // Si NO es el denunciante, la víctima externa es obligatoria
-      // RUT de víctima es obligatorio si no es el denunciante
+      // Si NO es el denunciante, todos los campos de víctima son obligatorios
+      // RUT de víctima es obligatorio
       if (!form.victimaRut.trim()) {
         newErrors.victimaRut = 'El RUT de la víctima es obligatorio';
       } else if (!validarRut(form.victimaRut)) {
         newErrors.victimaRut = 'RUT de víctima inválido';
       }
-      // Si ingresó correo de víctima, validarlo
-      if (form.victimaCorreo.trim() && !validarEmail(form.victimaCorreo)) {
+
+      // Nombre Completo es obligatorio
+      if (!form.victimaNombre.trim()) {
+        newErrors.victimaNombre = 'El nombre completo de la víctima es obligatorio';
+      } else {
+        const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/;
+        if (!nombreRegex.test(form.victimaNombre.trim())) {
+          newErrors.victimaNombre = 'El nombre solo puede contener letras';
+        }
+      }
+
+      // Correo Electrónico es obligatorio
+      if (!form.victimaCorreo.trim()) {
+        newErrors.victimaCorreo = 'El correo electrónico de la víctima es obligatorio';
+      } else if (!validarEmail(form.victimaCorreo)) {
         newErrors.victimaCorreo = 'Correo electrónico de víctima inválido';
       }
-      // Si ingresó teléfono de víctima, validarlo
-      if (form.victimaTelefono.trim() && !validarTelefono(form.victimaTelefono)) {
+
+      // Teléfono es obligatorio
+      if (!form.victimaTelefono.trim()) {
+        newErrors.victimaTelefono = 'El teléfono de la víctima es obligatorio';
+      } else if (!validarTelefono(form.victimaTelefono)) {
         newErrors.victimaTelefono = 'Teléfono de víctima inválido (debe tener 8-9 dígitos)';
       }
-    } else {
-      // Si el denunciante ES la víctima, validar que tenga datos básicos del denunciante
-      // El denunciante ya tiene sus datos, pero debemos asegurarnos de que estén presentes
-      // Si está autenticado, los datos se autocompletan, pero validamos por si acaso
-      // (No hacemos esto estricto ya que el denunciante es opcional ahora)
+
+      // Sexo es obligatorio
+      if (!form.victimaSexo || !form.victimaSexo.trim()) {
+        newErrors.victimaSexo = 'El sexo de la víctima es obligatorio';
+      }
+
+      // Género es opcional, solo validar formato si se ingresó
+
+      // Región es obligatoria
+      if (!form.regionVictima || !form.regionVictima.trim()) {
+        newErrors.regionVictima = 'La región de la víctima es obligatoria';
+      }
+
+      // Comuna es obligatoria
+      if (!form.comunaVictima || !form.comunaVictima.trim()) {
+        newErrors.comunaVictima = 'La comuna de la víctima es obligatoria';
+      }
+
+      // Dirección es obligatoria
+      if (!form.direccionVictima || !form.direccionVictima.trim()) {
+        newErrors.direccionVictima = 'La dirección de la víctima es obligatoria';
+      }
     }
+    // Si el denunciante ES la víctima, no se validan estos campos porque se autocompletan del Paso 1
 
     // Validar RUTs de denunciados (si tienen RUT)
     form.involucrados.forEach((inv, index) => {

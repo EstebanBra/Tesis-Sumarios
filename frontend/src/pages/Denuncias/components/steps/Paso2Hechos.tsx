@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import InfoTooltip from '@/components/ui/InfoTooltip';
 import FileUploader from '@/components/FileUploader';
 import { formatearRut } from '@/utils/validation.utils';
@@ -34,6 +35,24 @@ export default function Paso2Hechos({
   setErrorDenunciado,
   setErrorTestigo,
 }: Paso2Props) {
+  // Calcular comunas de la víctima basado en la región seleccionada
+  const communesVictima = useMemo(() => {
+    if (!formulario.regionVictima) return [];
+    const region = allRegions.find(r => r.name === formulario.regionVictima);
+    if (!region) return [];
+
+    const allCommunes: any[] = [];
+    Object.values(region.provinces || {}).forEach((province: any) => {
+      Object.values(province.communes || {}).forEach((commune: any) => {
+        allCommunes.push(commune);
+      });
+    });
+
+    return allCommunes.sort((a, b) => a.name.localeCompare(b.name));
+  }, [formulario.regionVictima, allRegions]);
+
+  const esVictima = formulario.esVictima === 'si';
+
   return (
     <div className="space-y-8">
       <section className="space-y-4">
@@ -94,14 +113,17 @@ export default function Paso2Hechos({
             </div>
           </div>
 
+          {/* Renderizado condicional según si el denunciante es la víctima */}
+          {!esVictima ? (
+            // Si NO es la víctima: mostrar todos los campos
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="text-sm font-medium text-gray-700">
-                RUT {formulario.esVictima === 'no' && '*'}
+                  RUT <span className="text-red-500">*</span>
               </label>
               <input
                 data-field="victimaRut"
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                   errors.victimaRut && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaRut}
@@ -117,20 +139,19 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === 'si'}
               />
-              {errors.victimaRut && intentoAvanzar && formulario.esVictima === 'no' && (
+                {errors.victimaRut && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaRut}</p>
               )}
             </div>
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-gray-700 flex items-center">
-                Nombre Completo
+                  Nombre Completo <span className="text-red-500">*</span>
                 <InfoTooltip text="Indica el nombre de la víctima. Si ella utiliza un Nombre Social distinto a su nombre legal, escríbelo aquí. La Universidad prioriza el reconocimiento de la identidad de género para garantizar un trato digno." />
               </label>
               <input
                 data-field="victimaNombre"
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                   errors.victimaNombre && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaNombre}
@@ -144,7 +165,6 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaNombre && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaNombre}</p>
@@ -152,12 +172,13 @@ export default function Paso2Hechos({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center">
-                Correo
+                  Correo Electrónico <span className="text-red-500">*</span>
                 <InfoTooltip text="Datos exclusivos para que DIRGEGEN contacte a la víctima confidencialmente y le ofrezca apoyo." />
               </label>
               <input
                 data-field="victimaCorreo"
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                  type="email"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                   errors.victimaCorreo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaCorreo}
@@ -171,7 +192,6 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaCorreo && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaCorreo}</p>
@@ -179,12 +199,12 @@ export default function Paso2Hechos({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center">
-                Teléfono
+                  Teléfono <span className="text-red-500">*</span>
                 <InfoTooltip text="Datos exclusivos para que DIRGEGEN contacte a la víctima confidencialmente y le ofrezca apoyo." />
               </label>
               <input
                 data-field="victimaTelefono"
-                className={`mt-1 w-full rounded-md border px-3 py-2 text-sm bg-gray-100 text-gray-60 ${
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
                   errors.victimaTelefono && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
                 }`}
                 value={formulario.victimaTelefono}
@@ -201,7 +221,6 @@ export default function Paso2Hechos({
                     });
                   }
                 }}
-                disabled={formulario.esVictima === 'si'}
               />
               {errors.victimaTelefono && intentoAvanzar && (
                 <p className="mt-1 text-xs text-red-500">{errors.victimaTelefono}</p>
@@ -209,11 +228,14 @@ export default function Paso2Hechos({
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center">
-                Sexo *
+                  Sexo <span className="text-red-500">*</span>
                 <InfoTooltip text="Si no estás seguro(a) de cómo se identifica la víctima, selecciona la opción más cercana. Estos datos podrán ser rectificados luego." />
               </label>
               <select
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+                  data-field="victimaSexo"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.victimaSexo && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 value={formulario.victimaSexo || ''}
                 onChange={e => handleChange('victimaSexo', e.target.value)}
               >
@@ -222,6 +244,9 @@ export default function Paso2Hechos({
                 <option value="Masculino">Masculino</option>
                 <option value="Prefiero no decirlo">Prefiero no decirlo</option>
               </select>
+                {errors.victimaSexo && intentoAvanzar && (
+                  <p className="mt-1 text-xs text-red-500">{errors.victimaSexo}</p>
+                )}
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 flex items-center">
@@ -229,7 +254,10 @@ export default function Paso2Hechos({
                 <InfoTooltip text="Si no estás seguro(a) de cómo se identifica la víctima, selecciona la opción más cercana. Estos datos podrán ser rectificados luego." />
               </label>
               <select
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 focus:ring-2 focus:ring-blue-100 outline-none bg-white"
+                  data-field="victimaGenero"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.victimaGenero && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 value={formulario.victimaGenero || ''}
                 onChange={e => handleChange('victimaGenero', e.target.value)}
               >
@@ -246,8 +274,172 @@ export default function Paso2Hechos({
                 <option value="NoLoSe">No lo sé</option>
                 <option value="Prefiero no decirlo">Prefiero no decirlo</option>
               </select>
+                {errors.victimaGenero && intentoAvanzar && (
+                  <p className="mt-1 text-xs text-red-500">{errors.victimaGenero}</p>
+                )}
             </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Región <span className="text-red-500">*</span>
+                </label>
+                <select
+                  data-field="regionVictima"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.regionVictima && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  value={formulario.regionVictima}
+                  onChange={e => {
+                    handleChange('regionVictima', e.target.value);
+                    handleChange('comunaVictima', '');
+                    if (errors.regionVictima) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.regionVictima;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                >
+                  <option value="">Seleccionar</option>
+                  {allRegions.map(r => (
+                    <option key={r.id} value={r.name}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.regionVictima && intentoAvanzar && (
+                  <p className="mt-1 text-xs text-red-500">{errors.regionVictima}</p>
+                )}
           </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Comuna <span className="text-red-500">*</span>
+                </label>
+                <select
+                  data-field="comunaVictima"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.comunaVictima && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  value={formulario.comunaVictima}
+                  onChange={e => {
+                    handleChange('comunaVictima', e.target.value);
+                    if (errors.comunaVictima) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.comunaVictima;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  disabled={!formulario.regionVictima}
+                >
+                  <option value="">Seleccionar</option>
+                  {communesVictima.map(c => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.comunaVictima && intentoAvanzar && (
+                  <p className="mt-1 text-xs text-red-500">{errors.comunaVictima}</p>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">
+                  Dirección <span className="text-red-500">*</span>
+                </label>
+                <input
+                  data-field="direccionVictima"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-sm ${
+                    errors.direccionVictima && intentoAvanzar ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Calle / número"
+                  value={formulario.direccionVictima}
+                  onChange={e => {
+                    handleChange('direccionVictima', e.target.value);
+                    if (errors.direccionVictima) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.direccionVictima;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                />
+                {errors.direccionVictima && intentoAvanzar && (
+                  <p className="mt-1 text-xs text-red-500">{errors.direccionVictima}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Si SÍ es la víctima: mostrar solo campos básicos (sin RUT, Sexo ni Género)
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center">
+                  Nombre Completo
+                  <InfoTooltip text="Los datos han sido autocompletados desde el Paso 1 (Información del Denunciante)." />
+                </label>
+                <input
+                  data-field="victimaNombre"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.victimaNombre}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 flex items-center">
+                  Correo Electrónico
+                  <InfoTooltip text="Los datos han sido autocompletados desde el Paso 1 (Información del Denunciante)." />
+                </label>
+                <input
+                  data-field="victimaCorreo"
+                  type="email"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.victimaCorreo}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 flex items-center">
+                  Teléfono
+                  <InfoTooltip text="Los datos han sido autocompletados desde el Paso 1 (Información del Denunciante)." />
+                </label>
+                <input
+                  data-field="victimaTelefono"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.victimaTelefono}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Región</label>
+                <input
+                  data-field="regionVictima"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.regionVictima}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Comuna</label>
+                <input
+                  data-field="comunaVictima"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.comunaVictima}
+                  readOnly
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-sm font-medium text-gray-700">Dirección</label>
+                <input
+                  data-field="direccionVictima"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-100 text-gray-600"
+                  value={formulario.direccionVictima}
+                  readOnly
+                />
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

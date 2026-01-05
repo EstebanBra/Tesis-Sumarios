@@ -194,9 +194,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
     // 3️⃣ PARTICIPANTES (Denunciados + Testigos + Víctima Externa)
     const participantes = [];
 
+    // DEBUG: Verificar qué se recibe en payload.victima
+    console.log('🔍 DEBUG - payload.victima:', JSON.stringify(payload.victima, null, 2));
+    console.log('🔍 DEBUG - esVictima debería ser false cuando hay víctima externa');
+
     // Agregar víctima externa como participante PRIMERO si existe y tiene RUT
     // Esto es importante para que la víctima esté disponible en la lista de participantes
     if (payload.victima && payload.victima.rut && typeof payload.victima.rut === 'string' && payload.victima.rut.trim().length > 0) {
+      console.log('✅ Guardando víctima externa con Tipo_PD: VICTIMA');
       // Crear o actualizar la persona víctima
       const personaVictima = await tx.persona.upsert({
         where: { Rut: payload.victima.rut.trim() },
@@ -217,12 +222,20 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
         }
       });
 
-      // Agregar víctima como participante
+      // Agregar víctima como participante con tipo VICTIMA
       participantes.push({
         ID_Denuncia: denuncia.ID_Denuncia,
         ID_Persona: personaVictima.ID,
         Nombre_PD: payload.victima.nombre || "Sin nombre",
+        Tipo_PD: 'VICTIMA', // IMPORTANTE: Marcar explícitamente como VICTIMA
       });
+      console.log('✅ Víctima agregada a participantes:', {
+        nombre: payload.victima.nombre,
+        rut: payload.victima.rut,
+        Tipo_PD: 'VICTIMA'
+      });
+    } else {
+      console.log('⚠️ NO se guardó víctima externa. payload.victima:', payload.victima);
     }
 
     // Denunciados
@@ -262,6 +275,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
             ID_Denuncia: denuncia.ID_Denuncia,
             ID_Persona: personaId,
             Nombre_PD: p.nombre ?? "Desconocido",
+            Tipo_PD: 'DENUNCIADO', // Marcar explícitamente como DENUNCIADO
           });
         }
       }
@@ -295,6 +309,7 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
             ID_Denuncia: denuncia.ID_Denuncia,
             ID_Persona: personaId,
             Nombre_PD: t.nombre ?? "Desconocido",
+            Tipo_PD: 'TESTIGO', // Marcar explícitamente como TESTIGO
           });
         }
       }
@@ -302,7 +317,14 @@ export async function createDenunciaService(payload, { historial = true } = {}) 
 
     // Guardar todos los participantes (víctima + denunciados + testigos)
     if (participantes.length > 0) {
+      console.log('📝 Guardando participantes:', JSON.stringify(participantes.map(p => ({
+        Nombre_PD: p.Nombre_PD,
+        Tipo_PD: p.Tipo_PD
+      })), null, 2));
       await tx.participante_Denuncia.createMany({ data: participantes });
+      console.log('✅ Participantes guardados exitosamente');
+    } else {
+      console.log('⚠️ No hay participantes para guardar');
     }
 
     // 4️⃣ EVIDENCIAS Y CARACTERÍSTICAS
