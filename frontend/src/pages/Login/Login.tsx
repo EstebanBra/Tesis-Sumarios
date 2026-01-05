@@ -82,16 +82,30 @@ export default function Login() {
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center">
-                        <p className="text-xs text-gray-500 mt-6 text-center">
-                            ¿Necesitas ayuda? comunícate con{' '}
+                    <div className="mt-8 space-y-4">
+                        <div className="border-t border-gray-200 pt-6">
+                            <p className="text-sm text-gray-700 text-center mb-3">
+                                ¿Deseas realizar una denuncia?
+                            </p>
                             <a
-                                href="mailto:desarrolloface@ubiobio.cl"
-                                className="text-ubb-blue hover:underline font-semibold transition-colors"
+                                href="/denuncia/acceso"
+                                className="block w-full text-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 text-sm font-semibold transition-colors border border-gray-300"
                             >
-                                desarrolloface@ubiobio.cl
+                                ACCEDER AL FORMULARIO DE DENUNCIA
                             </a>
-                        </p>
+                        </div>
+
+                        <div className="text-center">
+                            <p className="text-xs text-gray-500">
+                                ¿Necesitas ayuda? comunícate con{' '}
+                                <a
+                                    href="mailto:desarrolloface@ubiobio.cl"
+                                    className="text-ubb-blue hover:underline font-semibold transition-colors"
+                                >
+                                    desarrolloface@ubiobio.cl
+                                </a>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

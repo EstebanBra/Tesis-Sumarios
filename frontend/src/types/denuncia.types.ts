@@ -57,6 +57,9 @@ export type FormularioDenuncia = {
     victimaNacimiento: string
     victimaCorreo: string
     victimaTelefono: string
+    regionVictima: string
+    comunaVictima: string
+    direccionVictima: string
 
     regionHecho: string
     comunaHecho: string

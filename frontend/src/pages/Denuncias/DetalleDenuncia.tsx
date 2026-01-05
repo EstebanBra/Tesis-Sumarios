@@ -102,10 +102,22 @@ export default function DetalleDenuncia() {
   const direccionDenunciante = getProp(datosDenuncianteObj, 'direccion', 'direccion');
 
   // Determinar si el denunciante es la víctima
-  let esVictima = false;
+  // PRIMERO: Verificar si existe un participante con Tipo_PD === 'VICTIMA' (más confiable)
+  const todosParticipantes = denuncia?.participante_denuncia || [];
+  const denuncianteId = denuncia?.denunciante?.ID || datosDenuncianteObj?.ID;
+
+  // Buscar víctima externa por Tipo_PD
+  const victimaExternaPorTipo = todosParticipantes.find((p: any) => {
+    return (p.Tipo_PD === 'VICTIMA' || p.tipo_PD === 'VICTIMA') &&
+           (!denuncianteId || p.ID_Persona !== denuncianteId);
+  });
+
+  // Si existe una víctima externa, el denunciante NO es la víctima
+  let esVictima = !victimaExternaPorTipo;
   let victimaMenor = false;
 
-  if (denuncia?.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
+  // Si no hay víctima externa por tipo, verificar en los hitos (para compatibilidad con datos antiguos)
+  if (!victimaExternaPorTipo && denuncia?.denunciante?.participantes_caso && Array.isArray(denuncia.denunciante.participantes_caso)) {
     for (const pc of denuncia.denunciante.participantes_caso) {
       if (pc.hitos && Array.isArray(pc.hitos)) {
         for (const hito of pc.hitos) {
@@ -113,6 +125,9 @@ export default function DetalleDenuncia() {
             const desc = hito.Descripcion;
             if (desc.includes('Denunciante es la víctima')) {
               esVictima = true;
+            }
+            if (desc.includes('Denunciante es testigo/tercero')) {
+              esVictima = false; // Si dice explícitamente que NO es la víctima
             }
             if (desc.includes('Víctima es menor de edad') || desc.toLowerCase().includes('menor de edad')) {
               victimaMenor = true;
@@ -126,54 +141,85 @@ export default function DetalleDenuncia() {
   }
 
   // Buscar víctima externa si no es el denunciante
-  const todosParticipantes = denuncia?.participante_denuncia || [];
-  const denuncianteId = denuncia?.denunciante?.ID || datosDenuncianteObj?.ID;
   let victimaExterna: any = null;
 
   if (!esVictima) {
-    victimaExterna = todosParticipantes.find((p: any) => {
-      return p.ID_Persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
-    });
+    // Primero intentar buscar directamente en denuncia.victima si existe
+    if (denuncia?.victima) {
+      victimaExterna = { persona: denuncia.victima };
+    } else {
+      // Usar la víctima encontrada por tipo (ya la tenemos arriba)
+      victimaExterna = victimaExternaPorTipo || null;
+
+      // Fallback: si no se encuentra por tipo, buscar por exclusión (para compatibilidad con datos antiguos)
+      if (!victimaExterna) {
+        const participantesConPersona = todosParticipantes.filter((p: any) => {
+          return p.ID_Persona && p.persona && (!denuncianteId || p.ID_Persona !== denuncianteId);
+        });
+        victimaExterna = participantesConPersona[0] || null;
+      }
+    }
   }
 
-  // Datos de víctima
+  // Datos de víctima - IMPORTANTE: Si esVictima es true, usar datos del denunciante
+  // Si esVictima es false, usar datos de la víctima externa encontrada
   const nombreVictima = esVictima
     ? nombreCompletoDenunciante
-    : (victimaExterna?.persona?.Nombre || 'No identificado');
+    : (victimaExterna?.persona?.Nombre || victimaExterna?.Nombre || 'No identificado');
 
   const rutVictima = esVictima
     ? rutDenunciante
-    : (victimaExterna?.persona?.Rut || null);
+    : (victimaExterna?.persona?.Rut || victimaExterna?.Rut || null);
 
   const correoVictima = esVictima
     ? correoDenunciante
-    : (victimaExterna?.persona?.Correo || null);
+    : (victimaExterna?.persona?.Correo || victimaExterna?.Correo || null);
 
   const telefonoVictima = esVictima
     ? telefonoDenunciante
-    : (victimaExterna?.persona?.Telefono || null);
+    : (victimaExterna?.persona?.Telefono || victimaExterna?.Telefono || null);
 
   const sexoVictima = esVictima
     ? sexoDenunciante
-    : (victimaExterna?.persona?.sexo || null);
+    : (victimaExterna?.persona?.sexo || victimaExterna?.sexo || null);
 
   const generoVictima = esVictima
     ? generoDenunciante
-    : (victimaExterna?.persona?.genero || null);
+    : (victimaExterna?.persona?.genero || victimaExterna?.genero || null);
 
-  // Denunciados
-  const listaInvolucrados = denuncia?.datos_denunciados || denuncia?.Involucrados || denuncia?.involucrados || [];
+  // Denunciados: Filtrar para excluir al denunciante (denuncianteId ya está declarado arriba)
+  const todosInvolucrados = denuncia?.datos_denunciados || denuncia?.Involucrados || denuncia?.involucrados || [];
+  const listaInvolucrados = todosInvolucrados.filter((inv: any) => {
+    // Excluir si es el denunciante (por ID_Persona o por nombre si no tiene ID)
+    if (inv.ID_Persona && denuncianteId && inv.ID_Persona === denuncianteId) {
+      return false;
+    }
+    // También verificar por RUT si está disponible
+    if (inv.persona?.Rut && datosDenuncianteObj?.Rut && inv.persona.Rut === datosDenuncianteObj.Rut) {
+      return false;
+    }
+    return true;
+  });
 
-  // Testigos
+  // Testigos: Filtrar por Tipo_PD === 'TESTIGO' (más confiable que por exclusión)
+  const listaTestigos = todosParticipantes.filter((p: any) => {
+    // Buscar directamente por Tipo_PD === 'TESTIGO'
+    const esTestigo = p.Tipo_PD === 'TESTIGO' || p.tipo_PD === 'TESTIGO';
+
+    // Fallback para compatibilidad con datos antiguos: si no tiene Tipo_PD, usar exclusión
+    if (!p.Tipo_PD && !p.tipo_PD) {
   const nombresDenunciados = new Set(
     listaInvolucrados.map((inv: any) =>
       (inv.Nombre_Ingresado || inv.Nombre || inv.nombre || '').toLowerCase().trim()
     )
   );
-
-  const listaTestigos = todosParticipantes.filter((p: any) => {
     const nombreParticipante = (p.Nombre_PD || p.Nombre || p.nombre || '').toLowerCase().trim();
-    return !nombresDenunciados.has(nombreParticipante);
+      // Excluir si es denunciado o víctima (para datos antiguos)
+      return !nombresDenunciados.has(nombreParticipante) &&
+             p.ID_Persona !== (denuncia?.denunciante?.ID || datosDenuncianteObj?.ID);
+    }
+
+    return esTestigo;
   });
 
   // Archivos/Evidencias
