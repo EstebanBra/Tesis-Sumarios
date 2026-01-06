@@ -246,7 +246,7 @@ export async function createDenuncia(req, res, next) {
     const created = await createDenunciaService(payload, { historial: true });
 
     // Generar link de seguimiento para enviar por email
-    const linkSeguimiento = `${process.env.FRONTEND_URL || 'http://localhost'}/denuncia/seguimiento/${tokenSeguimiento}`;
+    const linkSeguimiento = `${process.env.FRONTEND_URL || 'http://localhost'}/directo/seguimiento/${tokenSeguimiento}`;
 
     // Si es una denuncia pública (con token temporal), enviar email al denunciante con el link de seguimiento
     if (req.denuncianteVerificado && bodyData.Correo) {
