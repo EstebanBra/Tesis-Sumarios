@@ -30,7 +30,7 @@ export default function SeleccionRol() {
         }
 
         sessionStorage.setItem('datosDenunciante', JSON.stringify(datosConRol))
-        navigate('/denuncias/nueva')
+        navigate('/directo/nueva-denuncia')
     }
 
     if (!datos) {

@@ -25,17 +25,17 @@ import RequireAuth from '@/components/RequireAuth';
 import { AuthProvider } from '@/context/AuthContext';
 import { Outlet } from 'react-router-dom';
 
-// Grupo AUTH (sin header/footer): Login y flujo de denuncias públicas
+// Grupo AUTH (sin header/footer): Login y flujo de denuncias sin login (acceso directo)
 const authRoutes = {
   element: <AuthShell />,
   children: [
     { path: '/login', element: <Login /> },
-    { path: '/denuncia/acceso', element: <AccesoDenuncia /> },
-    { path: '/verificacion-email', element: <VerificacionEmail /> },
-    { path: '/seleccion-rol', element: <SeleccionRol /> },
-    //{ path: '/denuncias/nueva', element: <NuevaDenuncia /> },
-    { path: '/denuncias/confirmacion', element: <ConfirmacionDenuncia /> },
-    { path: '/denuncia/seguimiento/:token', element: <SeguimientoDenuncia /> },
+    { path: '/directo/acceso', element: <AccesoDenuncia /> },
+    { path: '/directo/verificacion-email', element: <VerificacionEmail /> },
+    { path: '/directo/seleccion-rol', element: <SeleccionRol /> },
+    { path: '/directo/nueva-denuncia', element: <NuevaDenuncia /> },
+    { path: '/directo/confirmacion', element: <ConfirmacionDenuncia /> },
+    { path: '/directo/seguimiento/:token', element: <SeguimientoDenuncia /> },
   ],
 };
 

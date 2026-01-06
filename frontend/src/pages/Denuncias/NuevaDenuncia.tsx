@@ -1179,7 +1179,7 @@ export default function NuevaDenuncia() {
       const tokenTemporal = sessionStorage.getItem('tokenTemporal');
       if (tokenTemporal && response.tokenSeguimiento) {
         // Navegar a confirmación con el token
-        nav('/denuncias/confirmacion', {
+        nav('/directo/confirmacion', {
           state: {
             tokenSeguimiento: response.tokenSeguimiento,
             linkSeguimiento: response.linkSeguimiento

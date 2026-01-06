@@ -42,7 +42,7 @@ export default function AccesoDenuncia() {
             }))
 
             // Navegar a verificación de email
-            navigate('/verificacion-email')
+            navigate('/directo/verificacion-email')
         } catch (err: any) {
             setError(err.response?.data?.message || 'No se encontraron datos para el RUT ingresado')
         } finally {

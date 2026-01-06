@@ -19,7 +19,7 @@ export default function VerificacionEmail() {
         // Obtener datos de sessionStorage
         const datosTemp = sessionStorage.getItem('datosTempDenunciante')
         if (!datosTemp) {
-            navigate('/acceso-denuncia')
+            navigate('/directo/acceso')
             return
         }
 
@@ -94,17 +94,17 @@ export default function VerificacionEmail() {
 
             // Navegar según roles
             if (response.data.roles.length > 1) {
-                navigate('/seleccion-rol')
+                navigate('/directo/seleccion-rol')
             } else if (response.data.roles.length === 1) {
                 const datosConRol = { ...response.data, rolSeleccionado: response.data.roles[0] }
                 sessionStorage.setItem(
                     'datosDenunciante',
                     JSON.stringify(datosConRol)
                 )
-                navigate('/denuncias/nueva')
+                navigate('/directo/nueva-denuncia')
             } else {
                 // Usuario sin roles (acceso público)
-                navigate('/denuncias/nueva')
+                navigate('/directo/nueva-denuncia')
             }
         } catch (err: any) {
             const errorMsg =
@@ -255,7 +255,7 @@ export default function VerificacionEmail() {
                                 type="button"
                                 onClick={() => {
                                     sessionStorage.removeItem('datosTempDenunciante')
-                                    navigate('/acceso-denuncia')
+                                    navigate('/directo/acceso')
                                 }}
                                 className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
                             >
