@@ -18,6 +18,7 @@ import BandejaRevisor from '@/pages/Revisor/BandejaRevisor';
 import DetalleRevisor from '@/pages/Revisor/DetalleRevisor';
 import BandejaCampoClinico from '@/pages/CampoClinico/BandejaCampoClinico';
 import DetalleCampoClinico from '@/pages/CampoClinico/DetalleCampoClinico';
+import GestionUsuarios from '@/pages/Admin/GestionUsuarios';
 
 import AuthShell from '@/components/layout/AuthShell';
 import RequireAuth from '@/components/RequireAuth';
@@ -64,6 +65,8 @@ const appRoutes = {
 
         { path: 'campo-clinico/bandeja', element: <BandejaCampoClinico /> },
         { path: 'campo-clinico/denuncia/:id', element: <DetalleCampoClinico /> },
+
+        { path: 'admin/usuarios', element: <GestionUsuarios /> },
       ],
     },
   ],

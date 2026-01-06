@@ -108,6 +108,16 @@ export default function Header() {
             </Link>
           )}
 
+          {/* Enlace para Admin - Gestión de Usuarios */}
+          {hasRole('Admin') && (
+            <Link
+              to="/admin/usuarios"
+              className="inline-flex items-center border-b-2 border-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:border-ubb-blue hover:text-ubb-blue"
+            >
+              Gestión Usuarios
+            </Link>
+          )}
+
           {/* Zona de usuario al extremo derecho (placeholder) */}
           <div className="ml-auto inline-flex items-center gap-3 py-2">
             {isAuthenticated && (

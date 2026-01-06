@@ -91,128 +91,37 @@ export async function runInitialSetup() {
   }
   console.log('✅ Tipos de denuncia cargados correctamente.');
 
-  // 3. CREAR USUARIOS (PERSONAS)
-  const passwordHash = await bcrypt.hash('123456', 10);
+  // 3. CREAR USUARIO ADMINISTRADOR INICIAL (desde variables de entorno)
+  const adminRut = process.env.ADMIN_RUT || '11111111-1';
+  const adminExists = await prisma.persona.findUnique({
+    where: { Rut: adminRut }
+  });
 
-  const usuarios = [
-    {
-      Rut: '00000000-1',
-      Nombre: 'Encargada Dirgegen',
-      Correo: 'encargadoubb@gmail.com',
-      Telefono: '+56911111111',
-      password: passwordHash,
-      roles: ['Dirgegen'],
-    },
-    {
-      Rut: '11111111-1',
-      Nombre: 'Esteban Bravo',
-      Correo: 'esteban@ubb.cl',
-      Telefono: '+56911111111',
-      password: passwordHash,
-      roles: ['Admin'],
-    },
-    {
-      Rut: '22222222-2',
-      Nombre: 'Francisca Rabanal',
-      Correo: 'francisca@ubb.cl',
-      Telefono: '+56922222222',
-      password: passwordHash,
-      roles: ['Admin'],
-    },
-    {
-      Rut: '33000000-3',
-      Nombre: 'Usuario VRA', // Cambié VRAE por VRA si es lo que usas en el área de tipos
-      Correo: 'vra@ubb.cl',
-      Telefono: '+56933333333',
-      password: passwordHash,
-      roles: ['VRA'],
-    },
-    {
-      Rut: '33333333-3',
-      Nombre: 'Usuario VRAE', // Cambié VRAE por VRA si es lo que usas en el área de tipos
-      Correo: 'vrae@ubb.cl',
-      Telefono: '+56933333333',
-      password: passwordHash,
-      roles: ['VRAE'],
-    },
-    {
-      Rut: '44444444-4',
-      Nombre: 'Usuario Fiscalia',
-      Correo: 'fiscalia@ubb.cl',
-      Telefono: '+56944444444',
-      password: passwordHash,
-      roles: ['Fiscalia'],
-    },
-    {
-      Rut: '55555555-5',
-      Nombre: 'Usuario Revisor',
-      Correo: 'revisor@ubb.cl',
-      Telefono: '+56955555555',
-      password: passwordHash,
-      roles: ['REVISOR'],
-    },
-    {
-      Rut: '66666666-6',
-      Nombre: 'Usuario Campo Clínico',
-      Correo: 'campoclinico@ubb.cl',
-      Telefono: '+56966666666',
-      password: passwordHash,
-      roles: ['CampoClinico'],
-    },
-    // Actores del caso (Sin rol administrativo)
-    {
-      Rut: '10000000-1',
-      Nombre: 'María Soledad Vásquez Soto',
-      Correo: 'maria.vasquez@ubb.cl',
-      Telefono: '+56910000001',
-      password: passwordHash,
-      roles: [], // Denunciante potencial
-    },
-    {
-      Rut: '10000001-K',
-      Nombre: 'Ricardo Andrés Palma Muñoz',
-      Correo: 'ricardo.palma@ubb.cl',
-      Telefono: '+56910000002',
-      password: passwordHash,
-      roles: [], // Denunciado potencial
-    },
-  ];
+  if (!adminExists) {
+    const adminPassword = process.env.ADMIN_PASSWORD || '123456';
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-  console.log('... Insertando Usuarios y Roles');
-  for (const u of usuarios) {
-    // Upsert Persona
-    const persona = await prisma.persona.upsert({
-      where: { Rut: u.Rut },
-      update: {
-        password: u.password,
-        Correo: u.Correo,
-        Nombre: u.Nombre,
-        Telefono: u.Telefono,
-      }, // Actualiza datos si ya existe
-      create: {
-        Rut: u.Rut,
-        Nombre: u.Nombre,
-        Correo: u.Correo,
-        Telefono: u.Telefono,
-        password: u.password,
+    console.log('... Creando usuario administrador inicial');
+    const admin = await prisma.persona.create({
+      data: {
+        Rut: adminRut,
+        Nombre: process.env.ADMIN_NOMBRE || 'Administrador Principal',
+        Correo: process.env.ADMIN_CORREO || 'admin@ubb.cl',
+        Telefono: process.env.ADMIN_TELEFONO || '+56900000000',
+        password: passwordHash,
       },
     });
 
-    // Asignar Roles usando ID_Persona
-    for (const rol of u.roles) {
-      const existeRol = await prisma.participante_Caso.findFirst({
-        where: { ID_Persona: persona.ID, Tipo_PC: rol },
-      });
+    await prisma.participante_Caso.create({
+      data: {
+        ID_Persona: admin.ID,
+        Tipo_PC: 'Admin',
+      },
+    });
 
-      if (!existeRol) {
-        await prisma.participante_Caso.create({
-          data: {
-            ID_Persona: persona.ID,
-            Tipo_PC: rol,
-          },
-        });
-      }
-    }
+    console.log(`✅ Administrador creado: ${admin.Correo}`);
+  } else {
+    console.log('⚠️ Administrador ya existe');
   }
 
   console.log('✅ Seed completado exitosamente');

@@ -8,6 +8,7 @@ import notificacionesRoutes from "./notificaciones.routes.js";
 import storageRoutes from "./storage.routes.js";
 import datosExternosRoutes from "./datosExternos.routes.js";
 import verificacionEmailRoutes from "./verificacionEmail.routes.js";
+import usersRoutes from "./users.routes.js";
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use("/notificaciones", notificacionesRoutes);
 router.use("/storage", storageRoutes);
 router.use("/datos-externos", datosExternosRoutes);
 router.use("/verificacion-email", verificacionEmailRoutes);
+router.use("/users", usersRoutes);
 
 export default router;
